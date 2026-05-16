@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -15,7 +16,8 @@ internal class AlbumProcessor(
     [FromKeyedServices(PublisherTarget.Pdf)] IFilePublisher pdfPublisher,
     IPdfCreator pdfCreator,
     ITelegramReplier telegram,
-    ILogger<AlbumProcessor> logger) : BackgroundService
+    ILogger<AlbumProcessor> logger,
+    IConfiguration configuration) : BackgroundService
 {
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
@@ -38,12 +40,14 @@ internal class AlbumProcessor(
                 await markdownPublisher.PublishFileAsync(msgId, stoppingToken);
                 await pdfPublisher.PublishFileAsync(msgId, stoppingToken);
 
+                var testMode = bool.TryParse(configuration["TestMode"], out var tm) && tm;
                 await telegram.EditReply(msgId,
                     $"""
                      Done:
                      ✅ Created PDF
                      ✅ Published AI summary to Obsidian 
                      ✅ Published PDF
+                     {(testMode ? "🧪 Test mode" : "")}
                      """);
             }
             catch (Exception e)

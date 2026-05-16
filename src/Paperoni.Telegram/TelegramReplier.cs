@@ -1,6 +1,7 @@
 using Paperoni.Contract;
 using Paperoni.Telegram.Album;
 using Telegram.Bot;
+using Telegram.Bot.Types.ReplyMarkups;
 
 namespace Paperoni.Telegram;
 
@@ -18,11 +19,10 @@ public class TelegramReplier(ITelegramBotClient bot, AlbumWorkingDirectory worki
         var replyMessageId = metadata.ReplyMessageId;
         ArgumentNullException.ThrowIfNull(replyMessageId);
 
-        await EditMessage(chatId, replyMessageId.Value, text);
-    }
+        var markup = new InlineKeyboardMarkup([
+            [InlineKeyboardButton.WithCallbackData("🔄 Retry", $"retry:{msgId}")]
+        ]);
 
-    private async Task EditMessage(long chatId, int msgId, string text)
-    {
-        await bot.EditMessageText(chatId, msgId, text);
+        await bot.EditMessageText(chatId, replyMessageId.Value, text, replyMarkup: markup);
     }
 }

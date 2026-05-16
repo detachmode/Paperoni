@@ -4,7 +4,7 @@ namespace Paperoni.Tests;
 
 public class FakeTelegramReplier : ITelegramReplier
 {
-    private readonly TaskCompletionSource _done = new();
+    private TaskCompletionSource _done = new();
     private readonly List<(int MsgId, string Text)> _calls = [];
     private readonly object _lock = new();
 
@@ -17,6 +17,11 @@ public class FakeTelegramReplier : ITelegramReplier
         if (text.StartsWith("Done:"))
             _done.TrySetResult();
         return Task.CompletedTask;
+    }
+
+    public void Reset()
+    {
+        _done = new TaskCompletionSource();
     }
 
     public Task WaitForCompletionAsync(CancellationToken ct = default) =>

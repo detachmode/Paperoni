@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using System.Threading.Channels;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Paperoni.Contract;
@@ -11,6 +12,7 @@ namespace Paperoni.Telegram.Album;
 internal sealed class TelegramPhotoAlbumCollector(
     ITelegramBotClient botClient,
     AlbumQueue queue,
+    Channel<int> retryChannel,
     AlbumWorkingDirectory workingDirectory,
     ILogger<TelegramPhotoAlbumCollector> logger) : IHostedService
 {
@@ -22,7 +24,10 @@ internal sealed class TelegramPhotoAlbumCollector(
     {
         var me = await botClient.GetMe(cancellationToken: cancellationToken);
         if (botClient is TelegramBotClient tgBot)
+        {
             tgBot.OnMessage += HandleMessage;
+            tgBot.OnUpdate += HandleUpdate;
+        }
         logger.LogInformation($"@Started Telegram bot {me.Username} and listening for messages");
     }
 
@@ -30,8 +35,31 @@ internal sealed class TelegramPhotoAlbumCollector(
     {
         logger.LogInformation("Stopping telegram bot message handler");
         if (botClient is TelegramBotClient tgBot)
+        {
             tgBot.OnMessage -= HandleMessage;
+            tgBot.OnUpdate -= HandleUpdate;
+        }
         return Task.CompletedTask;
+    }
+
+    private async Task HandleUpdate(Update update)
+    {
+        if (update.CallbackQuery is not { } query)
+            return;
+
+        if (query.Data is not { } data || !data.StartsWith("retry:"))
+            return;
+
+        if (!int.TryParse(data.AsSpan(6), out var msgId))
+            return;
+
+        await botClient.AnswerCallbackQuery(query.Id);
+
+        if (query.Message is { } message)
+            await botClient.EditMessageText(message.Chat.Id, message.MessageId, "🔄 Retrying ...");
+
+        retryChannel.Writer.TryWrite(msgId);
+        logger.LogInformation("Retry requested for album {MsgId}", msgId);
     }
 
     private async Task HandleMessage(Message message, UpdateType type)
@@ -74,9 +102,9 @@ internal sealed class TelegramPhotoAlbumCollector(
             buffer.Timer?.Dispose();
 
             buffer.Timer = new Timer(
-#pragma warning disable CS4014 // Because this call is not awaited, execution of the current method continues before the call is completed
+#pragma warning disable CS4014
                 callback: _ => Flush(key),
-#pragma warning restore CS4014 // Because this call is not awaited, execution of the current method continues before the call is completed
+#pragma warning restore CS4014
                 state: null,
                 dueTime: _debounceTime,
                 period: Timeout.InfiniteTimeSpan

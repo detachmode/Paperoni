@@ -107,19 +107,47 @@ public class AlbumProcessingSteps
         _queue.Enqueue(new AlbumQueueEntry(photos));
     }
 
-    [Then("the album is processed")]
-    public async Task ThenAlbumIsProcessed()
+    private bool _servicesStarted;
+
+    [Given("the pipeline is started")]
+    public async Task GivenPipelineStarted()
     {
+        if (_servicesStarted)
+            return;
         _cts = new CancellationTokenSource(TimeSpan.FromSeconds(120));
         var hostedServices = _sp.GetServices<IHostedService>();
         foreach (var service in hostedServices)
             await service.StartAsync(_cts.Token);
+        _servicesStarted = true;
+    }
 
+    [Then("the album is processed")]
+    public async Task ThenAlbumIsProcessed()
+    {
+        await GivenPipelineStarted();
         await _telegram.WaitForCompletionAsync(_cts.Token);
 
         var workDir = Path.Combine(_tempBase, TestMessageId.ToString());
         var content = await File.ReadAllTextAsync(Path.Combine(workDir, "firstAiResponse.md"));
         _output.WriteLine($"AI Summary:\n{content}");
+    }
+
+    [Then("the album finishes processing")]
+    public async Task ThenAlbumFinishesProcessing()
+    {
+        await _telegram.WaitForCompletionAsync(_cts.Token);
+
+        var workDir = Path.Combine(_tempBase, TestMessageId.ToString());
+        var content = await File.ReadAllTextAsync(Path.Combine(workDir, "firstAiResponse.md"));
+        _output.WriteLine($"AI Summary:\n{content}");
+        _telegram.Reset();
+    }
+
+    [When("I request a retry")]
+    public void WhenRequestRetry()
+    {
+        var retryChannel = _sp.GetRequiredService<System.Threading.Channels.Channel<int>>();
+        retryChannel.Writer.TryWrite(TestMessageId);
     }
 
     [Then("the AI summary mentions {string}")]

@@ -7,6 +7,10 @@
     </PropertyGroup>
 
     <ItemGroup>
+      <InternalsVisibleTo Include="Paperoni.Tests" />
+    </ItemGroup>
+
+    <ItemGroup>
       <ProjectReference Include="..\Paperoni.Ai\Paperoni.Ai.csproj" />
       <ProjectReference Include="..\Paperoni.Telegram\Paperoni.Telegram.csproj" />
     </ItemGroup>

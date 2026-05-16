@@ -32,3 +32,33 @@ Extracted text from the document.
 		And the bot replied with "🤖 AI is reading"
 		And the bot replied with "📄 Creating PDF"
 		And the last bot reply starts with "Done:"
+
+	Scenario: Album retry re-processes and cleans old published files
+		Given the system is configured for integration testing
+		And the prompt template is:
+		"""
+Analyse the following document and extract the text.
+Extrakt the full visible content and return it as a markdown.
+
+## Output format (Markdown)
+
+---
+title: put here the heading you find in the document
+---
+
+# Summary
+Short summary of the document
+
+# Complete Text
+Extracted text from the document.
+		"""
+		And the processing pipeline is built
+		And the pipeline is started
+		When I enqueue a photo with caption "Test document"
+		Then the album finishes processing
+		And the summary is published to Obsidian
+		And the PDF is published to the output directory
+		When I request a retry
+		Then the album finishes processing
+		And the summary is published to Obsidian
+		And the PDF is published to the output directory

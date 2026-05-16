@@ -1,3 +1,4 @@
+using System.Threading.Channels;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Paperoni.Contract;
@@ -8,6 +9,7 @@ public static class DependencyInjection
 {
     public static IServiceCollection AddAlbumProcessor(this IServiceCollection collection)
     {
+        collection.AddSingleton(_ => Channel.CreateUnbounded<int>());
         collection.AddHostedService<AlbumProcessor>();
 
         collection.AddKeyedSingleton<IFilePublisher, FilePublisher>(PublisherTarget.Markdown, (sp, _) =>

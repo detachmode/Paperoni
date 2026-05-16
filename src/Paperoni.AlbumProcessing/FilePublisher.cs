@@ -8,6 +8,8 @@ internal sealed class FilePublisher(
     string outputPath,
     string searchPattern) : IFilePublisher
 {
+    private readonly string _extension = Path.GetExtension(searchPattern);
+
     public async Task PublishFileAsync(int msgId, CancellationToken stoppingToken)
     {
         var aiResult = await workingDirectory.RequireData<AiResult>(msgId, stoppingToken);
@@ -15,8 +17,16 @@ internal sealed class FilePublisher(
         var file = Directory.GetFiles(workingDir, searchPattern, SearchOption.TopDirectoryOnly).FirstOrDefault();
         ArgumentNullException.ThrowIfNull(file);
 
-        var destPath = Path.Combine(outputPath, $"{aiResult.Title}{Path.GetExtension(file)}");
+        var destPath = Path.Combine(outputPath, $"{aiResult.Title}{_extension}");
         Directory.CreateDirectory(outputPath);
         File.Copy(file, destPath, overwrite: true);
+    }
+
+    public Task DeletePreviousAsync(string title, CancellationToken stoppingToken)
+    {
+        var filePath = Path.Combine(outputPath, $"{title}{_extension}");
+        if (File.Exists(filePath))
+            File.Delete(filePath);
+        return Task.CompletedTask;
     }
 }

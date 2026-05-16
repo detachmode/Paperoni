@@ -9,4 +9,5 @@ public enum PublisherTarget
 public interface IFilePublisher
 {
     Task PublishFileAsync(int msgId, CancellationToken stoppingToken);
+    Task DeletePreviousAsync(string title, CancellationToken stoppingToken);
 }

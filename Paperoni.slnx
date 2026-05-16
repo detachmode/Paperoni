@@ -12,4 +12,7 @@
     <Project Path="test/Paperoni.Ai.Tests/Paperoni.Ai.Tests.csproj" />
     <Project Path="test/Paperoni.Tests/Paperoni.Tests.csproj" />
   </Folder>
+  <Folder Name="/_settings/">
+    <File Path="README.md" />
+  </Folder>
 </Solution>

@@ -45,7 +45,7 @@ Configuration is loaded from `appsettings.json`, user secrets, and environment v
 | `AI_MODEL` | Env (default: `qwen-3.6-35b-a3b-q4`) | Model name |
 | `PromptFilePath` | `appsettings.json` (default: `Prompt.md`) | Base prompt file path |
 | `TestMode` | `appsettings.json` / `appsettings.Development.json` | When `true`, all output routes to `TestModeOutputPath` |
-| `TestModeOutputPath` | `appsettings.Development.json` | Test output directory when `TestMode` is `true` |
+| `TestModeOutputPath` | User secret / env | Test output directory when `TestMode` is `true` |
 | `DownloadBasePath` | (optional) | Custom download root directory |
 
 ### Quick start
@@ -55,8 +55,9 @@ Configuration is loaded from `appsettings.json`, user secrets, and environment v
 dotnet user-secrets set "TELEGRAM_BOT_TOKEN" "your-bot-token"
 dotnet user-secrets set "ObsidianOutputPath" "/path/to/vault"
 dotnet user-secrets set "FilePublisherOutputPath" "/path/to/output"
+dotnet user-secrets set "TestModeOutputPath" "~/Downloads/paperoni-test" # optional
 
-# Run
+# Run (use DOTNET_ENVIRONMENT=Development for test mode)
 dotnet run --project src/Paperoni
 ```
 

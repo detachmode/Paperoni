@@ -4,12 +4,24 @@ Paperoni is a background service that ingests photo albums from Telegram, produc
 
 ## Pipeline
 
-```
-┌──────────┐   ┌────────────────┐   ┌────────────────┐   ┌──────────┐   ┌──────┐   ┌───────────────────┐
-│ Telegram │──►│ Album Collector│──►│ OpenCV Pipeline│──►│AI Summary│──►│ PDF  │──►│ Obsidian + Drive  │
-└──────────┘   └────────────────┘   └────────────────┘   └──────────┘   └──────┘   └───────────────────┘
-                  2s debounce         warp + grayscale       LLM          QuestPDF
-                                       + auto-levels
+```mermaid
+flowchart LR
+    Telegram -->|photos| AlbumCollector["Album Collector
+    2s debounce"]
+
+    AlbumCollector --> |album 
+    + prompt
+    + captions| AI["LLM Provider"]
+
+    AlbumCollector --> |album| OpenCV["OpenCV Pipeline
+    warp + grayscale + auto-levels"]
+
+
+    OpenCV --> |images|PDF["PDF QuestPDF"]
+    AI --> |title| PDF["PDF QuestPDF"]
+
+    PDF --> GoogleDrive["Google Drive"]
+    AI --> |markdown| Obsidian["Obsidian"]
 ```
 
 1. **Telegram Album Collector** — Listens for incoming photo messages. Singles are dispatched immediately; media groups are debounced 2 seconds to form complete **Albums**.

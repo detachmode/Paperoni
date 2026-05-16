@@ -1,6 +1,6 @@
 # Paperoni
 
-Paperoni is a background service that ingests photo albums from Telegram, produces AI-written Markdown summaries and document-corrected PDFs, and publishes them to Obsidian and Google Drive.
+Paperoni is a background service that ingests photo albums from Telegram, produces AI-written Markdown summaries and document-corrected PDFs, and publishes them to Obsidian and a configurable output directory.
 
 ## Language
 
@@ -28,12 +28,8 @@ A photo that has passed through the OpenCV pipeline: optional document-detection
 A component that edits the bot's reply message with emoji-prefixed progress status.
 _Avoid_: Notifier, status updater
 
-**Obsidian Store**:
-A component that copies the AI Summary `.md` file to a configured Obsidian vault directory.
-_Avoid_: Obsidian publisher
-
-**Google Drive Publisher**:
-A component that copies the generated PDF to a configured Google Drive sync directory.
+**File Publisher**:
+A generic component that copies a file from the **Working Directory** to a configured output directory. Registered as two keyed singletons — one for Markdown (`PublisherTarget.Markdown`) and one for PDF (`PublisherTarget.Pdf`).
 
 ## Relationships
 
@@ -41,8 +37,8 @@ A component that copies the generated PDF to a configured Google Drive sync dire
 - An **Album** has exactly one **Working Directory**
 - A **Working Directory** contains the raw **Photos**, the **AI Summary**, and the **PDF**
 - Processing an **Album** produces one **AI Summary** and one **PDF**
-- The **AI Summary** is published via the **Obsidian Store**
-- The **PDF** is published via the **Google Drive Publisher**
+- The **AI Summary** is published via the **File Publisher** (Markdown target)
+- The **PDF** is published via the **File Publisher** (PDF target)
 - The **Telegram Replier** sends progress updates throughout the pipeline
 
 ## Example dialogue

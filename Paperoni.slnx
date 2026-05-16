@@ -4,7 +4,6 @@
     <Project Path="src/Paperoni.AlbumProcessing/Paperoni.AlbumProcessing.csproj" />
     <Project Path="src/Paperoni.Contract/Paperoni.Contract.csproj" />
     <Project Path="src/Paperoni.ImageProcessing/Paperoni.ImageProcessing.csproj" />
-    <Project Path="src/Paperoni.Obsidian/Paperoni.Obsidian.csproj" />
     <Project Path="src/Paperoni.Telegram/Paperoni.Telegram.csproj" />
     <Project Path="src\Paperoni\Paperoni.csproj" />
   </Folder>

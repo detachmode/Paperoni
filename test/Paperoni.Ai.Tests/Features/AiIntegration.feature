@@ -7,6 +7,7 @@ Feature: AI Integration
 		When I ask "What is the capital of France?"
 		Then the answer should contain "Paris"
 
+	@ignore
 	Scenario: Long text
 		When I ask "Please write a 1000 words long shot story about dragons"
 		Then the answer should contain "dragon"

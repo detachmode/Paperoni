@@ -1,6 +1,6 @@
 # Paperoni
 
-Paperoni is a background service that ingests photo albums from Telegram, produces AI-written Markdown summaries and document-corrected PDFs, and publishes them to Obsidian and Google Drive.
+Paperoni is a background service that ingests photo albums from Telegram, produces AI-written Markdown summaries and document-corrected PDFs, and publishes them to Obsidian and a configurable output directory.
 
 ## Pipeline
 
@@ -20,7 +20,7 @@ flowchart LR
     OpenCV --> |images|PDF["PDF QuestPDF"]
     AI --> |title| PDF["PDF QuestPDF"]
 
-    PDF --> GoogleDrive["Google Drive"]
+    PDF --> FilePublisher["File Publisher"]
     AI --> |markdown| Obsidian["Obsidian"]
 ```
 
@@ -29,8 +29,8 @@ flowchart LR
 3. **OpenCV Pipeline** — Each **Photo** passes through optional document-detection + perspective warp, grayscale conversion, and histogram-based auto-levels.
 4. **AI Summary** — An LLM (OpenAI-compatible, local endpoint) produces a Markdown document with YAML frontmatter (title, date, counterparty, amount, category, tags, etc.).
 5. **PDF** — QuestPDF generates an A4 document with processed images, one per page at 1cm margins.
-6. **Obsidian Store** — The Markdown file is copied to a configured Obsidian vault directory.
-7. **Google Drive Publisher** — The PDF is copied to a configured Google Drive sync directory.
+6. **File Publisher (Markdown)** — The Markdown file is copied to a configured Obsidian vault directory.
+7. **File Publisher (PDF)** — The PDF is copied to a configured output directory.
 
 ## Configuration
 
@@ -40,10 +40,12 @@ Configuration is loaded from `appsettings.json`, user secrets, and environment v
 |-----|--------|-------------|
 | `TELEGRAM_BOT_TOKEN` | User secret / env | Telegram bot token |
 | `ObsidianOutputPath` | User secret / env | Obsidian vault directory |
-| `GoogleDriveOutputPath` | User secret / env | Google Drive sync directory |
+| `FilePublisherOutputPath` | User secret / env | Output directory for published PDFs |
 | `AI_ENDPOINT` | Env (default: `http://localhost:2276`) | OpenAI-compatible endpoint |
 | `AI_MODEL` | Env (default: `qwen-3.6-35b-a3b-q4`) | Model name |
 | `PromptFilePath` | `appsettings.json` (default: `Prompt.md`) | Base prompt file path |
+| `TestMode` | `appsettings.json` / `appsettings.Development.json` | When `true`, all output routes to `TestModeOutputPath` |
+| `TestModeOutputPath` | `appsettings.Development.json` | Test output directory when `TestMode` is `true` |
 | `DownloadBasePath` | (optional) | Custom download root directory |
 
 ### Quick start
@@ -52,7 +54,7 @@ Configuration is loaded from `appsettings.json`, user secrets, and environment v
 # Set required secrets
 dotnet user-secrets set "TELEGRAM_BOT_TOKEN" "your-bot-token"
 dotnet user-secrets set "ObsidianOutputPath" "/path/to/vault"
-dotnet user-secrets set "GoogleDriveOutputPath" "/path/to/gdrive"
+dotnet user-secrets set "FilePublisherOutputPath" "/path/to/output"
 
 # Run
 dotnet run --project src/Paperoni

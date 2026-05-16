@@ -28,7 +28,7 @@ Extracted text from the document.
 		And the AI summary mentions "title: Lorem ipsum"
 		And a PDF is created
 		And the summary is published to Obsidian
-		And the PDF is published to Google Drive
+		And the PDF is published to the output directory
 		And the bot replied with "🤖 AI is reading"
 		And the bot replied with "📄 Creating PDF"
 		And the last bot reply starts with "Done:"

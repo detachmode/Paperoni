@@ -193,7 +193,7 @@ Extracted text from the document.", ((global::Reqnroll.Table)(null)), "And ");
   await testRunner.AndAsync("the summary is published to Obsidian", ((string)(null)), ((global::Reqnroll.Table)(null)), "And ");
 #line hidden
 #line 31
-  await testRunner.AndAsync("the PDF is published to Google Drive", ((string)(null)), ((global::Reqnroll.Table)(null)), "And ");
+  await testRunner.AndAsync("the PDF is published to the output directory", ((string)(null)), ((global::Reqnroll.Table)(null)), "And ");
 #line hidden
 #line 32
   await testRunner.AndAsync("the bot replied with \"🤖 AI is reading\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "And ");

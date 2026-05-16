@@ -1,8 +1,8 @@
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Paperoni.Ai;
 using Paperoni.ImageProcessing;
-using Paperoni.Obsidian;
 using Paperoni.Telegram;
 using Paperoni.Telegram.Album;
 
@@ -11,8 +11,8 @@ namespace Paperoni.AlbumProcessing;
 internal class AlbumProcessor(
     AlbumQueue queue,
     IAiService ai,
-    IGoogleDrivePublisher googleDrivePublisher,
-    IObsidianStore obsidianStore,
+    [FromKeyedServices(PublisherTarget.Markdown)] IFilePublisher markdownPublisher,
+    [FromKeyedServices(PublisherTarget.Pdf)] IFilePublisher pdfPublisher,
     IPdfCreator pdfCreator,
     ITelegramReplier telegram,
     ILogger<AlbumProcessor> logger) : BackgroundService
@@ -34,16 +34,16 @@ internal class AlbumProcessor(
 
                 await telegram.EditReply(msgId, "📄 Creating PDF ..");
                 await pdfCreator.CreatePdf(msgId, stoppingToken);
-                
-                await obsidianStore.WriteFile(msgId);
-                await googleDrivePublisher.CopyToGoogleDrive(msgId, stoppingToken);
+
+                await markdownPublisher.PublishFileAsync(msgId, stoppingToken);
+                await pdfPublisher.PublishFileAsync(msgId, stoppingToken);
 
                 await telegram.EditReply(msgId,
                     $"""
                      Done:
                      ✅ Created PDF
                      ✅ Published AI summary to Obsidian 
-                     ✅ Published PDF to Google Drive 
+                     ✅ Published PDF
                      """);
             }
             catch (Exception e)

@@ -6,7 +6,6 @@ using Paperoni.Ai;
 using Paperoni.AlbumProcessing;
 using Paperoni.Contract;
 using Paperoni.ImageProcessing;
-using Paperoni.Obsidian;
 using Paperoni.Telegram;
 using Paperoni.Telegram.Album;
 using Reqnroll;
@@ -19,8 +18,7 @@ public class AlbumProcessingSteps
 {
     private readonly ITestOutputHelper _output;
     private string _tempBase = null!;
-    private string _obsidianDir = null!;
-    private string _driveDir = null!;
+    private string _outputDir = null!;
     private string _promptFilePath = null!;
     private ServiceProvider _sp = null!;
     private AlbumQueue _queue = null!;
@@ -37,11 +35,8 @@ public class AlbumProcessingSteps
     public async Task GivenSystemIsConfigured()
     {
         _tempBase = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
-        _obsidianDir = Path.Combine(_tempBase, "obsidian-output");
-        _driveDir = Path.Combine(_tempBase, "gdrive-output");
+        _outputDir = Path.Combine(_tempBase, "test-output");
         Directory.CreateDirectory(_tempBase);
-        Directory.CreateDirectory(_obsidianDir);
-        Directory.CreateDirectory(_driveDir);
         _promptFilePath = Path.Combine(_tempBase, "prompt.md");
 
         var msgDir = Path.Combine(_tempBase, TestMessageId.ToString());
@@ -81,14 +76,13 @@ public class AlbumProcessingSteps
             .AddInMemoryCollection(new Dictionary<string, string?>
             {
                 ["PromptFilePath"] = _promptFilePath,
-                ["ObsidianOutputPath"] = _obsidianDir,
-                ["GoogleDriveOutputPath"] = _driveDir,
+                ["TestMode"] = "true",
+                ["TestModeOutputPath"] = _outputDir,
             })
             .Build();
 
         _output.WriteLine($"Test output directory: {_tempBase}");
-        _output.WriteLine($"Obsidian output: {_obsidianDir}");
-        _output.WriteLine($"Google Drive output: {_driveDir}");
+        _output.WriteLine($"Test output: {_outputDir}");
 
         var services = new ServiceCollection();
         services.AddSingleton(_queue);
@@ -96,7 +90,6 @@ public class AlbumProcessingSteps
         services.AddSingleton<ITelegramReplier>(_telegram);
         services.AddAiService();
         services.AddImageProcessing();
-        services.AddObsidianStore();
         services.AddAlbumProcessor();
         services.AddSingleton<IConfiguration>(config);
         services.AddLogging();
@@ -148,15 +141,15 @@ public class AlbumProcessingSteps
     [Then("the summary is published to Obsidian")]
     public void ThenSummaryPublishedToObsidian()
     {
-        var obsidianFiles = Directory.GetFiles(_obsidianDir, "*.md");
-        Assert.NotEmpty(obsidianFiles);
+        var markdownFiles = Directory.GetFiles(_outputDir, "*.md");
+        Assert.NotEmpty(markdownFiles);
     }
 
-    [Then("the PDF is published to Google Drive")]
-    public void ThenPdfPublishedToGoogleDrive()
+    [Then("the PDF is published to the output directory")]
+    public void ThenPdfPublishedToOutputDirectory()
     {
-        var driveFiles = Directory.GetFiles(_driveDir, "*.pdf");
-        Assert.NotEmpty(driveFiles);
+        var pdfFiles = Directory.GetFiles(_outputDir, "*.pdf");
+        Assert.NotEmpty(pdfFiles);
     }
 
     [Then("the bot replied with {string}")]

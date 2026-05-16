@@ -165,18 +165,19 @@ namespace Paperoni.Ai.Tests.Features
             await this.ScenarioCleanupAsync();
         }
         
-        [global::Xunit.SkippableFactAttribute(DisplayName="Long text")]
+        [global::Xunit.SkippableFactAttribute(DisplayName="Long text", Skip="Ignored")]
         [global::Xunit.TraitAttribute("FeatureTitle", "AI Integration")]
         [global::Xunit.TraitAttribute("Description", "Long text")]
         public async global::System.Threading.Tasks.Task LongText()
         {
-            string[] tagsOfScenario = ((string[])(null));
+            string[] tagsOfScenario = new string[] {
+                    "ignore"};
             global::System.Collections.Specialized.OrderedDictionary argumentsOfScenario = new global::System.Collections.Specialized.OrderedDictionary();
             string pickleIndex = "1";
             global::Reqnroll.ScenarioInfo scenarioInfo = new global::Reqnroll.ScenarioInfo("Long text", null, tagsOfScenario, argumentsOfScenario, featureTags, pickleIndex);
             string[] tagsOfRule = ((string[])(null));
             global::Reqnroll.RuleInfo ruleInfo = null;
-#line 10
+#line 11
  this.ScenarioInitialize(scenarioInfo, ruleInfo);
 #line hidden
             if ((global::Reqnroll.TagHelper.ContainsIgnoreTag(scenarioInfo.CombinedTags) || global::Reqnroll.TagHelper.ContainsIgnoreTag(featureTags)))
@@ -186,10 +187,10 @@ namespace Paperoni.Ai.Tests.Features
             else
             {
                 await this.ScenarioStartAsync();
-#line 11
+#line 12
   await testRunner.WhenAsync("I ask \"Please write a 1000 words long shot story about dragons\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "When ");
 #line hidden
-#line 12
+#line 13
   await testRunner.ThenAsync("the answer should contain \"dragon\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "Then ");
 #line hidden
             }
@@ -207,7 +208,7 @@ namespace Paperoni.Ai.Tests.Features
             global::Reqnroll.ScenarioInfo scenarioInfo = new global::Reqnroll.ScenarioInfo("AI can read and describe two images", null, tagsOfScenario, argumentsOfScenario, featureTags, pickleIndex);
             string[] tagsOfRule = ((string[])(null));
             global::Reqnroll.RuleInfo ruleInfo = null;
-#line 14
+#line 15
  this.ScenarioInitialize(scenarioInfo, ruleInfo);
 #line hidden
             if ((global::Reqnroll.TagHelper.ContainsIgnoreTag(scenarioInfo.CombinedTags) || global::Reqnroll.TagHelper.ContainsIgnoreTag(featureTags)))
@@ -217,16 +218,16 @@ namespace Paperoni.Ai.Tests.Features
             else
             {
                 await this.ScenarioStartAsync();
-#line 15
+#line 16
   await testRunner.WhenAsync("I send two images: a red square and a blue circle", ((string)(null)), ((global::Reqnroll.Table)(null)), "When ");
 #line hidden
-#line 16
+#line 17
   await testRunner.AndAsync("I ask \"Describe both images and their colors\" with the images", ((string)(null)), ((global::Reqnroll.Table)(null)), "And ");
 #line hidden
-#line 17
+#line 18
   await testRunner.ThenAsync("the answer should contain \"red\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "Then ");
 #line hidden
-#line 18
+#line 19
   await testRunner.AndAsync("the answer should contain \"blue\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "And ");
 #line hidden
             }

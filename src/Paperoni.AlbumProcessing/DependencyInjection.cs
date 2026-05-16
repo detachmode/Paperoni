@@ -14,7 +14,7 @@ public static class DependencyInjection
         {
             var config = sp.GetRequiredService<IConfiguration>();
             var workingDir = sp.GetRequiredService<AlbumWorkingDirectory>();
-            var outputPath = ResolveOutputPath(config, "ObsidianOutputPath");
+            var outputPath = ResolveOutputPath(config, "MarkdownOutputPath");
             return new FilePublisher(workingDir, outputPath, "*.md");
         });
 

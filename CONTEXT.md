@@ -1,6 +1,6 @@
 # Paperoni
 
-Paperoni is a background service that ingests photo albums from Telegram, produces AI-written Markdown summaries and document-corrected PDFs, and publishes them to Obsidian and a configurable output directory.
+Paperoni is a background service that ingests photo albums from Telegram, produces AI-written Markdown summaries and document-corrected PDFs, and publishes them to a configurable output directory.
 
 ## Language
 

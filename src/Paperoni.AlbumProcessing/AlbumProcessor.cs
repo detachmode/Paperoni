@@ -45,7 +45,7 @@ internal class AlbumProcessor(
                     $"""
                      Done:
                      ✅ Created PDF
-                     ✅ Published AI summary to Obsidian 
+                     ✅ Published Markdown summary
                      ✅ Published PDF
                      {(testMode ? "🧪 Test mode" : "")}
                      """);

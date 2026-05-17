@@ -7,27 +7,12 @@
 	<s:String x:Key="/Default/CodeInspection/ExcludedFiles/FilesAndFoldersToSkip2/=7020124F_002D9FFC_002D4AC3_002D8F3D_002DAAB8E0240759_002Ff_003AOpenAIClientOptions_002Ecs_002Fl_003A_002E_002E_003F_002E_002E_003FLibrary_003FApplication_0020Support_003FJetBrains_003FRider2026_002E1_003Fresharper_002Dhost_003FDecompilerCache_003Fdecompiler_003F4402bc0cab6c4b808945cbb7aab5137c47e3d0_003F92_003F036faf46_003FOpenAIClientOptions_002Ecs/@EntryIndexedValue">ForceIncluded</s:String>
 	<s:String x:Key="/Default/CodeInspection/ExcludedFiles/FilesAndFoldersToSkip2/=7020124F_002D9FFC_002D4AC3_002D8F3D_002DAAB8E0240759_002Ff_003AServiceCollection_002Ecs_002Fl_003A_002E_002E_003F_002E_002E_003FLibrary_003FApplication_0020Support_003FJetBrains_003FRider2026_002E1_003Fresharper_002Dhost_003FDecompilerCache_003Fdecompiler_003F6aa57ddeb02b4bef8365bcdc6f7c52dd10338_003Fc6_003F81ad9345_003FServiceCollection_002Ecs/@EntryIndexedValue">ForceIncluded</s:String>
 	<s:String x:Key="/Default/CodeInspection/ExcludedFiles/FilesAndFoldersToSkip2/=7020124F_002D9FFC_002D4AC3_002D8F3D_002DAAB8E0240759_002Ff_003ATask_002Ecs_002Fl_003A_002E_002E_003F_002E_002E_003FLibrary_003FApplication_0020Support_003FJetBrains_003FRider2026_002E1_003Fresharper_002Dhost_003FDecompilerCache_003Fdecompiler_003F5abfc2f9674a4781aabbad089c04d62e1046310_003F1f_003Fae38a522_003FTask_002Ecs/@EntryIndexedValue">ForceIncluded</s:String>
+	<s:String x:Key="/Default/CodeInspection/ExcludedFiles/FilesAndFoldersToSkip2/=7020124F_002D9FFC_002D4AC3_002D8F3D_002DAAB8E0240759_002Ff_003ATelegramBotClientExtensions_002EApiMethods_002Ecs_002Fl_003A_002E_002E_003F_002E_002E_003FLibrary_003FApplication_0020Support_003FJetBrains_003FRider2026_002E1_003Fresharper_002Dhost_003FSourcesCache_003F58e6608cdb9eef9eb73fd1e8de80c267b1aba81760d2801c6a75149b96d3_003FTelegramBotClientExtensions_002EApiMethods_002Ecs/@EntryIndexedValue">ForceIncluded</s:String>
 	<s:String x:Key="/Default/CodeInspection/ExcludedFiles/FilesAndFoldersToSkip2/=7020124F_002D9FFC_002D4AC3_002D8F3D_002DAAB8E0240759_002Ff_003ATextReasoningContent_002Ecs_002Fl_003A_002E_002E_003F_002E_002E_003FLibrary_003FApplication_0020Support_003FJetBrains_003FRider2026_002E1_003Fresharper_002Dhost_003FDecompilerCache_003Fdecompiler_003F80ffd43dac9b47408490238dc0342068a3a48_003F69_003F3e65a911_003FTextReasoningContent_002Ecs/@EntryIndexedValue">ForceIncluded</s:String>
 	<s:String x:Key="/Default/CodeInspection/ExcludedFiles/FilesAndFoldersToSkip2/=7020124F_002D9FFC_002D4AC3_002D8F3D_002DAAB8E0240759_002Ff_003AThrowHelper_002Ecs_002Fl_003A_002E_002E_003F_002E_002E_003FLibrary_003FApplication_0020Support_003FJetBrains_003FRider2026_002E1_003Fresharper_002Dhost_003FDecompilerCache_003Fdecompiler_003F5abfc2f9674a4781aabbad089c04d62e1046310_003F5f_003F41f8f945_003FThrowHelper_002Ecs/@EntryIndexedValue">ForceIncluded</s:String>
-	<s:String x:Key="/Default/Environment/UnitTesting/UnitTestSessionStore/Sessions/=70ab88ca_002D2d65_002D4177_002D9bb8_002D7ba3c4089cd5/@EntryIndexedValue">&lt;SessionState ContinuousTestingMode="0" Name="AIIntegrationFeature #2" xmlns="urn:schemas-jetbrains-com:jetbrains-ut-session"&gt;
-  &lt;TestAncestor&gt;
-    &lt;TestId&gt;xUnit::9DDFDF7C-5053-ECBA-C874-566A7AE91F7B::net10.0::Paperoni.Ai.Tests.Features.AIIntegrationFeature&lt;/TestId&gt;
-    &lt;TestId&gt;xUnit::9F969F75-BCE8-374F-2F07-D99DAB3134F0::net10.0::Paperoni.ImageProcessing.Tests.ManualProcessingTest&lt;/TestId&gt;
-  &lt;/TestAncestor&gt;
+	<s:String x:Key="/Default/Environment/UnitTesting/UnitTestSessionStore/Sessions/=c06f35ed_002Dbfbf_002D4b85_002D816a_002D54d298b78e71/@EntryIndexedValue">&lt;SessionState ContinuousTestingMode="0" IsActive="True" Name="All tests from &amp;lt;test&amp;gt;\&amp;lt;Paperoni.Tests&amp;gt;" xmlns="urn:schemas-jetbrains-com:jetbrains-ut-session"&gt;
+  &lt;Project Location="/Users/dennismuller/repo/Paperoni/test/Paperoni.Tests" Presentation="&amp;lt;test&amp;gt;\&amp;lt;Paperoni.Tests&amp;gt;" /&gt;
 &lt;/SessionState&gt;</s:String>
-	<s:String x:Key="/Default/Environment/UnitTesting/UnitTestSessionStore/Sessions/=a8077df4_002D667c_002D4dff_002Dafcb_002Dcf9db7b0d859/@EntryIndexedValue">&lt;SessionState ContinuousTestingMode="0" IsActive="True" Name="Upload_RealPdf_ToGoogleDrive" xmlns="urn:schemas-jetbrains-com:jetbrains-ut-session"&gt;
-  &lt;TestAncestor&gt;
-    &lt;TestId&gt;xUnit::9DDFDF7C-5053-ECBA-C874-566A7AE91F7B::net10.0::Paperoni.Ai.Tests.Features.AIIntegrationFeature.LongText&lt;/TestId&gt;
-    &lt;TestId&gt;xUnit::9DDFDF7C-5053-ECBA-C874-566A7AE91F7B::net10.0::Paperoni.Ai.Tests.Features.AIIntegrationFeature.AICorrectlyIdentifiesTheCapitalOfFrance&lt;/TestId&gt;
-    &lt;TestId&gt;xUnit::9DDFDF7C-5053-ECBA-C874-566A7AE91F7B::net10.0::Paperoni.Ai.Tests.Features.AIIntegrationFeature.AICanReadAndDescribeTwoImages&lt;/TestId&gt;
-    &lt;TestId&gt;xUnit::8055ED09-2927-341A-F844-942A630C2248::net10.0::Paperoni.Tests.TestHelper&lt;/TestId&gt;
-  &lt;/TestAncestor&gt;
-&lt;/SessionState&gt;</s:String>
-	<s:String x:Key="/Default/Environment/UnitTesting/UnitTestSessionStore/Sessions/=c702693c_002D5c61_002D4776_002Db2f1_002D86d6d7a2b2db/@EntryIndexedValue">&lt;SessionState ContinuousTestingMode="0" Name="AIIntegrationFeature" xmlns="urn:schemas-jetbrains-com:jetbrains-ut-session"&gt;
-  &lt;TestAncestor&gt;
-    &lt;TestId&gt;xUnit::9DDFDF7C-5053-ECBA-C874-566A7AE91F7B::net10.0::Paperoni.Ai.Tests.Features.AIIntegrationFeature&lt;/TestId&gt;
-    &lt;TestId&gt;xUnit::8055ED09-2927-341A-F844-942A630C2248::net10.0::Paperoni.Tests.Features.TelegramFlowFeature&lt;/TestId&gt;
-    &lt;TestId&gt;xUnit::9F969F75-BCE8-374F-2F07-D99DAB3134F0::net10.0::Paperoni.ImageProcessing.Tests.ManualProcessingTest.Process_Image_And_Save_Result&lt;/TestId&gt;
-    &lt;TestId&gt;xUnit::23AF4A6F-D1EB-2F1B-AD06-D3E604ECCD0E::net10.0::Paperoni.GoogleDrive.Tests.GoogleDriveUploaderTests.Upload_RealPdf_ToGoogleDrive&lt;/TestId&gt;
-  &lt;/TestAncestor&gt;
-&lt;/SessionState&gt;</s:String></wpf:ResourceDictionary>
+	
+	
+	</wpf:ResourceDictionary>

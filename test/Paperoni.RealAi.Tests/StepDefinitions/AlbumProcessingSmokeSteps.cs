@@ -5,7 +5,6 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging.Abstractions;
 using OpenTelemetry;
 using OpenTelemetry.Trace;
-using Paperoni;
 using Paperoni.Ai;
 using Paperoni.AlbumProcessing;
 using Paperoni.Contract;
@@ -116,10 +115,6 @@ public class AlbumProcessingSmokeSteps
     [When("I enqueue a photo with caption {string}")]
     public void WhenEnqueuePhoto(string caption)
     {
-        var photos = new SortedDictionary<int, TelegramPhotoFile>
-        {
-            { TestMessageId, new TelegramPhotoFile(12345, TestMessageId, "file1", "unique1", caption, DateTime.Now) }
-        };
         _queue.Enqueue(new WorkItem(TestMessageId, false));
     }
 
@@ -192,18 +187,5 @@ public class AlbumProcessingSmokeSteps
         _tracerProvider?.Dispose();
         if (_sp is IAsyncDisposable ad)
             await ad.DisposeAsync();
-    }
-
-    private static string FindSolutionDirectory()
-    {
-        var dir = new DirectoryInfo(
-            Path.GetDirectoryName(typeof(AlbumProcessingSmokeSteps).Assembly.Location)!);
-        while (dir != null)
-        {
-            if (dir.GetFiles("Paperoni.slnx").Length > 0)
-                return dir.FullName;
-            dir = dir.Parent;
-        }
-        return Directory.GetCurrentDirectory();
     }
 }

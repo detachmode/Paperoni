@@ -42,7 +42,7 @@ internal class AlbumProcessor(
                 activity?.SetTag("isRetry", item.IsRetry);
 
                 using var _ = logger.BeginScope(new Dictionary<string, object> { ["AlbumId"] = item.MessageId });
-                logger.ProcessingAlbum(item.MessageId, item.IsRetry);
+                logger.ProcessingAlbum(item.IsRetry);
                 await ProcessAlbum(item.MessageId, item.IsRetry, stoppingToken);
 
                 albumIdAccessor.Id = null;
@@ -70,25 +70,25 @@ internal class AlbumProcessor(
                 var oldAiResult = await workingDirectory.GetData<AiResult>(msgId, stoppingToken);
                 if (oldAiResult?.Title is not null)
                 {
-                    logger.CleaningOldFiles(msgId, oldAiResult.Title);
+                    logger.CleaningOldFiles(oldAiResult.Title);
                     await markdownPublisher.DeletePreviousAsync(oldAiResult.Title, stoppingToken);
                     await pdfPublisher.DeletePreviousAsync(oldAiResult.Title, stoppingToken);
                 }
             }
 
-            logger.AiSummaryStarting(msgId);
+            logger.AiSummaryStarting();
             await telegram.EditReply(msgId, isRetry ? "🔄 Retrying ..." : "🤖 AI is reading it ..");
             await ai.CreateAiSummary(msgId, stoppingToken);
-            logger.AiSummaryDone(msgId);
+            logger.AiSummaryDone();
 
-            logger.PdfCreationStarting(msgId);
+            logger.PdfCreationStarting();
             await telegram.EditReply(msgId, "📄 Creating PDF ..");
             await pdfCreator.CreatePdf(msgId, stoppingToken);
-            logger.PdfCreationDone(msgId);
+            logger.PdfCreationDone();
 
-            logger.PublishingMarkdown(msgId);
+            logger.PublishingMarkdown();
             await markdownPublisher.PublishFileAsync(msgId, stoppingToken);
-            logger.PublishingPdf(msgId);
+            logger.PublishingPdf();
             await pdfPublisher.PublishFileAsync(msgId, stoppingToken);
 
             await telegram.SetReaction(msgId, "👏");
@@ -102,7 +102,7 @@ internal class AlbumProcessor(
                  ✅ Published PDF
                  {(testMode ? "🧪 Test mode" : "")}
                  """);
-            logger.AlbumComplete(msgId);
+            logger.AlbumComplete();
         }
         catch (OperationCanceledException)
         {

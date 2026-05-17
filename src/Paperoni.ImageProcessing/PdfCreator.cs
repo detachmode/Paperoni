@@ -48,7 +48,7 @@ internal sealed class PdfCreator(
         activity?.SetTag("latencySec", sw.Elapsed.TotalSeconds);
         activity?.SetStatus(ActivityStatusCode.Ok);
 
-        logger.PdfCreated(messageId, Path.GetFileName(pdfPath), pdfBytes.Length / 1024,
+        logger.PdfCreated(Path.GetFileName(pdfPath), pdfBytes.Length / 1024,
             originalImages.Count, sw.Elapsed.TotalSeconds);
     }
 

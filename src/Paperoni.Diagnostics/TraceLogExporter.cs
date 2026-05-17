@@ -65,16 +65,12 @@ public sealed class TraceLogExporter(
 
     private static string FormatSpan(Activity activity)
     {
-        var ts = activity.StartTimeUtc.ToString("yyyy-MM-dd HH:mm:ss.fff");
-        var status = activity.Status == ActivityStatusCode.Ok ? "OK" :
-            activity.Status == ActivityStatusCode.Error ? "ER" : "UN";
+        var ts = activity.StartTimeUtc.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss.fff");
+        var statusEmoji = activity.Status == ActivityStatusCode.Ok ? "✅" :
+            activity.Status == ActivityStatusCode.Error ? "❌" : "⏳";
 
         var dur = activity.Duration.TotalMilliseconds;
 
-        var tags = string.Join(", ", activity.TagObjects
-            .Where(t => t.Value is not null)
-            .Select(t => $"{t.Key}={t.Value}"));
-
-        return $"{ts}  {status,-3} {activity.DisplayName,-45} {dur,8:F0}ms  {{{tags}}}";
+        return $"{ts}  {statusEmoji} {activity.DisplayName} {dur:F0}ms";
     }
 }

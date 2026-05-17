@@ -5,7 +5,6 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using OpenTelemetry;
-using Serilog;
 using OpenTelemetry.Trace;
 using Paperoni.Ai;
 using Paperoni.AlbumProcessing;
@@ -15,6 +14,7 @@ using Paperoni.ImageProcessing;
 using Paperoni.Telegram;
 using Paperoni.Telegram.Album;
 using Reqnroll;
+using Serilog;
 using UglyToad.PdfPig;
 using Xunit.Abstractions;
 
@@ -23,16 +23,18 @@ namespace Paperoni.Tests.StepDefinitions;
 [Binding]
 public class AlbumProcessingSteps
 {
+    private const int TestMessageId = 42;
     private readonly ITestOutputHelper _output;
-    private string _tempBase = null!;
+    private CancellationTokenSource? _cts;
     private string _outputDir = null!;
     private string _promptFilePath = null!;
-    private ServiceProvider _sp = null!;
     private AlbumQueue _queue = null!;
+
+    private bool _servicesStarted;
+    private ServiceProvider _sp = null!;
     private FakeTelegramReplier _telegram = null!;
-    private CancellationTokenSource? _cts;
+    private string _tempBase = null!;
     private TracerProvider? _tracerProvider;
-    private const int TestMessageId = 42;
 
     public AlbumProcessingSteps(ITestOutputHelper output)
     {
@@ -114,9 +116,7 @@ public class AlbumProcessingSteps
         var config = new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?>
             {
-                ["PromptFilePath"] = _promptFilePath,
-                ["TestMode"] = "true",
-                ["TestModeOutputPath"] = _outputDir,
+                ["PromptFilePath"] = _promptFilePath, ["TestMode"] = "true", ["TestModeOutputPath"] = _outputDir,
             })
             .Build();
 
@@ -125,7 +125,11 @@ public class AlbumProcessingSteps
 
         Log.Logger = new LoggerConfiguration()
             .MinimumLevel.Debug()
-            .WriteTo.File(Path.Combine(_tempBase, "paperoni.log"))
+            .Enrich.FromLogContext()
+            .WriteTo.File(
+                Path.Combine(_tempBase, "paperoni.log"),
+                outputTemplate:
+                "[{Timestamp:yyyy-MM-dd HH:mm:ss.fff}] [{Level:u3}] [AlbumId={AlbumId}] {Message:lj}{NewLine}{Exception}")
             .CreateLogger();
 
         var services = new ServiceCollection();
@@ -153,8 +157,6 @@ public class AlbumProcessingSteps
         _queue.Enqueue(new WorkItem(TestMessageId, false));
     }
 
-    private bool _servicesStarted;
-
     [Given("the pipeline is started")]
     public async Task GivenPipelineStarted()
     {
@@ -162,12 +164,14 @@ public class AlbumProcessingSteps
         {
             return;
         }
+
         _cts = new CancellationTokenSource(TimeSpan.FromSeconds(120));
         var hostedServices = _sp.GetServices<IHostedService>();
         foreach (var service in hostedServices)
         {
             await service.StartAsync(_cts.Token);
         }
+
         _servicesStarted = true;
     }
 
@@ -262,6 +266,7 @@ public class AlbumProcessingSteps
             {
                 return;
             }
+
             await Task.Delay(100);
         }
 
@@ -289,7 +294,7 @@ public class AlbumProcessingSteps
         var logContent = logRetriever.GetLogContent(TestMessageId);
 
         Assert.Contains("AlbumProcessor.ExecuteAsync", logContent);
-        Assert.Contains("Album 42 processing started", logContent);
+        Assert.Contains("📥 Processing started", logContent);
     }
 
     [Then("the log content is chronologically sorted")]
@@ -305,14 +310,18 @@ public class AlbumProcessingSteps
 
         var lines = logContent.Split('\n', StringSplitOptions.RemoveEmptyEntries);
 
-        var timestamps = new List<DateTime>();
+        var timestamps = new List<TimeSpan>();
         foreach (var line in lines)
         {
-            if (line.Length >= 23 &&
-                DateTime.TryParseExact(line[..23], "yyyy-MM-dd HH:mm:ss.fff", null,
-                    System.Globalization.DateTimeStyles.None, out var dt))
+            if (line.StartsWith("📋"))
             {
-                timestamps.Add(dt);
+                continue;
+            }
+
+            if (line.Length >= 12 &&
+                TimeSpan.TryParseExact(line[..12], @"hh\:mm\:ss\.fff", null, out var ts))
+            {
+                timestamps.Add(ts);
             }
         }
 
@@ -339,7 +348,12 @@ public class AlbumProcessingSteps
         var lines = logContent.Split('\n', StringSplitOptions.RemoveEmptyEntries);
         foreach (var line in lines)
         {
-            Assert.Matches(@"^\d{4}-\d{2}-\d{2}", line);
+            if (line.StartsWith("📋"))
+            {
+                continue;
+            }
+
+            Assert.Matches(@"^\d{2}:\d{2}:\d{2}\.\d{3}", line);
         }
     }
 
@@ -352,7 +366,8 @@ public class AlbumProcessingSteps
         Assert.True(File.Exists(traceLogPath), $"Expected trace log at {traceLogPath}");
 
         var fallbackPath = Path.Combine(_tempBase, "traces.log");
-        Assert.False(File.Exists(fallbackPath), $"Unexpected fallback trace log at {fallbackPath} — some spans are missing AlbumId tag");
+        Assert.False(File.Exists(fallbackPath),
+            $"Unexpected fallback trace log at {fallbackPath} — some spans are missing AlbumId tag");
 
         var lines = File.ReadAllLines(traceLogPath);
         var joined = string.Join("\n", lines);

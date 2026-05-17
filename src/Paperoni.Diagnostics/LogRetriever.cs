@@ -9,11 +9,12 @@ internal sealed class LogRetriever(
     AlbumWorkingDirectory workingDirectory,
     IConfiguration configuration) : ILogRetriever
 {
+    private const string TimestampFormat = "yyyy-MM-dd HH:mm:ss.fff";
+    private const string TimeOnlyFormat = "HH:mm:ss.fff";
+
     private static readonly Regex s_timestampRegex = new(
         @"(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3})",
         RegexOptions.Compiled);
-
-    private const string TimestampFormat = "yyyy-MM-dd HH:mm:ss.fff";
 
     public string GetLogContent(int msgId)
     {
@@ -32,16 +33,20 @@ internal sealed class LogRetriever(
         {
             foreach (var line in File.ReadLines(file).Reverse())
             {
-                if (line.Contains("album " + msgIdStr, StringComparison.OrdinalIgnoreCase) ||
-                    line.Contains("message " + msgIdStr, StringComparison.OrdinalIgnoreCase) ||
-                    line.Contains(msgIdStr + ".jpg", StringComparison.OrdinalIgnoreCase) ||
-                    line.Contains(msgIdStr + ".pdf", StringComparison.OrdinalIgnoreCase))
+                if (!MatchesAlbum(line, msgIdStr))
                 {
-                    logEntries.Add(ParseAndReconstructLogLine(line));
-                    if (logEntries.Count >= 30)
-                    {
-                        break;
-                    }
+                    continue;
+                }
+
+                if (line.Contains("[DBG]", StringComparison.Ordinal))
+                {
+                    continue;
+                }
+
+                logEntries.Add(ParseAndReconstructLogLine(line));
+                if (logEntries.Count >= 30)
+                {
+                    break;
                 }
             }
 
@@ -57,7 +62,7 @@ internal sealed class LogRetriever(
         {
             foreach (var line in File.ReadLines(tracePath).Reverse().Take(20))
             {
-                traceEntries.Add(ParseTimestampOnly(line));
+                traceEntries.Add(ParseAndReconstructTraceLine(line));
             }
         }
 
@@ -66,15 +71,31 @@ internal sealed class LogRetriever(
             logEntries.Count + traceEntries.Count);
         allEntries.AddRange(logEntries);
         allEntries.AddRange(traceEntries);
+
+        if (allEntries.Count == 0)
+        {
+            return string.Empty;
+        }
+
         allEntries.Sort((a, b) => a.Timestamp.CompareTo(b.Timestamp));
 
-        return string.Join("\n", allEntries.Select(e => e.Line));
+        // 4. Build output with date header
+        var firstDate = allEntries[0].Timestamp.ToString("yyyy-MM-dd");
+        var lines = new List<string>(allEntries.Count + 1) { $"📋 Album {msgId} — {firstDate}" };
+        lines.AddRange(allEntries.Select(e => e.Line));
+
+        return string.Join("\n", lines);
     }
 
-    /// <summary>
-    /// Parses a Serilog log line (Format A or B), extracts the timestamp,
-    /// and reconstructs it in the unified format: "{timestamp}  {content}".
-    /// </summary>
+    private static bool MatchesAlbum(string line, string msgIdStr)
+    {
+        return line.Contains("album " + msgIdStr, StringComparison.OrdinalIgnoreCase) ||
+               line.Contains("message " + msgIdStr, StringComparison.OrdinalIgnoreCase) ||
+               line.Contains("AlbumId=" + msgIdStr, StringComparison.Ordinal) ||
+               line.Contains(msgIdStr + ".jpg", StringComparison.OrdinalIgnoreCase) ||
+               line.Contains(msgIdStr + ".pdf", StringComparison.OrdinalIgnoreCase);
+    }
+
     private static (DateTime Timestamp, string Line) ParseAndReconstructLogLine(string line)
     {
         var match = s_timestampRegex.Match(line);
@@ -89,42 +110,37 @@ internal sealed class LogRetriever(
             return (DateTime.MaxValue, line);
         }
 
-        var ts = match.Value;
+        var ts = timestamp.ToString(TimeOnlyFormat);
         var rest = line[(match.Index + match.Length)..];
 
         string content;
         if (match.Index > 0 && line[match.Index - 1] == '[')
         {
-            // Format A: [2026-05-17 20:39:57.547] [INF] [AlbumId=42] message
-            // rest starts with "] ...", skip past "] "
             var trimmed = rest.TrimStart();
-            content = trimmed.Length > 2 ? trimmed[2..] : trimmed;
+            content = trimmed.Length >= 2 ? trimmed[2..] : string.Empty;
         }
         else
         {
-            // Format B: 2026-05-17 20:39:57.547 +02:00 [INF] message
-            // rest starts with " +02:00 ...", skip past timezone offset
             var trimmed = rest.TrimStart();
-            // Timezone offset is 6 chars: +/-HH:MM
             const int tzLength = 6;
             if (trimmed.Length > tzLength && trimmed[tzLength] == ' ')
             {
                 content = trimmed[(tzLength + 1)..];
             }
-            else
+            else if (trimmed.Length >= tzLength)
             {
                 content = trimmed[tzLength..];
+            }
+            else
+            {
+                content = trimmed;
             }
         }
 
         return (timestamp, $"{ts}  {content}");
     }
 
-    /// <summary>
-    /// Parses a trace line's timestamp only; the line is already in the
-    /// unified format and is returned as-is.
-    /// </summary>
-    private static (DateTime Timestamp, string Line) ParseTimestampOnly(string line)
+    private static (DateTime Timestamp, string Line) ParseAndReconstructTraceLine(string line)
     {
         var match = s_timestampRegex.Match(line);
         if (!match.Success)
@@ -138,6 +154,9 @@ internal sealed class LogRetriever(
             return (DateTime.MaxValue, line);
         }
 
-        return (timestamp, line);
+        var ts = timestamp.ToString(TimeOnlyFormat);
+        var rest = line[(match.Index + match.Length)..];
+
+        return (timestamp, $"{ts}{rest}");
     }
 }

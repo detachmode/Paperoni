@@ -217,7 +217,7 @@ await this.FeatureBackgroundAsync();
     await testRunner.AndAsync("the last bot reply starts with \"Done:\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "And ");
 #line hidden
 #line 38
-    await testRunner.AndAsync("the bot reacted with \"✅\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "And ");
+    await testRunner.AndAsync("the bot reacted with \"👏\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "And ");
 #line hidden
 #line 39
     await testRunner.AndAsync("the trace log contains expected traces", ((string)(null)), ((global::Reqnroll.Table)(null)), "And ");
@@ -269,7 +269,7 @@ await this.FeatureBackgroundAsync();
     await testRunner.AndAsync("the last bot reply starts with \"Done:\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "And ");
 #line hidden
 #line 48
-    await testRunner.AndAsync("the bot reacted with \"✅\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "And ");
+    await testRunner.AndAsync("the bot reacted with \"👏\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "And ");
 #line hidden
 #line 49
     await testRunner.AndAsync("the trace log contains expected traces", ((string)(null)), ((global::Reqnroll.Table)(null)), "And ");
@@ -327,7 +327,7 @@ await this.FeatureBackgroundAsync();
     await testRunner.AndAsync("the PDF is published to the output directory", ((string)(null)), ((global::Reqnroll.Table)(null)), "And ");
 #line hidden
 #line 60
-    await testRunner.AndAsync("the bot reacted with \"✅\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "And ");
+    await testRunner.AndAsync("the bot reacted with \"👏\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "And ");
 #line hidden
             }
             await this.ScenarioCleanupAsync();

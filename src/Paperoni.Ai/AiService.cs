@@ -32,10 +32,8 @@ internal sealed class AiService : IAiService
 
     public async Task<string> TryFunctionCalling()
     {
-        var weatherFunction = AIFunctionFactory.Create((string location, string unit) =>
-            {
-                return "Periods of rain or drizzle, 15 C";
-            },
+        var weatherFunction = AIFunctionFactory.Create(
+            (string location, string unit) => { return "Periods of rain or drizzle, 15 C"; },
             "get_current_weather",
             "Gets the current weather in a given location");
 
@@ -146,6 +144,7 @@ internal sealed class AiService : IAiService
                     return;
                 }
 
+                lastDebugType = t;
                 _ = t switch
                 {
                     DebugOutputType.Reasoning => _telegram.EditReply(msgId, "🤖 AI is thinking .."),
@@ -174,7 +173,7 @@ internal sealed class AiService : IAiService
         activity?.SetTag("latencySec", sw.Elapsed.TotalSeconds);
         activity?.SetStatus(ActivityStatusCode.Ok);
 
-        _logger.AiSummaryCompleted(msgId, aiResult.Length, sw.Elapsed.TotalSeconds, title);
+        _logger.AiSummaryCompleted(aiResult.Length, sw.Elapsed.TotalSeconds, title);
     }
 
     public async Task<string> Review(IEnumerable<FileContent> files, string firstPrompt, string answer,

@@ -37,7 +37,7 @@ internal sealed class FilePublisher(
         activity?.SetTag("sizeKb", fileInfo.Length / 1024);
         activity?.SetStatus(ActivityStatusCode.Ok);
 
-        logger.FilePublished(_extension.TrimStart('.').ToUpperInvariant(), msgId,
+        logger.FilePublished(_extension.TrimStart('.').ToUpperInvariant(),
             Path.GetFileName(file), destPath, fileInfo.Length / 1024);
     }
 
@@ -54,6 +54,7 @@ internal sealed class FilePublisher(
         {
             File.Delete(filePath);
             logger.FileDeleted(_extension.TrimStart('.').ToUpperInvariant(), filePath);
+            activity?.SetStatus(ActivityStatusCode.Ok);
         }
 
         return Task.CompletedTask;

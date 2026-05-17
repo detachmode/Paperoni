@@ -1,10 +1,10 @@
 using System.Collections.Concurrent;
+using System.Net;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Paperoni.Contract;
 using Paperoni.Diagnostics;
 using Telegram.Bot;
-using Telegram.Bot.Extensions;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
 
@@ -86,21 +86,23 @@ internal sealed class TelegramPhotoAlbumCollector(
         var logText = logRetriever.GetLogContent(msgId);
         if (string.IsNullOrEmpty(logText))
         {
-            await botClient.SendMessage(msg.Chat.Id, $"No logs found for message {msgId}.",
-                replyParameters: msg.MessageId);
+            await botClient.EditMessageText(msg.Chat.Id, msg.MessageId,
+                $"No logs found for message {msgId}.",
+                replyMarkup: msg.ReplyMarkup);
             return;
         }
 
         var textLimit = 3900;
         if (logText.Length > textLimit)
         {
-            logText = logText[^textLimit..] + "\n...(truncated)";
+            logText = logText[..textLimit] + "\n...(truncated)";
         }
 
-        var header = $"<b>📋 Logs for message {msgId}</b>";
-        var encoded = System.Net.WebUtility.HtmlEncode(logText);
-        await botClient.SendHtml(msg.Chat.Id, $"{header}\n<pre>{encoded}</pre>",
-            replyParameters: new ReplyParameters { MessageId = msg.MessageId });
+        var encoded = WebUtility.HtmlEncode(logText);
+        await botClient.EditMessageText(msg.Chat.Id, msg.MessageId,
+            $"<pre>{encoded}</pre>",
+            parseMode: ParseMode.Html,
+            replyMarkup: msg.ReplyMarkup);
     }
 
     private async Task HandleMessage(Message message, UpdateType type)
@@ -190,7 +192,7 @@ internal sealed class TelegramPhotoAlbumCollector(
         var msgId = first.MessageId;
         var chatId = first.ChatId;
 
-        using var logScope = logger.BeginScope(new Dictionary<string, object> { ["MsgId"] = msgId });
+        using var logScope = logger.BeginScope(new Dictionary<string, object> { ["AlbumId"] = msgId });
 
         var downloadFolder = workingDirectory.RequireWorkingDirectory(first.MessageId);
         await SaveMetaData(album);

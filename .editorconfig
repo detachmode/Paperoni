@@ -10,4 +10,5 @@ trim_trailing_whitespace = true
 indent_style = space
 indent_size = 4
 dotnet_style_namespace_match_folder = true
+dotnet_diagnostic.IDE0130.severity = error
 dotnet_diagnostic.IDE0161.severity = error

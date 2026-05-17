@@ -12,6 +12,7 @@
     <Project Path="test/Paperoni.RealAi.Tests/Paperoni.RealAi.Tests.csproj" />
   </Folder>
   <Folder Name="/_settings/">
+    <File Path=".editorconfig" />
     <File Path="README.md" />
   </Folder>
 </Solution>

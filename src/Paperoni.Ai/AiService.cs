@@ -1,9 +1,11 @@
 using System.ClientModel;
 using System.Diagnostics;
 using Microsoft.Extensions.AI;
+using Microsoft.Extensions.Logging;
 using OpenAI;
 using Paperoni.Contract;
 using Paperoni.Telegram;
+using static Paperoni.Contract.Diagnostics;
 
 namespace Paperoni.Ai;
 
@@ -12,13 +14,16 @@ internal class AiService : IAiService, IDisposable
     private readonly AlbumWorkingDirectory _workingDirectory;
     private readonly IPromptProvider _promptProvider;
     private readonly ITelegramReplier _telegram;
+    private readonly ILogger<AiService> _logger;
     private readonly IChatClient _chatClient;
 
-    public AiService(AlbumWorkingDirectory workingDirectory, IPromptProvider promptProvider, ITelegramReplier telegram)
+    public AiService(AlbumWorkingDirectory workingDirectory, IPromptProvider promptProvider,
+        ITelegramReplier telegram, ILogger<AiService> logger)
     {
         _workingDirectory = workingDirectory;
         _promptProvider = promptProvider;
         _telegram = telegram;
+        _logger = logger;
 
         var endpoint = Environment.GetEnvironmentVariable("AI_ENDPOINT") ?? "http://localhost:2276";
         var model = Environment.GetEnvironmentVariable("AI_MODEL") ?? "qwen-3.6-35b-a3b-q4";
@@ -43,10 +48,12 @@ internal class AiService : IAiService, IDisposable
         var fullResponse = "";
         var reasoningLine = "";
         var partialUpdateLine = "";
+        var chunkCount = 0;
         await foreach (var update in _chatClient.GetStreamingResponseAsync(message,
                            cancellationToken: cancellationToken))
         {
             fullResponse += update.Text;
+            if (!string.IsNullOrEmpty(update.Text)) chunkCount++;
 
             partialUpdateLine += update.Text;
             if (update.Text.Contains(Environment.NewLine))
@@ -66,12 +73,15 @@ internal class AiService : IAiService, IDisposable
             if (!sawFirstChunk)
             {
                 sawFirstChunk = true;
+                var ttf = st.ElapsedMilliseconds;
+                _logger.TimeToFirstChunk(ttf);
                 debugOutput?.Invoke(DebugOutputType.Timing,
-                    $"[Debug]time to first chunk: {st.ElapsedMilliseconds} ms" + Environment.NewLine);
+                    $"[Debug]time to first chunk: {ttf} ms" + Environment.NewLine);
             }
         }
 
         debugOutput?.Invoke(DebugOutputType.PartialOutput, partialUpdateLine.Replace(Environment.NewLine, ""));
+        _logger.AiStreamingDone(chunkCount, st.Elapsed.TotalSeconds);
         return fullResponse;
     }
 
@@ -98,11 +108,15 @@ internal class AiService : IAiService, IDisposable
     public async Task CreateAiSummary(int msgId,
         CancellationToken stoppingToken = default)
     {
+        using var activity = Tracer.StartActivity("AiService.CreateAiSummary");
+        activity?.SetTag("msgId", msgId);
+
         var workingDir = _workingDirectory.GetDownloadPath(msgId);
         var files =
             Directory
                 .GetFiles(workingDir)
                 .Where(FileHelpers.IsImageFile).ToList();
+        activity?.SetTag("fileCount", files.Count);
         var fileContents = files
             .Select(f => new FileContent(
                 File.ReadAllBytes(f),
@@ -111,6 +125,7 @@ internal class AiService : IAiService, IDisposable
 
         var prompt = await _promptProvider.GetPromptAsync(msgId, stoppingToken);
         DebugOutputType? lastDebugType = null;
+        var sw = Stopwatch.StartNew();
         var aiResult = await AskWithFilesAsync(fileContents, prompt, (t, s) =>
         {
             if (lastDebugType == t) return;
@@ -121,12 +136,21 @@ internal class AiService : IAiService, IDisposable
                 _ => Task.CompletedTask
             };
         }, stoppingToken);
+        sw.Stop();
+
         await File.WriteAllTextAsync(Path.Combine(workingDir, "firstAiResponse.md"), aiResult, stoppingToken);
 
         aiResult = MarkdownHelper.FixMarkdownFromAi(aiResult);
         var title = MarkdownHelper.GetTitleFromMarkdown(aiResult);
 
         await _workingDirectory.WriteData(msgId, new AiResult(title), stoppingToken);
+
+        activity?.SetTag("title", title);
+        activity?.SetTag("length", aiResult.Length);
+        activity?.SetTag("latencySec", sw.Elapsed.TotalSeconds);
+        activity?.SetStatus(ActivityStatusCode.Ok);
+
+        _logger.AiSummaryCompleted(msgId, aiResult.Length, sw.Elapsed.TotalSeconds, title);
     }
 
     private static string GetMediaType(string path)

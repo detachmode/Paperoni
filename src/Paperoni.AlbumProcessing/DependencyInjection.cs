@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Paperoni.Contract;
 
 namespace Paperoni.AlbumProcessing;
@@ -14,16 +15,18 @@ public static class DependencyInjection
         {
             var config = sp.GetRequiredService<IConfiguration>();
             var workingDir = sp.GetRequiredService<AlbumWorkingDirectory>();
+            var logger = sp.GetRequiredService<ILogger<FilePublisher>>();
             var outputPath = ResolveOutputPath(config, "MarkdownOutputPath");
-            return new FilePublisher(workingDir, outputPath, "*.md");
+            return new FilePublisher(workingDir, outputPath, "*.md", logger);
         });
 
         collection.AddKeyedSingleton<IFilePublisher, FilePublisher>(PublisherTarget.Pdf, (sp, _) =>
         {
             var config = sp.GetRequiredService<IConfiguration>();
             var workingDir = sp.GetRequiredService<AlbumWorkingDirectory>();
+            var logger = sp.GetRequiredService<ILogger<FilePublisher>>();
             var outputPath = ResolveOutputPath(config, "FilePublisherOutputPath");
-            return new FilePublisher(workingDir, outputPath, "*.pdf");
+            return new FilePublisher(workingDir, outputPath, "*.pdf", logger);
         });
 
         return collection;

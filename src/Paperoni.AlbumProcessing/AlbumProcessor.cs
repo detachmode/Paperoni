@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -7,6 +8,7 @@ using Paperoni.Contract;
 using Paperoni.ImageProcessing;
 using Paperoni.Telegram;
 using Paperoni.Telegram.Album;
+using static Paperoni.Contract.Diagnostics;
 
 namespace Paperoni.AlbumProcessing;
 
@@ -25,12 +27,20 @@ internal class AlbumProcessor(
     {
         while (!stoppingToken.IsCancellationRequested)
         {
+            WorkItem? item = null;
             try
             {
-                var item = await queue.Dequeue(stoppingToken);
-                logger.LogInformation("Worker received album {MsgId} (retry: {IsRetry})",
-                    item.MessageId, item.IsRetry);
+                item = await queue.Dequeue(stoppingToken);
+
+                using var activity = Tracer.StartActivity("ProcessAlbum");
+                activity?.SetTag("msgId", item.MessageId);
+                activity?.SetTag("isRetry", item.IsRetry);
+
+                using var _ = logger.BeginScope(new Dictionary<string, object> { ["MsgId"] = item.MessageId });
+                logger.ProcessingAlbum(item.MessageId, item.IsRetry);
                 await ProcessAlbum(item.MessageId, item.IsRetry, stoppingToken);
+
+                activity?.SetStatus(ActivityStatusCode.Ok);
             }
             catch (OperationCanceledException)
             {
@@ -38,7 +48,7 @@ internal class AlbumProcessor(
             }
             catch (Exception e)
             {
-                logger.LogError(e, "An error occured during processing album");
+                logger.AlbumProcessingError(e, item?.MessageId);
             }
         }
     }
@@ -47,27 +57,33 @@ internal class AlbumProcessor(
     {
         try
         {
-            string? oldTitle = null;
             if (isRetry)
             {
                 var oldAiResult = await workingDirectory.GetData<AiResult>(msgId, stoppingToken);
-                oldTitle = oldAiResult?.Title;
+                if (oldAiResult?.Title is not null)
+                {
+                    logger.CleaningOldFiles(msgId, oldAiResult.Title);
+                    await markdownPublisher.DeletePreviousAsync(oldAiResult.Title, stoppingToken);
+                    await pdfPublisher.DeletePreviousAsync(oldAiResult.Title, stoppingToken);
+                }
             }
-
+    
+            logger.AiSummaryStarting(msgId);
             await telegram.EditReply(msgId, isRetry ? "🔄 Retrying ..." : "🤖 AI is reading it ..");
             await ai.CreateAiSummary(msgId, stoppingToken);
+            logger.AiSummaryDone(msgId);
 
+            logger.PdfCreationStarting(msgId);
             await telegram.EditReply(msgId, "📄 Creating PDF ..");
             await pdfCreator.CreatePdf(msgId, stoppingToken);
+            logger.PdfCreationDone(msgId);
 
+            logger.PublishingMarkdown(msgId);
             await markdownPublisher.PublishFileAsync(msgId, stoppingToken);
+            logger.PublishingPdf(msgId);
             await pdfPublisher.PublishFileAsync(msgId, stoppingToken);
 
-            if (oldTitle is not null)
-            {
-                await markdownPublisher.DeletePreviousAsync(oldTitle, stoppingToken);
-                await pdfPublisher.DeletePreviousAsync(oldTitle, stoppingToken);
-            }
+   
 
             var testMode = bool.TryParse(configuration["TestMode"], out var tm) && tm;
             await telegram.EditReply(msgId,
@@ -78,10 +94,11 @@ internal class AlbumProcessor(
                  ✅ Published PDF
                  {(testMode ? "🧪 Test mode" : "")}
                  """);
+            logger.AlbumComplete(msgId);
         }
         catch (Exception e)
         {
-            logger.LogError(e, "An error occured during processing album");
+            logger.AlbumProcessingError(e, msgId);
             await telegram.EditReply(msgId, "Failed to process: " + e.Message);
         }
     }

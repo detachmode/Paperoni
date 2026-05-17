@@ -5,6 +5,7 @@ using Paperoni.Contract;
 using Telegram.Bot;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
+using static Paperoni.Contract.Diagnostics;
 
 namespace Paperoni.Telegram.Album;
 
@@ -26,7 +27,7 @@ internal sealed class TelegramPhotoAlbumCollector(
             tgBot.OnMessage += HandleMessage;
             tgBot.OnUpdate += HandleUpdate;
         }
-        logger.LogInformation($"@Started Telegram bot {me.Username} and listening for messages");
+        logger.LogInformation("@Started Telegram bot {Username} and listening for messages", me.Username);
     }
 
     public Task StopAsync(CancellationToken cancellationToken)
@@ -78,6 +79,8 @@ internal sealed class TelegramPhotoAlbumCollector(
 
         if (string.IsNullOrEmpty(message.MediaGroupId))
         {
+            logger.LogInformation("Photo {MsgId} received (single)", message.MessageId);
+
             var album = new Album
             {
                 Photos =
@@ -96,6 +99,7 @@ internal sealed class TelegramPhotoAlbumCollector(
         lock (buffer.SyncRoot)
         {
             buffer.Photos[message.MessageId] = file;
+            logger.LogInformation("Photo {MsgId} added to media group {GroupId}", message.MessageId, message.MediaGroupId);
 
             buffer.Timer?.Dispose();
 
@@ -125,11 +129,15 @@ internal sealed class TelegramPhotoAlbumCollector(
             if (buffer.Photos.Count == 0)
                 return;
 
+            var first = buffer.Photos.First().Value;
+            logger.LogInformation("Flushing album {MsgId} with {Count} photos",
+                first.MessageId, buffer.Photos.Count);
+
             await DownloadAndEnqueue(buffer);
         }
         catch (Exception e)
         {
-            logger.LogError(e, "Error downloading album");
+            logger.DownloadError(e);
         }
     }
 
@@ -179,13 +187,16 @@ internal sealed class TelegramPhotoAlbumCollector(
         await workingDirectory.WriteData(first.MessageId,metaData);
     }
 
-    private async Task DownloadFile(string path, string name, string fileId)
+    private async Task<long> DownloadFile(string path, string name, string fileId)
     {
-        await using var stream = File.Create(Path.Combine(path, name));
+        var filePath = Path.Combine(path, name);
+        await using (var stream = File.Create(filePath))
         {
             var tgFile = await botClient.GetFile(fileId);
             await botClient.DownloadFile(tgFile, stream);
         }
-        logger.LogInformation($"File {name} download to {path}!");
+        var size = new FileInfo(filePath).Length;
+        logger.FileDownloaded(name, size);
+        return size;
     }
 }

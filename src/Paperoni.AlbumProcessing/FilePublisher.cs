@@ -1,17 +1,25 @@
+using System.Diagnostics;
+using Microsoft.Extensions.Logging;
 using Paperoni.Ai;
 using Paperoni.Contract;
+using static Paperoni.Contract.Diagnostics;
 
 namespace Paperoni.AlbumProcessing;
 
 internal sealed class FilePublisher(
     AlbumWorkingDirectory workingDirectory,
     string outputPath,
-    string searchPattern) : IFilePublisher
+    string searchPattern,
+    ILogger<FilePublisher> logger) : IFilePublisher
 {
     private readonly string _extension = Path.GetExtension(searchPattern);
 
     public async Task PublishFileAsync(int msgId, CancellationToken stoppingToken)
     {
+        using var activity = Tracer.StartActivity($"{nameof(FilePublisher)}.{nameof(DeletePreviousAsync)}");
+        activity?.SetTag("msgId", msgId);
+        activity?.SetTag("type", _extension.TrimStart('.').ToUpperInvariant());
+
         var aiResult = await workingDirectory.RequireData<AiResult>(msgId, stoppingToken);
         var workingDir = workingDirectory.GetDownloadPath(msgId);
         var file = Directory.GetFiles(workingDir, searchPattern, SearchOption.TopDirectoryOnly).FirstOrDefault();
@@ -19,14 +27,33 @@ internal sealed class FilePublisher(
 
         var destPath = Path.Combine(outputPath, $"{aiResult.Title}{_extension}");
         Directory.CreateDirectory(outputPath);
+
+        var fileInfo = new FileInfo(file);
         File.Copy(file, destPath, overwrite: true);
+
+        activity?.SetTag("source", Path.GetFileName(file));
+        activity?.SetTag("dest", destPath);
+        activity?.SetTag("sizeKb", fileInfo.Length / 1024);
+        activity?.SetStatus(ActivityStatusCode.Ok);
+
+        logger.FilePublished(_extension.TrimStart('.').ToUpperInvariant(), msgId,
+            Path.GetFileName(file), destPath, fileInfo.Length / 1024);
     }
 
     public Task DeletePreviousAsync(string title, CancellationToken stoppingToken)
     {
+        using var activity = Tracer.StartActivity($"{nameof(FilePublisher)}.{nameof(DeletePreviousAsync)}");
+        activity?.SetTag("type", _extension.TrimStart('.').ToUpperInvariant());
+
         var filePath = Path.Combine(outputPath, $"{title}{_extension}");
+        activity?.SetTag("fileToDelete", Path.GetFileName(filePath));
+
         if (File.Exists(filePath))
+        {
             File.Delete(filePath);
+            logger.FileDeleted(_extension.TrimStart('.').ToUpperInvariant(), filePath);
+        }
+
         return Task.CompletedTask;
     }
 }

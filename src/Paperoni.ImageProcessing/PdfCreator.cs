@@ -2,6 +2,7 @@ using System.Diagnostics;
 using Microsoft.Extensions.Logging;
 using OpenCvSharp;
 using Paperoni.Contract;
+using static Paperoni.Contract.Diagnostics;
 
 namespace Paperoni.ImageProcessing;
 
@@ -22,13 +23,19 @@ internal sealed class PdfCreator(ILogger<PdfCreator> logger, AlbumWorkingDirecto
         var result = new List<AutoCorrectImageResult>();
         foreach (var imageFile in originalImages)
         {
+            using var activity = Tracer.StartActivity("AutoCorrectImage");
+            activity?.SetTag("file", Path.GetFileName(imageFile));
+
             var imageData = await File.ReadAllBytesAsync(imageFile, stoppingToken);
             var processed = await AutoCorrect(imageData, stoppingToken);
-            
-            logger.LogInformation("Processed {File}: document={Detected}, time={Time:F1}ms",
-                Path.GetFileName(imageFile), processed.DocumentDetected,
+
+            activity?.SetTag("documentDetected", processed.DocumentDetected);
+            activity?.SetTag("processingTimeMs", processed.ProcessingTime.TotalMilliseconds);
+            activity?.SetStatus(ActivityStatusCode.Ok);
+
+            logger.ImageProcessed(Path.GetFileName(imageFile), processed.DocumentDetected,
                 processed.ProcessingTime.TotalMilliseconds);
-            
+
              result.Add(new AutoCorrectImageResult(processed.ProcessedImage, imageFile));
         }
         return result;
@@ -36,18 +43,35 @@ internal sealed class PdfCreator(ILogger<PdfCreator> logger, AlbumWorkingDirecto
 
     public async Task CreatePdf(int messageId, CancellationToken stoppingToken)
     {
+        using var activity = Tracer.StartActivity("PdfCreator.CreatePdf");
+        activity?.SetTag("msgId", messageId);
+        var sw = Stopwatch.StartNew();
+
         var downloadPath = workingDirectory.GetDownloadPath(messageId);
         var aiResult = await workingDirectory.GetData<AiResult>(messageId, stoppingToken);
         ArgumentNullException.ThrowIfNull(aiResult);
-        
+
         var files = Directory.GetFiles(downloadPath);
         var originalImages = files.Where(FileHelpers.IsImageFile).OrderBy(Path.GetFileName).ToList();
+        activity?.SetTag("imageCount", originalImages.Count);
+        activity?.SetTag("title", aiResult.Title);
+
         var processedData = await AutoCorrect(originalImages, stoppingToken);
 
         var pdfBytes = pdfMerger.MergeToPdf(processedData.Select(i => i.ImprovedImage));
         var pdfPath = Path.Combine(downloadPath, $"{aiResult.Title}.pdf");
 
         await File.WriteAllBytesAsync(pdfPath, pdfBytes, stoppingToken);
+        sw.Stop();
+
+        activity?.SetTag("file", Path.GetFileName(pdfPath));
+        activity?.SetTag("sizeKb", pdfBytes.Length / 1024);
+        activity?.SetTag("pages", originalImages.Count);
+        activity?.SetTag("latencySec", sw.Elapsed.TotalSeconds);
+        activity?.SetStatus(ActivityStatusCode.Ok);
+
+        logger.PdfCreated(messageId, Path.GetFileName(pdfPath), pdfBytes.Length / 1024,
+            originalImages.Count, sw.Elapsed.TotalSeconds);
     }
 
 

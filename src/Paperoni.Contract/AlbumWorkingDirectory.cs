@@ -1,10 +1,11 @@
+using System.Text.Json;
+
 namespace Paperoni.Contract;
 
 public class AlbumWorkingDirectory
 {
-    public string? DownloadBasePath { get; init; }
-
     private readonly SemaphoreSlim _semaphore = new(1, 1);
+    public string? DownloadBasePath { get; init; }
 
     public string GetDownloadPath(int messageId)
     {
@@ -25,8 +26,8 @@ public class AlbumWorkingDirectory
         {
             var workDir = GetDownloadPath(messageId);
             var path = Path.Combine(workDir, typeof(T).Name + ".json");
-            var json = System.Text.Json.JsonSerializer.Serialize(data,
-                new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
+            var json = JsonSerializer.Serialize(data,
+                new JsonSerializerOptions { WriteIndented = true });
             await File.WriteAllTextAsync(path, json, stoppingToken);
         }
         finally
@@ -48,7 +49,7 @@ public class AlbumWorkingDirectory
             var path = Path.Combine(workDir, typeof(T).Name + ".json");
 
             var json = await File.ReadAllTextAsync(path, stoppingToken);
-            return System.Text.Json.JsonSerializer.Deserialize<T>(json);
+            return JsonSerializer.Deserialize<T>(json);
         }
         finally
         {

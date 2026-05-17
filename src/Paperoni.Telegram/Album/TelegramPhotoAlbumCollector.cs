@@ -6,7 +6,6 @@ using Paperoni.Contract;
 using Telegram.Bot;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
-using static Paperoni.Contract.Diagnostics;
 
 namespace Paperoni.Telegram.Album;
 
@@ -30,6 +29,7 @@ internal sealed class TelegramPhotoAlbumCollector(
             tgBot.OnMessage += HandleMessage;
             tgBot.OnUpdate += HandleUpdate;
         }
+
         logger.LogInformation("@Started Telegram bot {Username} and listening for messages", me.Username);
     }
 
@@ -41,6 +41,7 @@ internal sealed class TelegramPhotoAlbumCollector(
             tgBot.OnMessage -= HandleMessage;
             tgBot.OnUpdate -= HandleUpdate;
         }
+
         return Task.CompletedTask;
     }
 
@@ -96,7 +97,8 @@ internal sealed class TelegramPhotoAlbumCollector(
             foreach (var line in File.ReadLines(file).Reverse())
             {
                 if (line.Contains("album " + msgIdStr) || line.Contains("message " + msgIdStr)
-                    || line.Contains(msgIdStr + ".jpg") || line.Contains(msgIdStr + ".pdf"))
+                                                       || line.Contains(msgIdStr + ".jpg") ||
+                                                       line.Contains(msgIdStr + ".pdf"))
                 {
                     matchingLines.Add(line);
                     if (matchingLines.Count >= 30)
@@ -105,6 +107,7 @@ internal sealed class TelegramPhotoAlbumCollector(
                     }
                 }
             }
+
             if (matchingLines.Count >= 30)
             {
                 break;
@@ -150,13 +153,7 @@ internal sealed class TelegramPhotoAlbumCollector(
         {
             logger.LogInformation("Photo {MsgId} received (single)", message.MessageId);
 
-            var album = new Album
-            {
-                Photos =
-                {
-                    [message.MessageId] = file
-                }
-            };
+            var album = new Album { Photos = { [message.MessageId] = file } };
             await DownloadAndEnqueue(album);
             return;
         }
@@ -168,7 +165,8 @@ internal sealed class TelegramPhotoAlbumCollector(
         lock (buffer.SyncRoot)
         {
             buffer.Photos[message.MessageId] = file;
-            logger.LogInformation("Photo {MsgId} added to media group {GroupId}", message.MessageId, message.MediaGroupId);
+            logger.LogInformation("Photo {MsgId} added to media group {GroupId}", message.MessageId,
+                message.MediaGroupId);
 
             buffer.Timer?.Dispose();
 
@@ -275,7 +273,7 @@ internal sealed class TelegramPhotoAlbumCollector(
         var first = album.Photos.First().Value;
         var metaData = new MetaData
         {
-            Date =first.Date,
+            Date = first.Date,
             Caption = album.Photos.Values.Select(photo => photo.Caption).ToList(),
             MessageId = first.MessageId,
             ChatId = first.ChatId,
@@ -283,7 +281,7 @@ internal sealed class TelegramPhotoAlbumCollector(
             AlbumMessageIds = album.Photos.Values.Select(photo => photo.MessageId).ToList(),
         };
 
-        await workingDirectory.WriteData(first.MessageId,metaData);
+        await workingDirectory.WriteData(first.MessageId, metaData);
     }
 
     private async Task<long> DownloadFile(string path, string name, string fileId)
@@ -294,6 +292,7 @@ internal sealed class TelegramPhotoAlbumCollector(
             var tgFile = await botClient.GetFile(fileId);
             await botClient.DownloadFile(tgFile, stream);
         }
+
         var size = new FileInfo(filePath).Length;
         logger.FileDownloaded(name, size);
         return size;

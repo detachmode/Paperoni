@@ -5,8 +5,8 @@ namespace Paperoni.Ai;
 
 public class FilePromptProvider : IPromptProvider
 {
-    private readonly AlbumWorkingDirectory _workingDirectory;
     private readonly string _promptFilePath;
+    private readonly AlbumWorkingDirectory _workingDirectory;
 
     public FilePromptProvider(IConfiguration configuration, AlbumWorkingDirectory workingDirectory)
     {
@@ -26,7 +26,7 @@ public class FilePromptProvider : IPromptProvider
         var prompt = await File.ReadAllTextAsync(_promptFilePath, ct);
 
         var metaData = await _workingDirectory.RequireData<MetaData>(msgId, ct);
-        
+
         var captions = metaData.Caption;
         if (captions.Count > 0)
         {

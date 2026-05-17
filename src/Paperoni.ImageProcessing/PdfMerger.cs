@@ -1,14 +1,15 @@
+using QuestPDF;
 using QuestPDF.Fluent;
 using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
 
 namespace Paperoni.ImageProcessing;
 
-internal sealed class PdfMerger 
+internal sealed class PdfMerger
 {
     static PdfMerger()
     {
-        QuestPDF.Settings.License = LicenseType.Community;
+        Settings.License = LicenseType.Community;
     }
 
     internal static byte[] MergeToPdf(IEnumerable<byte[]> images)

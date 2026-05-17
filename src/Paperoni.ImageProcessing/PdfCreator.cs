@@ -9,38 +9,14 @@ namespace Paperoni.ImageProcessing;
 public record AutoCorrectImageResult(
     byte[] ImprovedImage,
     string OriginalImagePath
-    );
+);
 
-internal sealed class PdfCreator(ILogger<PdfCreator> logger, AlbumWorkingDirectory workingDirectory, AlbumIdAccessor albumIdAccessor) : IPdfCreator
+internal sealed class PdfCreator(
+    ILogger<PdfCreator> logger,
+    AlbumWorkingDirectory workingDirectory,
+    AlbumIdAccessor albumIdAccessor) : IPdfCreator
 {
     private static readonly ImageProcessingOptions s_defaultOptions = new();
-
-    public static Task<ProcessedImageResult> AutoCorrect(byte[] imageData, CancellationToken ct = default)
-        => AutoCorrect(imageData, s_defaultOptions, ct);
-
-    public async Task<List<AutoCorrectImageResult>> AutoCorrect(List<string> originalImages, CancellationToken stoppingToken)
-    {
-        var result = new List<AutoCorrectImageResult>();
-        foreach (var imageFile in originalImages)
-        {
-            using var activity = Tracer.StartActivity<PdfCreator>();
-            activity?.SetTag("AlbumId", albumIdAccessor.Id);
-            activity?.SetTag("file", Path.GetFileName(imageFile));
-
-            var imageData = await File.ReadAllBytesAsync(imageFile, stoppingToken);
-            var processed = await AutoCorrect(imageData, stoppingToken);
-
-            activity?.SetTag("documentDetected", processed.DocumentDetected);
-            activity?.SetTag("processingTimeMs", processed.ProcessingTime.TotalMilliseconds);
-            activity?.SetStatus(ActivityStatusCode.Ok);
-
-            logger.ImageProcessed(Path.GetFileName(imageFile), processed.DocumentDetected,
-                processed.ProcessingTime.TotalMilliseconds);
-
-             result.Add(new AutoCorrectImageResult(processed.ProcessedImage, imageFile));
-        }
-        return result;
-    }
 
     public async Task CreatePdf(int messageId, CancellationToken stoppingToken)
     {
@@ -75,7 +51,37 @@ internal sealed class PdfCreator(ILogger<PdfCreator> logger, AlbumWorkingDirecto
             originalImages.Count, sw.Elapsed.TotalSeconds);
     }
 
-    public static async Task<ProcessedImageResult> AutoCorrect(byte[] imageData, ImageProcessingOptions options, CancellationToken ct = default)
+    public static Task<ProcessedImageResult> AutoCorrect(byte[] imageData, CancellationToken ct = default)
+        => AutoCorrect(imageData, s_defaultOptions, ct);
+
+    public async Task<List<AutoCorrectImageResult>> AutoCorrect(List<string> originalImages,
+        CancellationToken stoppingToken)
+    {
+        var result = new List<AutoCorrectImageResult>();
+        foreach (var imageFile in originalImages)
+        {
+            using var activity = Tracer.StartActivity<PdfCreator>();
+            activity?.SetTag("AlbumId", albumIdAccessor.Id);
+            activity?.SetTag("file", Path.GetFileName(imageFile));
+
+            var imageData = await File.ReadAllBytesAsync(imageFile, stoppingToken);
+            var processed = await AutoCorrect(imageData, stoppingToken);
+
+            activity?.SetTag("documentDetected", processed.DocumentDetected);
+            activity?.SetTag("processingTimeMs", processed.ProcessingTime.TotalMilliseconds);
+            activity?.SetStatus(ActivityStatusCode.Ok);
+
+            logger.ImageProcessed(Path.GetFileName(imageFile), processed.DocumentDetected,
+                processed.ProcessingTime.TotalMilliseconds);
+
+            result.Add(new AutoCorrectImageResult(processed.ProcessedImage, imageFile));
+        }
+
+        return result;
+    }
+
+    public static async Task<ProcessedImageResult> AutoCorrect(byte[] imageData, ImageProcessingOptions options,
+        CancellationToken ct = default)
         => await Task.Run(() => Process(imageData, options), ct);
 
     private static ProcessedImageResult Process(byte[] imageData, ImageProcessingOptions options)
@@ -130,10 +136,8 @@ internal sealed class PdfCreator(ILogger<PdfCreator> logger, AlbumWorkingDirecto
                 {
                     var dstPoints = new[]
                     {
-                        new Point2f(0, 0),
-                        new Point2f(destSize.Width - 1, 0),
-                        new Point2f(destSize.Width - 1, destSize.Height - 1),
-                        new Point2f(0, destSize.Height - 1)
+                        new Point2f(0, 0), new Point2f(destSize.Width - 1, 0),
+                        new Point2f(destSize.Width - 1, destSize.Height - 1), new Point2f(0, destSize.Height - 1)
                     };
 
                     var transform = Cv2.GetPerspectiveTransform(corners, dstPoints);
@@ -158,7 +162,8 @@ internal sealed class PdfCreator(ILogger<PdfCreator> logger, AlbumWorkingDirecto
 
         AutoLevels(output);
 
-        Cv2.ImEncode(".jpg", output, out var encoded, new ImageEncodingParam(ImwriteFlags.JpegQuality, options.JpegQuality));
+        Cv2.ImEncode(".jpg", output, out var encoded,
+            new ImageEncodingParam(ImwriteFlags.JpegQuality, options.JpegQuality));
 
         sw.Stop();
         return new ProcessedImageResult
@@ -179,6 +184,7 @@ internal sealed class PdfCreator(ILogger<PdfCreator> logger, AlbumWorkingDirecto
         {
             return src.Clone();
         }
+
         var scale = (double)targetLongSide / maxSide;
         var resized = new Mat();
         Cv2.Resize(src, resized, new Size((int)(src.Width * scale), (int)(src.Height * scale)));
@@ -220,14 +226,22 @@ internal sealed class PdfCreator(ILogger<PdfCreator> logger, AlbumWorkingDirecto
         for (var i = 0; i < 256; i++)
         {
             sum += (int)hist.Get<float>(i);
-            if (sum > skip) { minVal = i; break; }
+            if (sum > skip)
+            {
+                minVal = i;
+                break;
+            }
         }
 
         sum = 0;
         for (var i = 255; i >= 0; i--)
         {
             sum += (int)hist.Get<float>(i);
-            if (sum > skip) { maxVal = i; break; }
+            if (sum > skip)
+            {
+                maxVal = i;
+                break;
+            }
         }
 
         if (maxVal > minVal)

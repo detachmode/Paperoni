@@ -22,12 +22,13 @@ internal sealed class TraceLogExporter(
 
                 if (albumId is int id)
                 {
-                if (!byAlbumId.TryGetValue(id, out var lines))
-                {
-                    lines = new List<string>();
-                    byAlbumId[id] = lines;
-                }
-                lines.Add(line);
+                    if (!byAlbumId.TryGetValue(id, out var lines))
+                    {
+                        lines = new List<string>();
+                        byAlbumId[id] = lines;
+                    }
+
+                    lines.Add(line);
                 }
                 else
                 {

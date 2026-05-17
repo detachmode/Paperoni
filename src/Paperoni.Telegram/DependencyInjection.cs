@@ -20,12 +20,13 @@ public static class DependencyInjection
             {
                 throw new InvalidOperationException("Bot token is not configured");
             }
+
             return new TelegramBotClient(botToken);
         });
         collection.AddSingleton<ITelegramBotClient>(sp => sp.GetRequiredService<TelegramBotClient>());
-        
+
         collection.AddHostedService<TelegramPhotoAlbumCollector>();
-        
+
         return collection;
     }
 }

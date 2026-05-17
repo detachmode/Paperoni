@@ -13,12 +13,12 @@ public class TitleAutoCorrectionTest
         var now = DateTime.Parse("2026-01-01");
         var title = MarkdownHelper.GetTitleFromMarkdown(
             $"""
-            ---
-            {line}
-            ---
-            # Some Info
-            """
-            ,now
+             ---
+             {line}
+             ---
+             # Some Info
+             """
+            , now
         );
         Assert.Equal(title, expected);
     }

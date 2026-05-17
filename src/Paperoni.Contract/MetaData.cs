@@ -1,6 +1,6 @@
 namespace Paperoni.Contract;
 
-public class MetaData 
+public class MetaData
 {
     public DateTime Date { get; set; }
     public List<string?> Caption { get; set; } = [];

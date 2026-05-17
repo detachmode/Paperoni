@@ -12,12 +12,12 @@ namespace Paperoni.Ai;
 
 internal sealed class AiService : IAiService, IDisposable
 {
-    private readonly AlbumWorkingDirectory _workingDirectory;
+    private readonly IChatClient _chatClient;
+    private readonly ILogger<AiService> _logger;
     private readonly IPromptProvider _promptProvider;
     private readonly ITelegramReplier _telegram;
-    private readonly ILogger<AiService> _logger;
-    private readonly IChatClient _chatClient;
     private readonly int _timeoutSeconds;
+    private readonly AlbumWorkingDirectory _workingDirectory;
 
     public AiService(AlbumWorkingDirectory workingDirectory, IPromptProvider promptProvider,
         ITelegramReplier telegram, ILogger<AiService> logger, IConfiguration configuration)
@@ -90,26 +90,6 @@ internal sealed class AiService : IAiService, IDisposable
         return fullResponse;
     }
 
-    public async Task<string> Review(IEnumerable<FileContent> files, string firstPrompt, string answer,
-        CancellationToken cancellationToken = default)
-    {
-        var systemPrompt = new ChatMessage(ChatRole.System,
-            "You are reviewing the output of another AI response. Please double check that it followed the prompt and fix mistakes. Focus on formatting, tagging and correctness. Return the final polished output only.");
-
-        var userPrompt = new ChatMessage(ChatRole.User,
-            $"-------- the inital prompt ---------\n{firstPrompt}\n-------- end of inital prompt ---------\n" +
-            $"-------- the answer of the AI ---------\n{answer}\n-------- end of answer of the AI ---------");
-
-        foreach (var file in files)
-        {
-            userPrompt.Contents.Add(new DataContent(file.Data, file.MediaType));
-        }
-
-        var response =
-            await _chatClient.GetResponseAsync([systemPrompt, userPrompt], cancellationToken: cancellationToken);
-        return response.Text;
-    }
-
     public async Task CreateAiSummary(int msgId,
         CancellationToken stoppingToken = default)
     {
@@ -143,10 +123,12 @@ internal sealed class AiService : IAiService, IDisposable
                 {
                     return;
                 }
+
                 _ = t switch
                 {
                     DebugOutputType.Reasoning => _telegram.EditReply(msgId, "🤖 AI is thinking .."),
-                    DebugOutputType.PartialOutput => _telegram.EditReply(msgId, "🤖 AI is formulating the final output .."),
+                    DebugOutputType.PartialOutput => _telegram.EditReply(msgId,
+                        "🤖 AI is formulating the final output .."),
                     _ => Task.CompletedTask
                 };
             }, timeoutCts.Token);
@@ -155,6 +137,7 @@ internal sealed class AiService : IAiService, IDisposable
         {
             throw new TimeoutException("AI summary timed out after 10 minutes.");
         }
+
         sw.Stop();
 
         await File.WriteAllTextAsync(Path.Combine(workingDir, "firstAiResponse.md"), aiResult, stoppingToken);
@@ -172,6 +155,31 @@ internal sealed class AiService : IAiService, IDisposable
         _logger.AiSummaryCompleted(msgId, aiResult.Length, sw.Elapsed.TotalSeconds, title);
     }
 
+    public void Dispose()
+    {
+        _chatClient.Dispose();
+    }
+
+    public async Task<string> Review(IEnumerable<FileContent> files, string firstPrompt, string answer,
+        CancellationToken cancellationToken = default)
+    {
+        var systemPrompt = new ChatMessage(ChatRole.System,
+            "You are reviewing the output of another AI response. Please double check that it followed the prompt and fix mistakes. Focus on formatting, tagging and correctness. Return the final polished output only.");
+
+        var userPrompt = new ChatMessage(ChatRole.User,
+            $"-------- the inital prompt ---------\n{firstPrompt}\n-------- end of inital prompt ---------\n" +
+            $"-------- the answer of the AI ---------\n{answer}\n-------- end of answer of the AI ---------");
+
+        foreach (var file in files)
+        {
+            userPrompt.Contents.Add(new DataContent(file.Data, file.MediaType));
+        }
+
+        var response =
+            await _chatClient.GetResponseAsync([systemPrompt, userPrompt], cancellationToken: cancellationToken);
+        return response.Text;
+    }
+
     private static string GetMediaType(string path)
     {
         return Path.GetExtension(path).ToLowerInvariant() switch
@@ -182,11 +190,6 @@ internal sealed class AiService : IAiService, IDisposable
             ".webp" => "image/webp",
             _ => "application/octet-stream"
         };
-    }
-
-    public void Dispose()
-    {
-        (_chatClient as IDisposable)?.Dispose();
     }
 }
 

@@ -31,10 +31,11 @@ public static class MarkdownHelper
             var substringTitle = title.Substring(10, title.Length - 10).Trim();
             if (DateTime.TryParse(substringDate, out var dateForTitle))
             {
-            if (dateForTitle > now)
-            {
-                return $"{now:yyyy-MM-dd} {substringTitle}";
-            }
+                if (dateForTitle > now)
+                {
+                    return $"{now:yyyy-MM-dd} {substringTitle}";
+                }
+
                 return title;
             }
 

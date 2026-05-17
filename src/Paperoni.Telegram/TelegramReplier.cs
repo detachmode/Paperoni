@@ -20,7 +20,10 @@ public class TelegramReplier(ITelegramBotClient bot, AlbumWorkingDirectory worki
         ArgumentNullException.ThrowIfNull(replyMessageId);
 
         var markup = new InlineKeyboardMarkup([
-            [InlineKeyboardButton.WithCallbackData("🔄 Retry", $"retry:{msgId}")]
+            [
+                InlineKeyboardButton.WithCallbackData("🔄 Retry", $"retry:{msgId}"),
+                InlineKeyboardButton.WithCallbackData("📋 Logs", $"logs:{msgId}")
+            ]
         ]);
 
         await bot.EditMessageText(chatId, replyMessageId.Value, text, replyMarkup: markup);

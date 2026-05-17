@@ -128,7 +128,9 @@ public class AlbumProcessingSmokeSteps
             _cts = new CancellationTokenSource(TimeSpan.FromSeconds(120));
             var hostedServices = _sp.GetServices<IHostedService>();
             foreach (var service in hostedServices)
+            {
                 await service.StartAsync(_cts.Token);
+            }
             _servicesStarted = true;
         }
 
@@ -186,6 +188,8 @@ public class AlbumProcessingSmokeSteps
         _cts?.Cancel();
         _tracerProvider?.Dispose();
         if (_sp is IAsyncDisposable ad)
+        {
             await ad.DisposeAsync();
+        }
     }
 }

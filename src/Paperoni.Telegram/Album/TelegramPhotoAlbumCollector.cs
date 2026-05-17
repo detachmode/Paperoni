@@ -1,5 +1,4 @@
 using System.Collections.Concurrent;
-using System.Diagnostics;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -48,17 +47,23 @@ internal sealed class TelegramPhotoAlbumCollector(
     private async Task HandleUpdate(Update update)
     {
         if (update.CallbackQuery is not { } query)
+        {
             return;
+        }
 
         if (query.Data is not { } data)
+        {
             return;
+        }
 
         await botClient.AnswerCallbackQuery(query.Id);
 
         if (data.StartsWith("retry:") && int.TryParse(data.AsSpan(6), out var retryId))
         {
             if (query.Message is { } message)
+            {
                 await botClient.EditMessageText(message.Chat.Id, message.MessageId, "🔄 Retrying ...");
+            }
 
             queue.Enqueue(new WorkItem(retryId, true));
             logger.LogInformation("Retry requested for album {MsgId}", retryId);
@@ -72,13 +77,17 @@ internal sealed class TelegramPhotoAlbumCollector(
     private async Task ShowLogs(int msgId, CallbackQuery query)
     {
         if (query.Message is not { } msg)
+        {
             return;
+        }
 
         var logDir = configuration["LogPath"];
         if (string.IsNullOrEmpty(logDir))
+        {
             logDir = Path.Combine(
                 Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
                 "TelegramDownloads");
+        }
 
         var msgIdStr = msgId.ToString();
         var matchingLines = new List<string>();
@@ -91,11 +100,15 @@ internal sealed class TelegramPhotoAlbumCollector(
                 {
                     matchingLines.Add(line);
                     if (matchingLines.Count >= 30)
+                    {
                         break;
+                    }
                 }
             }
             if (matchingLines.Count >= 30)
+            {
                 break;
+            }
         }
 
         var logText = string.Join("\n", matchingLines);
@@ -107,7 +120,9 @@ internal sealed class TelegramPhotoAlbumCollector(
         }
 
         if (logText.Length > 3900)
+        {
             logText = logText[^3900..] + "\n...(truncated)";
+        }
 
         await botClient.SendMessage(msg.Chat.Id, $"📋 Logs for message {msgId}:\n{logText}",
             replyParameters: msg.MessageId);
@@ -116,7 +131,9 @@ internal sealed class TelegramPhotoAlbumCollector(
     private async Task HandleMessage(Message message, UpdateType type)
     {
         if (message.Photo is not { Length: > 0 } photoSizes)
+        {
             return;
+        }
 
         var bestPhoto = photoSizes[^1];
 
@@ -171,7 +188,9 @@ internal sealed class TelegramPhotoAlbumCollector(
         try
         {
             if (!_albums.TryRemove(key, out var buffer))
+            {
                 return;
+            }
 
             lock (buffer.SyncRoot)
             {
@@ -179,7 +198,9 @@ internal sealed class TelegramPhotoAlbumCollector(
             }
 
             if (buffer.Photos.Count == 0)
+            {
                 return;
+            }
 
             var first = buffer.Photos.First().Value;
             logger.LogInformation("Flushing album {MsgId} with {Count} photos",

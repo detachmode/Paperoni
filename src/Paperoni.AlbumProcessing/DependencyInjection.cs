@@ -37,8 +37,10 @@ public static class DependencyInjection
     private static string ResolveOutputPath(IConfiguration config, string normalKey)
     {
         if (bool.TryParse(config["TestMode"], out var testMode) && testMode)
+        {
             return config["TestModeOutputPath"]
                 ?? throw new InvalidOperationException("Configuration key 'TestModeOutputPath' is not set when TestMode is true");
+        }
         return config[normalKey]
             ?? throw new InvalidOperationException($"Configuration key '{normalKey}' is not set");
     }

@@ -1,7 +1,6 @@
 using System.Threading.Channels;
 using Microsoft.Extensions.Logging;
 using Paperoni.Contract;
-using static Paperoni.Contract.Diagnostics;
 
 namespace Paperoni.Telegram.Album;
 
@@ -27,7 +26,6 @@ public class AlbumQueue
         if (!_channel.Writer.TryWrite(item))
         {
             Interlocked.Decrement(ref _pendingCount);
-            depth = _pendingCount;
             throw new InvalidOperationException($"Failed to enqueue album {item.MessageId}");
         }
         _logger.AlbumEnqueued(item.MessageId, item.IsRetry, depth);

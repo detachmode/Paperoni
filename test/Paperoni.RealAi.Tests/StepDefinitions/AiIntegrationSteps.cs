@@ -1,6 +1,5 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
 using Paperoni.Ai;
 using Paperoni.Contract;
 using Paperoni.Telegram;
@@ -43,12 +42,11 @@ public class AiIntegrationSteps
         _aiService = sp.GetRequiredService<IAiService>();
     }
 
-    private class StubTelegramReplier : ITelegramReplier
+    private sealed class StubTelegramReplier : ITelegramReplier
     {
         public Task EditReply(int msgId, string text) => Task.CompletedTask;
         public Task SetReaction(int albumMsgId, string emoji) => Task.CompletedTask;
     }
-
 
     [When("I ask {string}")]
     public async Task WhenIAsk(string question)

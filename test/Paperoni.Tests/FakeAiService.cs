@@ -18,7 +18,9 @@ internal sealed class FakeAiService(AlbumWorkingDirectory workingDirectory) : IA
     public async Task CreateAiSummary(int msgId, CancellationToken stoppingToken = default)
     {
         if (ShouldThrowOnCreateAiSummary)
+        {
             throw new TimeoutException("AI summary timed out.");
+        }
 
         using var activity = Tracer.StartActivity("AiService.CreateAiSummary");
         activity?.SetTag("AlbumId", msgId);

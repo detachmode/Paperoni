@@ -17,7 +17,9 @@ public static class DependencyInjection
             var config = sp.GetRequiredService<IConfiguration>();
             var botToken = config["TELEGRAM_BOT_TOKEN"];
             if (string.IsNullOrEmpty(botToken))
+            {
                 throw new InvalidOperationException("Bot token is not configured");
+            }
             return new TelegramBotClient(botToken);
         });
         collection.AddSingleton<ITelegramBotClient>(sp => sp.GetRequiredService<TelegramBotClient>());

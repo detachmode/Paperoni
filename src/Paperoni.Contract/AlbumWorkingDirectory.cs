@@ -35,7 +35,6 @@ public class AlbumWorkingDirectory
         }
     }
 
-
     public async Task<T> RequireData<T>(int messageId, CancellationToken stoppingToken = default) =>
         await GetData<T>(messageId, stoppingToken) ??
         throw new ArgumentException("Didn't find json for data of " + nameof(T));

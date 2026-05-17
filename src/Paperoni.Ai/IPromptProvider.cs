@@ -1,5 +1,3 @@
-using Paperoni.Contract;
-
 namespace Paperoni.Ai;
 
 public interface IPromptProvider

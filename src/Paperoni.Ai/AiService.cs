@@ -10,7 +10,7 @@ using static Paperoni.Contract.Diagnostics;
 
 namespace Paperoni.Ai;
 
-internal class AiService : IAiService, IDisposable
+internal sealed class AiService : IAiService, IDisposable
 {
     private readonly AlbumWorkingDirectory _workingDirectory;
     private readonly IPromptProvider _promptProvider;
@@ -35,7 +35,6 @@ internal class AiService : IAiService, IDisposable
         _chatClient = client.GetChatClient(model).AsIChatClient();
     }
 
-
     public async Task<string> AskWithFilesAsync(IEnumerable<FileContent> files, string prompt,
         Action<DebugOutputType, string>? debugOutput = null,
         CancellationToken cancellationToken = default)
@@ -56,7 +55,10 @@ internal class AiService : IAiService, IDisposable
                            cancellationToken: cancellationToken))
         {
             fullResponse += update.Text;
-            if (!string.IsNullOrEmpty(update.Text)) chunkCount++;
+            if (!string.IsNullOrEmpty(update.Text))
+            {
+                chunkCount++;
+            }
 
             partialUpdateLine += update.Text;
             if (update.Text.Contains(Environment.NewLine))
@@ -137,7 +139,10 @@ internal class AiService : IAiService, IDisposable
         {
             aiResult = await AskWithFilesAsync(fileContents, prompt, (t, s) =>
             {
-                if (lastDebugType == t) return;
+                if (lastDebugType == t)
+                {
+                    return;
+                }
                 _ = t switch
                 {
                     DebugOutputType.Reasoning => _telegram.EditReply(msgId, "🤖 AI is thinking .."),

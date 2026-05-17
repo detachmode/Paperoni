@@ -15,7 +15,9 @@ public class FakeTelegramReplier : ITelegramReplier
             _calls.Add((msgId, text));
         }
         if (text.StartsWith("Done:"))
+        {
             _done.TrySetResult();
+        }
         return Task.CompletedTask;
     }
 
@@ -31,6 +33,6 @@ public class FakeTelegramReplier : ITelegramReplier
 
     public IReadOnlyList<(int MsgId, string Text)> Calls
     {
-        get { lock (_lock) return _calls.ToList(); }
+        get { lock (_lock) { return _calls.ToList(); } }
     }
 }

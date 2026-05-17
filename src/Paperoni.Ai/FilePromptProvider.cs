@@ -16,7 +16,9 @@ public class FilePromptProvider : IPromptProvider
 
         _promptFilePath = fromConfig;
         if (!File.Exists(_promptFilePath))
+        {
             throw new FileNotFoundException("Prompt file not found", _promptFilePath);
+        }
     }
 
     public async Task<string> GetPromptAsync(int msgId, CancellationToken ct = default)

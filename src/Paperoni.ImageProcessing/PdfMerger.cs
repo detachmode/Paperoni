@@ -11,7 +11,7 @@ internal sealed class PdfMerger
         QuestPDF.Settings.License = LicenseType.Community;
     }
 
-    internal byte[] MergeToPdf(IEnumerable<byte[]> images)
+    internal static byte[] MergeToPdf(IEnumerable<byte[]> images)
     {
         return Document.Create(container =>
         {

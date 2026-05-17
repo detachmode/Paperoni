@@ -138,10 +138,6 @@ public class AlbumProcessingSteps
     [When("I enqueue a photo with caption {string}")]
     public void WhenEnqueuePhoto(string caption)
     {
-        var photos = new SortedDictionary<int, TelegramPhotoFile>
-        {
-            { TestMessageId, new TelegramPhotoFile(12345, TestMessageId, "file1", "unique1", caption, DateTime.Now) }
-        };
         _queue.Enqueue(new WorkItem(TestMessageId, false));
     }
 
@@ -151,11 +147,15 @@ public class AlbumProcessingSteps
     public async Task GivenPipelineStarted()
     {
         if (_servicesStarted)
+        {
             return;
+        }
         _cts = new CancellationTokenSource(TimeSpan.FromSeconds(120));
         var hostedServices = _sp.GetServices<IHostedService>();
         foreach (var service in hostedServices)
+        {
             await service.StartAsync(_cts.Token);
+        }
         _servicesStarted = true;
     }
 
@@ -247,7 +247,9 @@ public class AlbumProcessingSteps
         while (DateTime.UtcNow < deadline)
         {
             if (_telegram.Calls.Any(c => c.Text.StartsWith("Failed to process")))
+            {
                 return;
+            }
             await Task.Delay(100);
         }
 
@@ -291,19 +293,8 @@ public class AlbumProcessingSteps
         _cts?.Cancel();
         _tracerProvider?.Dispose();
         if (_sp is IAsyncDisposable ad)
-            await ad.DisposeAsync();
-    }
-
-    private static string FindSolutionDirectory()
-    {
-        var dir = new DirectoryInfo(
-            Path.GetDirectoryName(typeof(AlbumProcessingSteps).Assembly.Location)!);
-        while (dir != null)
         {
-            if (dir.GetFiles("Paperoni.slnx").Length > 0)
-                return dir.FullName;
-            dir = dir.Parent;
+            await ad.DisposeAsync();
         }
-        return Directory.GetCurrentDirectory();
     }
 }

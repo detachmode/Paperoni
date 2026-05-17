@@ -22,9 +22,12 @@ internal sealed class TraceLogExporter(
 
                 if (albumId is int id)
                 {
-                    if (!byAlbumId.ContainsKey(id))
-                        byAlbumId[id] = new List<string>();
-                    byAlbumId[id].Add(line);
+                if (!byAlbumId.TryGetValue(id, out var lines))
+                {
+                    lines = new List<string>();
+                    byAlbumId[id] = lines;
+                }
+                lines.Add(line);
                 }
                 else
                 {
@@ -39,7 +42,9 @@ internal sealed class TraceLogExporter(
             }
 
             if (fallback.Count > 0)
+            {
                 File.AppendAllLines(Path.Combine(fallbackPath, "traces.log"), fallback);
+            }
 
             return ExportResult.Success;
         }

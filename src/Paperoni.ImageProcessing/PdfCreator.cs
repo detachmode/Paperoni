@@ -11,12 +11,12 @@ public record AutoCorrectImageResult(
     string OriginalImagePath
     );
 
-internal sealed class PdfCreator(ILogger<PdfCreator> logger, AlbumWorkingDirectory workingDirectory, PdfMerger pdfMerger, AlbumIdAccessor albumIdAccessor) : IPdfCreator
+internal sealed class PdfCreator(ILogger<PdfCreator> logger, AlbumWorkingDirectory workingDirectory, AlbumIdAccessor albumIdAccessor) : IPdfCreator
 {
-    private static readonly ImageProcessingOptions DefaultOptions = new();
+    private static readonly ImageProcessingOptions s_defaultOptions = new();
 
-    public Task<ProcessedImageResult> AutoCorrect(byte[] imageData, CancellationToken ct = default)
-        => AutoCorrect(imageData, DefaultOptions, ct);
+    public static Task<ProcessedImageResult> AutoCorrect(byte[] imageData, CancellationToken ct = default)
+        => AutoCorrect(imageData, s_defaultOptions, ct);
 
     public async Task<List<AutoCorrectImageResult>> AutoCorrect(List<string> originalImages, CancellationToken stoppingToken)
     {
@@ -59,7 +59,7 @@ internal sealed class PdfCreator(ILogger<PdfCreator> logger, AlbumWorkingDirecto
 
         var processedData = await AutoCorrect(originalImages, stoppingToken);
 
-        var pdfBytes = pdfMerger.MergeToPdf(processedData.Select(i => i.ImprovedImage));
+        var pdfBytes = PdfMerger.MergeToPdf(processedData.Select(i => i.ImprovedImage));
         var pdfPath = Path.Combine(downloadPath, $"{aiResult.Title}.pdf");
 
         await File.WriteAllBytesAsync(pdfPath, pdfBytes, stoppingToken);
@@ -75,9 +75,7 @@ internal sealed class PdfCreator(ILogger<PdfCreator> logger, AlbumWorkingDirecto
             originalImages.Count, sw.Elapsed.TotalSeconds);
     }
 
-
-
-    public async Task<ProcessedImageResult> AutoCorrect(byte[] imageData, ImageProcessingOptions options, CancellationToken ct = default)
+    public static async Task<ProcessedImageResult> AutoCorrect(byte[] imageData, ImageProcessingOptions options, CancellationToken ct = default)
         => await Task.Run(() => Process(imageData, options), ct);
 
     private static ProcessedImageResult Process(byte[] imageData, ImageProcessingOptions options)
@@ -150,9 +148,13 @@ internal sealed class PdfCreator(ILogger<PdfCreator> logger, AlbumWorkingDirecto
 
         using var output = new Mat();
         if (toProcess.Channels() == 3)
+        {
             Cv2.CvtColor(toProcess, output, ColorConversionCodes.BGR2GRAY);
+        }
         else
+        {
             toProcess.CopyTo(output);
+        }
 
         AutoLevels(output);
 
@@ -174,7 +176,9 @@ internal sealed class PdfCreator(ILogger<PdfCreator> logger, AlbumWorkingDirecto
         const int targetLongSide = 1200;
         var maxSide = Math.Max(src.Width, src.Height);
         if (maxSide <= targetLongSide)
+        {
             return src.Clone();
+        }
         var scale = (double)targetLongSide / maxSide;
         var resized = new Mat();
         Cv2.Resize(src, resized, new Size((int)(src.Width * scale), (int)(src.Height * scale)));

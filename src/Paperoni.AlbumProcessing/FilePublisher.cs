@@ -1,7 +1,8 @@
 using System.Diagnostics;
 using Microsoft.Extensions.Logging;
 using Paperoni.Contract;
-using static Paperoni.Contract.Diagnostics;
+using Paperoni.Diagnostics;
+using static Paperoni.Diagnostics.Diagnostics;
 
 namespace Paperoni.AlbumProcessing;
 
@@ -21,7 +22,7 @@ internal sealed class FilePublisher(
         activity?.SetTag("type", _extension.TrimStart('.').ToUpperInvariant());
 
         var aiResult = await workingDirectory.RequireData<AiResult>(msgId, stoppingToken);
-        var workingDir = workingDirectory.GetDownloadPath(msgId);
+        var workingDir = workingDirectory.RequireWorkingDirectory(msgId);
         var file = Directory.GetFiles(workingDir, searchPattern, SearchOption.TopDirectoryOnly).FirstOrDefault();
         ArgumentNullException.ThrowIfNull(file);
 

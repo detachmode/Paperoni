@@ -13,6 +13,7 @@
 
     <ItemGroup>
       <ProjectReference Include="..\Paperoni.Ai\Paperoni.Ai.csproj" />
+      <ProjectReference Include="..\Paperoni.Diagnostics\Paperoni.Diagnostics.csproj" />
       <ProjectReference Include="..\Paperoni.Telegram\Paperoni.Telegram.csproj" />
     </ItemGroup>
 

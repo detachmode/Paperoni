@@ -1,6 +1,6 @@
 using System.Threading.Channels;
 using Microsoft.Extensions.Logging;
-using Paperoni.Contract;
+using static Paperoni.Diagnostics.Diagnostics;
 
 namespace Paperoni.Telegram.Album;
 

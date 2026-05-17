@@ -2,6 +2,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Paperoni.Contract;
+using Paperoni.Diagnostics;
 
 namespace Paperoni.AlbumProcessing;
 

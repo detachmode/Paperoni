@@ -2,7 +2,8 @@ using System.Diagnostics;
 using Microsoft.Extensions.Logging;
 using OpenCvSharp;
 using Paperoni.Contract;
-using static Paperoni.Contract.Diagnostics;
+using Paperoni.Diagnostics;
+using static Paperoni.Diagnostics.Diagnostics;
 
 namespace Paperoni.ImageProcessing;
 
@@ -24,7 +25,7 @@ internal sealed class PdfCreator(
         activity?.SetTag("AlbumId", messageId);
         var sw = Stopwatch.StartNew();
 
-        var downloadPath = workingDirectory.GetDownloadPath(messageId);
+        var downloadPath = workingDirectory.RequireWorkingDirectory(messageId);
         var aiResult = await workingDirectory.GetData<AiResult>(messageId, stoppingToken);
         ArgumentNullException.ThrowIfNull(aiResult);
 

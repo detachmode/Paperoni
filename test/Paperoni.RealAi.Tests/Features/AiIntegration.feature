@@ -17,3 +17,7 @@ Feature: AI Integration
 		And I ask "Describe both images and their colors" with the images
 		Then the answer should contain "red"
 		And the answer should contain "blue"
+
+	Scenario: AI uses tool calling to get current weather
+		When I ask about the weather for a hike
+		Then the answer should contain weather information

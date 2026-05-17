@@ -1,9 +1,10 @@
 using System.Collections.Concurrent;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Paperoni.Contract;
+using Paperoni.Diagnostics;
 using Telegram.Bot;
+using Telegram.Bot.Extensions;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
 
@@ -13,8 +14,8 @@ internal sealed class TelegramPhotoAlbumCollector(
     ITelegramBotClient botClient,
     AlbumQueue queue,
     AlbumWorkingDirectory workingDirectory,
-    IConfiguration configuration,
-    ILogger<TelegramPhotoAlbumCollector> logger) : IHostedService
+    ILogger<TelegramPhotoAlbumCollector> logger,
+    ILogRetriever logRetriever) : IHostedService
 {
     private readonly ConcurrentDictionary<AlbumKey, Album> _albums = new();
     private readonly TimeSpan _debounceTime = TimeSpan.FromSeconds(2);
@@ -82,39 +83,7 @@ internal sealed class TelegramPhotoAlbumCollector(
             return;
         }
 
-        var logDir = configuration["LogPath"];
-        if (string.IsNullOrEmpty(logDir))
-        {
-            logDir = Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
-                "TelegramDownloads");
-        }
-
-        var msgIdStr = msgId.ToString();
-        var matchingLines = new List<string>();
-        foreach (var file in Directory.EnumerateFiles(logDir, "paperoni*.log").OrderByDescending(f => f))
-        {
-            foreach (var line in File.ReadLines(file).Reverse())
-            {
-                if (line.Contains("album " + msgIdStr) || line.Contains("message " + msgIdStr)
-                                                       || line.Contains(msgIdStr + ".jpg") ||
-                                                       line.Contains(msgIdStr + ".pdf"))
-                {
-                    matchingLines.Add(line);
-                    if (matchingLines.Count >= 30)
-                    {
-                        break;
-                    }
-                }
-            }
-
-            if (matchingLines.Count >= 30)
-            {
-                break;
-            }
-        }
-
-        var logText = string.Join("\n", matchingLines);
+        var logText = logRetriever.GetLogContent(msgId);
         if (string.IsNullOrEmpty(logText))
         {
             await botClient.SendMessage(msg.Chat.Id, $"No logs found for message {msgId}.",
@@ -122,13 +91,16 @@ internal sealed class TelegramPhotoAlbumCollector(
             return;
         }
 
-        if (logText.Length > 3900)
+        var textLimit = 3900;
+        if (logText.Length > textLimit)
         {
-            logText = logText[^3900..] + "\n...(truncated)";
+            logText = logText[^textLimit..] + "\n...(truncated)";
         }
 
-        await botClient.SendMessage(msg.Chat.Id, $"📋 Logs for message {msgId}:\n{logText}",
-            replyParameters: msg.MessageId);
+        var header = $"<b>📋 Logs for message {msgId}</b>";
+        var encoded = System.Net.WebUtility.HtmlEncode(logText);
+        await botClient.SendHtml(msg.Chat.Id, $"{header}\n<pre>{encoded}</pre>",
+            replyParameters: new ReplyParameters { MessageId = msg.MessageId });
     }
 
     private async Task HandleMessage(Message message, UpdateType type)
@@ -220,7 +192,7 @@ internal sealed class TelegramPhotoAlbumCollector(
 
         using var logScope = logger.BeginScope(new Dictionary<string, object> { ["MsgId"] = msgId });
 
-        var downloadFolder = workingDirectory.GetDownloadPath(first.MessageId);
+        var downloadFolder = workingDirectory.RequireWorkingDirectory(first.MessageId);
         await SaveMetaData(album);
 
         var dlPosition = Interlocked.Increment(ref _activeDownloads);

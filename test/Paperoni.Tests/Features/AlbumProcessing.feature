@@ -26,7 +26,7 @@ Background:
     And the pipeline is started
 
 Scenario: Single photo album is processed end-to-end
-    When I enqueue a photo with caption "Test document"
+    When I enqueue the message
     Then the album is processed
     And the AI summary mentions "title: Lorem ipsum"
     And a PDF is created
@@ -40,7 +40,7 @@ Scenario: Single photo album is processed end-to-end
 
 Scenario: Multi-photo album produces a PDF with correct page count
     Given the album has 3 photos
-    When I enqueue a photo with caption "Test document"
+    When I enqueue the message
     Then the album is processed
     And the AI summary mentions "title: Lorem ipsum"
     And the PDF has 3 pages
@@ -49,7 +49,7 @@ Scenario: Multi-photo album produces a PDF with correct page count
     And the trace log contains expected traces
 
 Scenario: Album retry re-processes and cleans old published files
-    When I enqueue a photo with caption "Test document"
+    When I enqueue the message
     Then the album finishes processing
     And the summary is published to Obsidian
     And the PDF is published to the output directory
@@ -61,6 +61,11 @@ Scenario: Album retry re-processes and cleans old published files
 
 Scenario: AI timeout is reported to the user
     Given the AI service is unresponsive
-    When I enqueue a photo with caption "Test document"
+    When I enqueue the message
     Then the album processing fails
     And the bot replied with "Failed to process"
+
+Scenario: Log command returns logs and traces after album processing
+    When I enqueue the message
+    Then the album is processed
+    And the log content for the message contains logs and traces

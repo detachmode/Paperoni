@@ -1,7 +1,7 @@
 using System.Diagnostics;
 using Microsoft.Extensions.Logging;
 
-namespace Paperoni.Contract;
+namespace Paperoni.Diagnostics;
 
 public static partial class Diagnostics
 {

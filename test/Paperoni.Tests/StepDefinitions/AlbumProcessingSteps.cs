@@ -2,12 +2,15 @@ using System.Text.Json;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using OpenTelemetry;
+using Serilog;
 using OpenTelemetry.Trace;
 using Paperoni.Ai;
 using Paperoni.AlbumProcessing;
 using Paperoni.Contract;
+using Paperoni.Diagnostics;
 using Paperoni.ImageProcessing;
 using Paperoni.Telegram;
 using Paperoni.Telegram.Album;
@@ -120,23 +123,32 @@ public class AlbumProcessingSteps
         _output.WriteLine($"Test output directory: {_tempBase}");
         _output.WriteLine($"Test output: {_outputDir}");
 
+        Log.Logger = new LoggerConfiguration()
+            .MinimumLevel.Debug()
+            .WriteTo.File(Path.Combine(_tempBase, "paperoni.log"))
+            .CreateLogger();
+
         var services = new ServiceCollection();
         services.AddSingleton(_queue);
         services.AddSingleton<AlbumWorkingDirectory>(_ => new AlbumWorkingDirectory { DownloadBasePath = _tempBase });
-        services.AddSingleton<AlbumIdAccessor>();
         services.AddSingleton<ITelegramReplier>(_telegram);
         services.AddSingleton<FakeAiService>();
         services.AddSingleton<IAiService>(sp => sp.GetRequiredService<FakeAiService>());
         services.AddImageProcessing();
         services.AddAlbumProcessor();
+        services.AddDiagnostics();
         services.AddSingleton<IConfiguration>(config);
-        services.AddLogging();
+        services.AddLogging(builder =>
+        {
+            builder.SetMinimumLevel(LogLevel.Trace);
+            builder.AddSerilog(Log.Logger, true);
+        });
 
         _sp = services.BuildServiceProvider();
     }
 
-    [When("I enqueue a photo with caption {string}")]
-    public void WhenEnqueuePhoto(string caption)
+    [When("I enqueue the message")]
+    public void WhenEnqueueTheMessage()
     {
         _queue.Enqueue(new WorkItem(TestMessageId, false));
     }
@@ -268,6 +280,18 @@ public class AlbumProcessingSteps
         Assert.StartsWith(expectedStartsWith, _telegram.Calls.Last().Text);
     }
 
+    [Then("the log content for the message contains logs and traces")]
+    public void ThenLogContentContainsLogsAndTraces()
+    {
+        _tracerProvider?.ForceFlush();
+
+        var logRetriever = _sp.GetRequiredService<ILogRetriever>();
+        var logContent = logRetriever.GetLogContent(TestMessageId);
+
+        Assert.Contains("AlbumProcessor.ExecuteAsync", logContent);
+        Assert.Contains("Album 42 processing started", logContent);
+    }
+
     [Then("the trace log contains expected traces")]
     public void ThenTraceLogContainsExpectedTraces()
     {
@@ -292,6 +316,7 @@ public class AlbumProcessingSteps
     {
         _cts?.Cancel();
         _tracerProvider?.Dispose();
+        Log.CloseAndFlush();
         if (_sp is IAsyncDisposable ad)
         {
             await ad.DisposeAsync();

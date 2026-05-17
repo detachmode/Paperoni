@@ -25,6 +25,7 @@
     </ItemGroup>
 
     <ItemGroup>
+      <ProjectReference Include="..\Paperoni.Diagnostics\Paperoni.Diagnostics.csproj" />
       <ProjectReference Include="..\Paperoni.Ai\Paperoni.Ai.csproj" />
       <ProjectReference Include="..\Paperoni.AlbumProcessing\Paperoni.AlbumProcessing.csproj" />
       <ProjectReference Include="..\Paperoni.Telegram\Paperoni.Telegram.csproj" />

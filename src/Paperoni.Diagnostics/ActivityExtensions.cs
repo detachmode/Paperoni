@@ -1,7 +1,7 @@
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 
-namespace Paperoni.Contract;
+namespace Paperoni.Diagnostics;
 
 public static class ActivityExtensions
 {

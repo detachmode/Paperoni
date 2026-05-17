@@ -17,6 +17,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Paperoni.Contract\Paperoni.Contract.csproj" />
+    <ProjectReference Include="..\Paperoni.Diagnostics\Paperoni.Diagnostics.csproj" />
   </ItemGroup>
 
 </Project>

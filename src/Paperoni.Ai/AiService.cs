@@ -1,16 +1,15 @@
-using System.ClientModel;
 using System.Diagnostics;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
-using OpenAI;
 using Paperoni.Contract;
+using Paperoni.Diagnostics;
 using Paperoni.Telegram;
-using static Paperoni.Contract.Diagnostics;
+using static Paperoni.Diagnostics.Diagnostics;
 
 namespace Paperoni.Ai;
 
-internal sealed class AiService : IAiService, IDisposable
+internal sealed class AiService : IAiService
 {
     private readonly IChatClient _chatClient;
     private readonly ILogger<AiService> _logger;
@@ -20,19 +19,41 @@ internal sealed class AiService : IAiService, IDisposable
     private readonly AlbumWorkingDirectory _workingDirectory;
 
     public AiService(AlbumWorkingDirectory workingDirectory, IPromptProvider promptProvider,
-        ITelegramReplier telegram, ILogger<AiService> logger, IConfiguration configuration)
+        ITelegramReplier telegram, ILogger<AiService> logger, IConfiguration configuration,
+        IChatClient chatClient)
     {
         _workingDirectory = workingDirectory;
         _promptProvider = promptProvider;
         _telegram = telegram;
         _logger = logger;
+        _chatClient = chatClient;
         _timeoutSeconds = int.TryParse(configuration["AiTimeoutSeconds"], out var t) ? t : 600;
+    }
 
-        var endpoint = Environment.GetEnvironmentVariable("AI_ENDPOINT") ?? "http://localhost:2276";
-        var model = Environment.GetEnvironmentVariable("AI_MODEL") ?? "qwen-3.6-35b-a3b-q4";
-        var client = new OpenAIClient(new ApiKeyCredential("api-key"),
-            new OpenAIClientOptions { Endpoint = new Uri(endpoint) });
-        _chatClient = client.GetChatClient(model).AsIChatClient();
+    public async Task<string> TryFunctionCalling()
+    {
+        var weatherFunction = AIFunctionFactory.Create((string location, string unit) =>
+            {
+                return "Periods of rain or drizzle, 15 C";
+            },
+            "get_current_weather",
+            "Gets the current weather in a given location");
+
+        List<ChatMessage> chatHistory =
+        [
+            new(ChatRole.System, """
+                                 You are a hiking enthusiast who helps people discover fun hikes in their area. You are upbeat and friendly.
+                                 """),
+            new(ChatRole.User,
+                "I live in Montreal and I'm looking for a moderate intensity hike. What's the current weather like?")
+        ];
+
+        Console.WriteLine($"{chatHistory.Last().Role} >>> {chatHistory.Last()}");
+
+        var response = await _chatClient.GetResponseAsync(chatHistory, new ChatOptions { Tools = [weatherFunction] });
+
+        Console.WriteLine($"Assistant >>> {response.Text}");
+        return response.Text;
     }
 
     public async Task<string> AskWithFilesAsync(IEnumerable<FileContent> files, string prompt,
@@ -51,6 +72,7 @@ internal sealed class AiService : IAiService, IDisposable
         var reasoningLine = "";
         var partialUpdateLine = "";
         var chunkCount = 0;
+
         await foreach (var update in _chatClient.GetStreamingResponseAsync(message,
                            cancellationToken: cancellationToken))
         {
@@ -96,7 +118,7 @@ internal sealed class AiService : IAiService, IDisposable
         using var activity = Tracer.StartActivity<AiService>();
         activity?.SetTag("AlbumId", msgId);
 
-        var workingDir = _workingDirectory.GetDownloadPath(msgId);
+        var workingDir = _workingDirectory.RequireWorkingDirectory(msgId);
         var files =
             Directory
                 .GetFiles(workingDir)
@@ -153,11 +175,6 @@ internal sealed class AiService : IAiService, IDisposable
         activity?.SetStatus(ActivityStatusCode.Ok);
 
         _logger.AiSummaryCompleted(msgId, aiResult.Length, sw.Elapsed.TotalSeconds, title);
-    }
-
-    public void Dispose()
-    {
-        _chatClient.Dispose();
     }
 
     public async Task<string> Review(IEnumerable<FileContent> files, string firstPrompt, string answer,

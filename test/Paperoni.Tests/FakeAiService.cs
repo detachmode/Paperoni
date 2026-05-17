@@ -1,7 +1,7 @@
 using System.Diagnostics;
 using Paperoni.Ai;
 using Paperoni.Contract;
-using static Paperoni.Contract.Diagnostics;
+using static Paperoni.Diagnostics.Diagnostics;
 
 namespace Paperoni.Tests;
 
@@ -15,6 +15,8 @@ internal sealed class FakeAiService(AlbumWorkingDirectory workingDirectory) : IA
         return Task.FromResult("Fake AI response for: " + prompt);
     }
 
+    public Task<string> TryFunctionCalling() => Task.FromResult("Fake function calling response");
+
     public async Task CreateAiSummary(int msgId, CancellationToken stoppingToken = default)
     {
         if (ShouldThrowOnCreateAiSummary)
@@ -25,7 +27,7 @@ internal sealed class FakeAiService(AlbumWorkingDirectory workingDirectory) : IA
         using var activity = Tracer.StartActivity("AiService.CreateAiSummary");
         activity?.SetTag("AlbumId", msgId);
 
-        var workDir = workingDirectory.GetDownloadPath(msgId);
+        var workDir = workingDirectory.RequireWorkingDirectory(msgId);
 
         var content = """
                        ---

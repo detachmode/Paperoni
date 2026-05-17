@@ -6,4 +6,5 @@ public interface IAiService
         Action<DebugOutputType, string>? debugOutput = null, CancellationToken cancellationToken = default);
 
     Task CreateAiSummary(int files, CancellationToken stoppingToken = default);
+    Task<string> TryFunctionCalling();
 }

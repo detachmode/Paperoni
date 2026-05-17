@@ -5,15 +5,16 @@ namespace Paperoni.Contract;
 public class AlbumWorkingDirectory
 {
     private readonly SemaphoreSlim _semaphore = new(1, 1);
-    public string? DownloadBasePath { get; init; }
+    public string? DownloadBasePath { private get; init; }
 
-    public string GetDownloadPath(int messageId)
-    {
-        var baseDir = DownloadBasePath ?? Path.Combine(
+    public string BasePath =>
+        DownloadBasePath ?? Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
             "TelegramDownloads");
 
-        var path = Path.Combine(baseDir, messageId.ToString());
+    public string RequireWorkingDirectory(int messageId)
+    {
+        var path = Path.Combine(BasePath, messageId.ToString());
         Directory.CreateDirectory(path);
 
         return path;
@@ -24,7 +25,7 @@ public class AlbumWorkingDirectory
         await _semaphore.WaitAsync(stoppingToken);
         try
         {
-            var workDir = GetDownloadPath(messageId);
+            var workDir = RequireWorkingDirectory(messageId);
             var path = Path.Combine(workDir, typeof(T).Name + ".json");
             var json = JsonSerializer.Serialize(data,
                 new JsonSerializerOptions { WriteIndented = true });
@@ -45,7 +46,7 @@ public class AlbumWorkingDirectory
         await _semaphore.WaitAsync(stoppingToken);
         try
         {
-            var workDir = GetDownloadPath(messageId);
+            var workDir = RequireWorkingDirectory(messageId);
             var path = Path.Combine(workDir, typeof(T).Name + ".json");
 
             var json = await File.ReadAllTextAsync(path, stoppingToken);

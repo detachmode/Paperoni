@@ -1,10 +1,10 @@
 using OpenTelemetry;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
-using Paperoni;
 using Paperoni.Ai;
 using Paperoni.AlbumProcessing;
 using Paperoni.Contract;
+using Paperoni.Diagnostics;
 using Paperoni.ImageProcessing;
 using Paperoni.Telegram;
 using Serilog;
@@ -18,20 +18,19 @@ if (!createdNew)
 
 var builder = Host.CreateApplicationBuilder(args);
 
-builder.Services.AddSingleton<AlbumIdAccessor>();
+builder.Services.AddDiagnostics();
 builder.Services.AddTelegramPhotoAlbumCollector();
 builder.Services.AddAiService();
 builder.Services.AddAlbumProcessor();
 builder.Services.AddImageProcessing();
-builder.Services.AddSingleton<AlbumWorkingDirectory>();
+
+var workingDir = new AlbumWorkingDirectory();
+var logDir = workingDir.BasePath;
+builder.Services.AddSingleton(workingDir);
 
 builder.Configuration
     .AddUserSecrets<Program>()
     .AddEnvironmentVariables();
-
-var logDir = Path.Combine(
-    Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
-    "TelegramDownloads");
 
 builder.Services.AddSerilog((config) =>
 {
@@ -51,9 +50,7 @@ builder.Services.AddOpenTelemetry()
         .AddSource(Diagnostics.Tracer.Name)
         .AddConsoleExporter()
         .AddProcessor(new BatchActivityExportProcessor(
-            new TraceLogExporter(
-                builder.Services.BuildServiceProvider().GetRequiredService<AlbumWorkingDirectory>(),
-                logDir),
+            new TraceLogExporter(workingDir, logDir),
             maxQueueSize: 2048,
             scheduledDelayMilliseconds: 5000)));
 

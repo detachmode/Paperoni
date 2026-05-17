@@ -14,6 +14,7 @@ public class AiIntegrationSteps
     private readonly IAiService _aiService;
     private readonly ITestOutputHelper _output;
     private string? _answer;
+    private string? _functionCallingAnswer;
     private readonly List<FileContent> _files = new();
 
     public AiIntegrationSteps(ITestOutputHelper output)
@@ -52,6 +53,22 @@ public class AiIntegrationSteps
     public async Task WhenIAsk(string question)
     {
         _answer = await _aiService.AskWithFilesAsync([], question, (type, msg) => _output.WriteLine($"[{type}]{msg}"));
+    }
+
+    [When("I ask about the weather for a hike")]
+    public async Task WhenIAskAboutTheWeatherForAHike()
+    {
+        _functionCallingAnswer = await _aiService.TryFunctionCalling();
+        _output.WriteLine($"Function calling response: {_functionCallingAnswer}");
+    }
+
+    [Then("the answer should contain weather information")]
+    public void ThenAnswerShouldContainWeatherInformation()
+    {
+        Assert.NotNull(_functionCallingAnswer);
+        _output.WriteLine($"AI response: {_functionCallingAnswer}");
+        Assert.Contains("rain", _functionCallingAnswer, StringComparison.OrdinalIgnoreCase);
+        _output.WriteLine("Tool calling succeeded — AI invoked get_current_weather and used the result.");
     }
 
     [When("I send two images: a red square and a blue circle")]

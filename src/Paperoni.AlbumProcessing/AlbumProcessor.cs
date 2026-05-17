@@ -8,7 +8,8 @@ using Paperoni.Contract;
 using Paperoni.ImageProcessing;
 using Paperoni.Telegram;
 using Paperoni.Telegram.Album;
-using static Paperoni.Contract.Diagnostics;
+using Paperoni.Diagnostics;
+using static Paperoni.Diagnostics.Diagnostics;
 
 namespace Paperoni.AlbumProcessing;
 

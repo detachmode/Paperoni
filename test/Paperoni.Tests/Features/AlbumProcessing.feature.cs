@@ -137,7 +137,7 @@ Extracted text from the document.", ((global::Reqnroll.Table)(null)), "And ");
         
         private static global::Reqnroll.Formatters.RuntimeSupport.FeatureLevelCucumberMessages InitializeCucumberMessages()
         {
-            return new global::Reqnroll.Formatters.RuntimeSupport.FeatureLevelCucumberMessages("Features/AlbumProcessing.feature.ndjson", 6);
+            return new global::Reqnroll.Formatters.RuntimeSupport.FeatureLevelCucumberMessages("Features/AlbumProcessing.feature.ndjson", 7);
         }
         
         async global::System.Threading.Tasks.Task global::Xunit.IAsyncLifetime.InitializeAsync()
@@ -190,7 +190,7 @@ this.ScenarioInitialize(scenarioInfo, ruleInfo);
 await this.FeatureBackgroundAsync();
 #line hidden
 #line 29
-    await testRunner.WhenAsync("I enqueue a photo with caption \"Test document\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "When ");
+    await testRunner.WhenAsync("I enqueue the message", ((string)(null)), ((global::Reqnroll.Table)(null)), "When ");
 #line hidden
 #line 30
     await testRunner.ThenAsync("the album is processed", ((string)(null)), ((global::Reqnroll.Table)(null)), "Then ");
@@ -254,7 +254,7 @@ await this.FeatureBackgroundAsync();
     await testRunner.GivenAsync("the album has 3 photos", ((string)(null)), ((global::Reqnroll.Table)(null)), "Given ");
 #line hidden
 #line 43
-    await testRunner.WhenAsync("I enqueue a photo with caption \"Test document\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "When ");
+    await testRunner.WhenAsync("I enqueue the message", ((string)(null)), ((global::Reqnroll.Table)(null)), "When ");
 #line hidden
 #line 44
     await testRunner.ThenAsync("the album is processed", ((string)(null)), ((global::Reqnroll.Table)(null)), "Then ");
@@ -303,7 +303,7 @@ this.ScenarioInitialize(scenarioInfo, ruleInfo);
 await this.FeatureBackgroundAsync();
 #line hidden
 #line 52
-    await testRunner.WhenAsync("I enqueue a photo with caption \"Test document\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "When ");
+    await testRunner.WhenAsync("I enqueue the message", ((string)(null)), ((global::Reqnroll.Table)(null)), "When ");
 #line hidden
 #line 53
     await testRunner.ThenAsync("the album finishes processing", ((string)(null)), ((global::Reqnroll.Table)(null)), "Then ");
@@ -361,13 +361,50 @@ await this.FeatureBackgroundAsync();
     await testRunner.GivenAsync("the AI service is unresponsive", ((string)(null)), ((global::Reqnroll.Table)(null)), "Given ");
 #line hidden
 #line 64
-    await testRunner.WhenAsync("I enqueue a photo with caption \"Test document\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "When ");
+    await testRunner.WhenAsync("I enqueue the message", ((string)(null)), ((global::Reqnroll.Table)(null)), "When ");
 #line hidden
 #line 65
     await testRunner.ThenAsync("the album processing fails", ((string)(null)), ((global::Reqnroll.Table)(null)), "Then ");
 #line hidden
 #line 66
     await testRunner.AndAsync("the bot replied with \"Failed to process\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "And ");
+#line hidden
+            }
+            await this.ScenarioCleanupAsync();
+        }
+        
+        [global::Xunit.SkippableFactAttribute(DisplayName="Log command returns logs and traces after album processing")]
+        [global::Xunit.TraitAttribute("FeatureTitle", "Album Processing")]
+        [global::Xunit.TraitAttribute("Description", "Log command returns logs and traces after album processing")]
+        public async global::System.Threading.Tasks.Task LogCommandReturnsLogsAndTracesAfterAlbumProcessing()
+        {
+            string[] tagsOfScenario = ((string[])(null));
+            global::System.Collections.Specialized.OrderedDictionary argumentsOfScenario = new global::System.Collections.Specialized.OrderedDictionary();
+            string pickleIndex = "4";
+            global::Reqnroll.ScenarioInfo scenarioInfo = new global::Reqnroll.ScenarioInfo("Log command returns logs and traces after album processing", null, tagsOfScenario, argumentsOfScenario, featureTags, pickleIndex);
+            string[] tagsOfRule = ((string[])(null));
+            global::Reqnroll.RuleInfo ruleInfo = null;
+#line 68
+this.ScenarioInitialize(scenarioInfo, ruleInfo);
+#line hidden
+            if ((global::Reqnroll.TagHelper.ContainsIgnoreTag(scenarioInfo.CombinedTags) || global::Reqnroll.TagHelper.ContainsIgnoreTag(featureTags)))
+            {
+                await testRunner.SkipScenarioAsync();
+            }
+            else
+            {
+                await this.ScenarioStartAsync();
+#line 6
+await this.FeatureBackgroundAsync();
+#line hidden
+#line 69
+    await testRunner.WhenAsync("I enqueue the message", ((string)(null)), ((global::Reqnroll.Table)(null)), "When ");
+#line hidden
+#line 70
+    await testRunner.ThenAsync("the album is processed", ((string)(null)), ((global::Reqnroll.Table)(null)), "Then ");
+#line hidden
+#line 71
+    await testRunner.AndAsync("the log content for the message contains logs and traces", ((string)(null)), ((global::Reqnroll.Table)(null)), "And ");
 #line hidden
             }
             await this.ScenarioCleanupAsync();

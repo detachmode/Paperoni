@@ -8,6 +8,7 @@ using OpenTelemetry.Trace;
 using Paperoni.Ai;
 using Paperoni.AlbumProcessing;
 using Paperoni.Contract;
+using Paperoni.Diagnostics;
 using Paperoni.ImageProcessing;
 using Paperoni.Telegram;
 using Paperoni.Telegram.Album;

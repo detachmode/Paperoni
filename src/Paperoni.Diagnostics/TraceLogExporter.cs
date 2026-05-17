@@ -2,9 +2,9 @@ using System.Diagnostics;
 using OpenTelemetry;
 using Paperoni.Contract;
 
-namespace Paperoni;
+namespace Paperoni.Diagnostics;
 
-internal sealed class TraceLogExporter(
+public sealed class TraceLogExporter(
     AlbumWorkingDirectory workingDirectory,
     string fallbackPath) : BaseExporter<Activity>
 {
@@ -38,7 +38,7 @@ internal sealed class TraceLogExporter(
 
             foreach (var (id, lines) in byAlbumId)
             {
-                var path = Path.Combine(workingDirectory.GetDownloadPath(id), "traces.log");
+                var path = Path.Combine(workingDirectory.RequireWorkingDirectory(id), "traces.log");
                 File.AppendAllLines(path, lines);
             }
 

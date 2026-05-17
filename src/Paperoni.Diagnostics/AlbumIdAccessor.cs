@@ -1,4 +1,4 @@
-namespace Paperoni.Contract;
+namespace Paperoni.Diagnostics;
 
 public sealed class AlbumIdAccessor
 {

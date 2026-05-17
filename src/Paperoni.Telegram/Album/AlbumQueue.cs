@@ -1,25 +1,45 @@
 using System.Threading.Channels;
+using Microsoft.Extensions.Logging;
 using Paperoni.Contract;
+using static Paperoni.Contract.Diagnostics;
 
 namespace Paperoni.Telegram.Album;
 
-public sealed record AlbumQueueEntry(SortedDictionary<int, TelegramPhotoFile>  Photos);
+public sealed record WorkItem(int MessageId, bool IsRetry);
+
 public class AlbumQueue
 {
-    private readonly Channel<AlbumQueueEntry> _channel;
+    private readonly Channel<WorkItem> _channel;
+    private readonly ILogger<AlbumQueue> _logger;
+    private int _pendingCount;
 
-    public AlbumQueue()
+    public int PendingCount => _pendingCount;
+
+    public AlbumQueue(ILogger<AlbumQueue> logger)
     {
-        _channel = Channel.CreateUnbounded<AlbumQueueEntry>();
+        _channel = Channel.CreateUnbounded<WorkItem>();
+        _logger = logger;
     }
 
-    public void Enqueue(AlbumQueueEntry photos)
+    public int Enqueue(WorkItem item)
     {
-        _channel.Writer.TryWrite(photos);
+        var depth = Interlocked.Increment(ref _pendingCount);
+        if (!_channel.Writer.TryWrite(item))
+        {
+            Interlocked.Decrement(ref _pendingCount);
+            depth = _pendingCount;
+            throw new InvalidOperationException($"Failed to enqueue album {item.MessageId}");
+        }
+        _logger.AlbumEnqueued(item.MessageId, item.IsRetry, depth);
+        return depth;
     }
 
-    public async Task<AlbumQueueEntry> Dequeue(CancellationToken ct = default)
+    public async Task<WorkItem> Dequeue(CancellationToken ct = default)
     {
-        return await _channel.Reader.ReadAsync(ct);
+        var item = await _channel.Reader.ReadAsync(ct);
+        var depth = Interlocked.Decrement(ref _pendingCount);
+        _logger.AlbumDequeued(item.MessageId, depth);
+        return item;
     }
+
 }

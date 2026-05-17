@@ -1,4 +1,3 @@
-using System.Threading.Channels;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -13,7 +12,6 @@ namespace Paperoni.AlbumProcessing;
 
 internal class AlbumProcessor(
     AlbumQueue queue,
-    Channel<int> retryChannel,
     IAiService ai,
     [FromKeyedServices(PublisherTarget.Markdown)] IFilePublisher markdownPublisher,
     [FromKeyedServices(PublisherTarget.Pdf)] IFilePublisher pdfPublisher,
@@ -27,32 +25,12 @@ internal class AlbumProcessor(
     {
         while (!stoppingToken.IsCancellationRequested)
         {
-            var albumTask = queue.Dequeue(stoppingToken);
-            var retryTask = retryChannel.Reader.ReadAsync(stoppingToken).AsTask();
-
             try
             {
-                var completed = await Task.WhenAny(albumTask, retryTask);
-
-                int msgId;
-                bool isRetry;
-
-                if (completed == albumTask)
-                {
-                    var entry = await albumTask;
-                    msgId = entry.Photos.First().Value.MessageId;
-                    isRetry = false;
-                    logger.LogInformation("Worker received album with {count} items: {items}", entry.Photos.Count,
-                        string.Join(", ", entry.Photos.Keys.ToList()));
-                }
-                else
-                {
-                    msgId = await retryTask;
-                    isRetry = true;
-                    logger.LogInformation("Retrying album {MsgId}", msgId);
-                }
-
-                await ProcessAlbum(msgId, isRetry, stoppingToken);
+                var item = await queue.Dequeue(stoppingToken);
+                logger.LogInformation("Worker received album {MsgId} (retry: {IsRetry})",
+                    item.MessageId, item.IsRetry);
+                await ProcessAlbum(item.MessageId, item.IsRetry, stoppingToken);
             }
             catch (OperationCanceledException)
             {
@@ -62,8 +40,6 @@ internal class AlbumProcessor(
             {
                 logger.LogError(e, "An error occured during processing album");
             }
-
-            await Task.Delay(100, stoppingToken);
         }
     }
 

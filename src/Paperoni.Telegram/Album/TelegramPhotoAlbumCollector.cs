@@ -1,5 +1,4 @@
 using System.Collections.Concurrent;
-using System.Threading.Channels;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Paperoni.Contract;
@@ -12,7 +11,6 @@ namespace Paperoni.Telegram.Album;
 internal sealed class TelegramPhotoAlbumCollector(
     ITelegramBotClient botClient,
     AlbumQueue queue,
-    Channel<int> retryChannel,
     AlbumWorkingDirectory workingDirectory,
     ILogger<TelegramPhotoAlbumCollector> logger) : IHostedService
 {
@@ -47,19 +45,19 @@ internal sealed class TelegramPhotoAlbumCollector(
         if (update.CallbackQuery is not { } query)
             return;
 
-        if (query.Data is not { } data || !data.StartsWith("retry:"))
-            return;
-
-        if (!int.TryParse(data.AsSpan(6), out var msgId))
+        if (query.Data is not { } data)
             return;
 
         await botClient.AnswerCallbackQuery(query.Id);
 
-        if (query.Message is { } message)
-            await botClient.EditMessageText(message.Chat.Id, message.MessageId, "🔄 Retrying ...");
+        if (data.StartsWith("retry:") && int.TryParse(data.AsSpan(6), out var retryId))
+        {
+            if (query.Message is { } message)
+                await botClient.EditMessageText(message.Chat.Id, message.MessageId, "🔄 Retrying ...");
 
-        retryChannel.Writer.TryWrite(msgId);
-        logger.LogInformation("Retry requested for album {MsgId}", msgId);
+            queue.Enqueue(new WorkItem(retryId, true));
+            logger.LogInformation("Retry requested for album {MsgId}", retryId);
+        }
     }
 
     private async Task HandleMessage(Message message, UpdateType type)
@@ -127,7 +125,6 @@ internal sealed class TelegramPhotoAlbumCollector(
             if (buffer.Photos.Count == 0)
                 return;
 
-
             await DownloadAndEnqueue(buffer);
         }
         catch (Exception e)
@@ -142,7 +139,6 @@ internal sealed class TelegramPhotoAlbumCollector(
         var msgId = first.MessageId;
         var chatId = first.ChatId;
 
-
         var downloadFolder = workingDirectory.GetDownloadPath(first.MessageId);
         await SaveMetaData(album);
 
@@ -153,13 +149,13 @@ internal sealed class TelegramPhotoAlbumCollector(
                 replyParameters: msgId);
 
             await SaveMetaData(album, botReply.MessageId);
-            
+
             foreach (var albumValue in album.Photos.Values)
             {
                 await DownloadFile(downloadFolder, albumValue.MessageId + ".jpg", albumValue.FileId);
             }
 
-            queue.Enqueue(new AlbumQueueEntry(album.Photos));
+            queue.Enqueue(new WorkItem(first.MessageId, false));
         }
         finally
         {

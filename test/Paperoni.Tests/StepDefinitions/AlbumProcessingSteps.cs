@@ -2,6 +2,7 @@ using System.Text.Json;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging.Abstractions;
 using Paperoni.Ai;
 using Paperoni.AlbumProcessing;
 using Paperoni.Contract;
@@ -60,7 +61,7 @@ public class AlbumProcessingSteps
             JsonSerializer.Serialize(meta));
 
         _telegram = new FakeTelegramReplier();
-        _queue = new AlbumQueue();
+        _queue = new AlbumQueue(NullLogger<AlbumQueue>.Instance);
     }
 
     [Given("the prompt template is:")]
@@ -104,7 +105,7 @@ public class AlbumProcessingSteps
         {
             { TestMessageId, new TelegramPhotoFile(12345, TestMessageId, "file1", "unique1", caption, DateTime.Now) }
         };
-        _queue.Enqueue(new AlbumQueueEntry(photos));
+        _queue.Enqueue(new WorkItem(TestMessageId, false));
     }
 
     private bool _servicesStarted;
@@ -146,8 +147,8 @@ public class AlbumProcessingSteps
     [When("I request a retry")]
     public void WhenRequestRetry()
     {
-        var retryChannel = _sp.GetRequiredService<System.Threading.Channels.Channel<int>>();
-        retryChannel.Writer.TryWrite(TestMessageId);
+        var queue = _sp.GetRequiredService<AlbumQueue>();
+        queue.Enqueue(new WorkItem(TestMessageId, true));
     }
 
     [Then("the AI summary mentions {string}")]

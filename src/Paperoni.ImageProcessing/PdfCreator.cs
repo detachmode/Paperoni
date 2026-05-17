@@ -7,11 +7,11 @@ using static Paperoni.Contract.Diagnostics;
 namespace Paperoni.ImageProcessing;
 
 public record AutoCorrectImageResult(
-    byte[] ImprovedImage, 
+    byte[] ImprovedImage,
     string OriginalImagePath
     );
 
-internal sealed class PdfCreator(ILogger<PdfCreator> logger, AlbumWorkingDirectory workingDirectory, PdfMerger pdfMerger) : IPdfCreator
+internal sealed class PdfCreator(ILogger<PdfCreator> logger, AlbumWorkingDirectory workingDirectory, PdfMerger pdfMerger, AlbumIdAccessor albumIdAccessor) : IPdfCreator
 {
     private static readonly ImageProcessingOptions DefaultOptions = new();
 
@@ -23,7 +23,8 @@ internal sealed class PdfCreator(ILogger<PdfCreator> logger, AlbumWorkingDirecto
         var result = new List<AutoCorrectImageResult>();
         foreach (var imageFile in originalImages)
         {
-            using var activity = Tracer.StartActivity("AutoCorrectImage");
+            using var activity = Tracer.StartActivity<PdfCreator>();
+            activity?.SetTag("AlbumId", albumIdAccessor.Id);
             activity?.SetTag("file", Path.GetFileName(imageFile));
 
             var imageData = await File.ReadAllBytesAsync(imageFile, stoppingToken);
@@ -43,8 +44,8 @@ internal sealed class PdfCreator(ILogger<PdfCreator> logger, AlbumWorkingDirecto
 
     public async Task CreatePdf(int messageId, CancellationToken stoppingToken)
     {
-        using var activity = Tracer.StartActivity("PdfCreator.CreatePdf");
-        activity?.SetTag("msgId", messageId);
+        using var activity = Tracer.StartActivity<PdfCreator>();
+        activity?.SetTag("AlbumId", messageId);
         var sw = Stopwatch.StartNew();
 
         var downloadPath = workingDirectory.GetDownloadPath(messageId);

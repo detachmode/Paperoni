@@ -10,14 +10,15 @@ internal sealed class FilePublisher(
     AlbumWorkingDirectory workingDirectory,
     string outputPath,
     string searchPattern,
+    AlbumIdAccessor albumIdAccessor,
     ILogger<FilePublisher> logger) : IFilePublisher
 {
     private readonly string _extension = Path.GetExtension(searchPattern);
 
     public async Task PublishFileAsync(int msgId, CancellationToken stoppingToken)
     {
-        using var activity = Tracer.StartActivity($"{nameof(FilePublisher)}.{nameof(DeletePreviousAsync)}");
-        activity?.SetTag("msgId", msgId);
+        using var activity = Tracer.StartActivity<FilePublisher>();
+        activity?.SetTag("AlbumId", msgId);
         activity?.SetTag("type", _extension.TrimStart('.').ToUpperInvariant());
 
         var aiResult = await workingDirectory.RequireData<AiResult>(msgId, stoppingToken);
@@ -42,7 +43,8 @@ internal sealed class FilePublisher(
 
     public Task DeletePreviousAsync(string title, CancellationToken stoppingToken)
     {
-        using var activity = Tracer.StartActivity($"{nameof(FilePublisher)}.{nameof(DeletePreviousAsync)}");
+        using var activity = Tracer.StartActivity<FilePublisher>();
+        activity?.SetTag("AlbumId", albumIdAccessor.Id);
         activity?.SetTag("type", _extension.TrimStart('.').ToUpperInvariant());
 
         var filePath = Path.Combine(outputPath, $"{title}{_extension}");

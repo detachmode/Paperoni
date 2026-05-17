@@ -9,8 +9,16 @@ using Paperoni.ImageProcessing;
 using Paperoni.Telegram;
 using Serilog;
 
+using var instanceLock = new Mutex(true, "Paperoni-8765", out var createdNew);
+if (!createdNew)
+{
+    Console.Error.WriteLine("Another instance of Paperoni is already running.");
+    return;
+}
+
 var builder = Host.CreateApplicationBuilder(args);
 
+builder.Services.AddSingleton<AlbumIdAccessor>();
 builder.Services.AddTelegramPhotoAlbumCollector();
 builder.Services.AddAiService();
 builder.Services.AddAlbumProcessor();
@@ -29,12 +37,12 @@ builder.Services.AddSerilog((config) =>
 {
     config
         .Enrich.FromLogContext()
-        .WriteTo.Console(outputTemplate: "[{Timestamp:HH:mm:ss}] [{Level:u3}] [MsgId={MsgId}] {Message:lj}{NewLine}{Exception}")
+        .WriteTo.Console(outputTemplate: "[{Timestamp:HH:mm:ss}] [{Level:u3}] [AlbumId={AlbumId}] {Message:lj}{NewLine}{Exception}")
         .WriteTo.File(
             Path.Combine(logDir, "paperoni.log"),
             rollingInterval: RollingInterval.Day,
             retainedFileCountLimit: 7,
-            outputTemplate: "[{Timestamp:yyyy-MM-dd HH:mm:ss.fff}] [{Level:u3}] [MsgId={MsgId}] {Message:lj}{NewLine}{Exception}");
+            outputTemplate: "[{Timestamp:yyyy-MM-dd HH:mm:ss.fff}] [{Level:u3}] [AlbumId={AlbumId}] {Message:lj}{NewLine}{Exception}");
 });
 
 builder.Services.AddOpenTelemetry()
@@ -43,8 +51,10 @@ builder.Services.AddOpenTelemetry()
         .AddSource(Diagnostics.Tracer.Name)
         .AddConsoleExporter()
         .AddProcessor(new BatchActivityExportProcessor(
-            new TraceLogExporter(logDir), 
-            maxQueueSize: 2048, 
+            new TraceLogExporter(
+                builder.Services.BuildServiceProvider().GetRequiredService<AlbumWorkingDirectory>(),
+                logDir),
+            maxQueueSize: 2048,
             scheduledDelayMilliseconds: 5000)));
 
 var host = builder.Build();

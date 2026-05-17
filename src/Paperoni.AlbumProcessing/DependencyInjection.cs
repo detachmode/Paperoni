@@ -15,18 +15,20 @@ public static class DependencyInjection
         {
             var config = sp.GetRequiredService<IConfiguration>();
             var workingDir = sp.GetRequiredService<AlbumWorkingDirectory>();
+            var accessor = sp.GetRequiredService<AlbumIdAccessor>();
             var logger = sp.GetRequiredService<ILogger<FilePublisher>>();
             var outputPath = ResolveOutputPath(config, "MarkdownOutputPath");
-            return new FilePublisher(workingDir, outputPath, "*.md", logger);
+            return new FilePublisher(workingDir, outputPath, "*.md", accessor, logger);
         });
 
         collection.AddKeyedSingleton<IFilePublisher, FilePublisher>(PublisherTarget.Pdf, (sp, _) =>
         {
             var config = sp.GetRequiredService<IConfiguration>();
             var workingDir = sp.GetRequiredService<AlbumWorkingDirectory>();
+            var accessor = sp.GetRequiredService<AlbumIdAccessor>();
             var logger = sp.GetRequiredService<ILogger<FilePublisher>>();
             var outputPath = ResolveOutputPath(config, "FilePublisherOutputPath");
-            return new FilePublisher(workingDir, outputPath, "*.pdf", logger);
+            return new FilePublisher(workingDir, outputPath, "*.pdf", accessor, logger);
         });
 
         return collection;

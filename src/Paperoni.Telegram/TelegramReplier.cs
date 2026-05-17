@@ -1,5 +1,4 @@
 using Paperoni.Contract;
-using Paperoni.Telegram.Album;
 using Telegram.Bot;
 using Telegram.Bot.Types.ReplyMarkups;
 

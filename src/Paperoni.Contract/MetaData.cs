@@ -1,4 +1,4 @@
-namespace Paperoni.Telegram.Album;
+namespace Paperoni.Contract;
 
 public class MetaData 
 {

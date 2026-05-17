@@ -108,8 +108,8 @@ internal class AiService : IAiService, IDisposable
     public async Task CreateAiSummary(int msgId,
         CancellationToken stoppingToken = default)
     {
-        using var activity = Tracer.StartActivity("AiService.CreateAiSummary");
-        activity?.SetTag("msgId", msgId);
+        using var activity = Tracer.StartActivity<AiService>();
+        activity?.SetTag("AlbumId", msgId);
 
         var workingDir = _workingDirectory.GetDownloadPath(msgId);
         var files =

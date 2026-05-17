@@ -3,6 +3,9 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging.Abstractions;
+using OpenTelemetry;
+using OpenTelemetry.Trace;
+using Paperoni;
 using Paperoni.Ai;
 using Paperoni.AlbumProcessing;
 using Paperoni.Contract;
@@ -25,6 +28,7 @@ public class AlbumProcessingSteps
     private AlbumQueue _queue = null!;
     private FakeTelegramReplier _telegram = null!;
     private CancellationTokenSource? _cts;
+    private TracerProvider? _tracerProvider;
     private const int TestMessageId = 42;
 
     public AlbumProcessingSteps(ITestOutputHelper output)
@@ -62,6 +66,16 @@ public class AlbumProcessingSteps
 
         _telegram = new FakeTelegramReplier();
         _queue = new AlbumQueue(NullLogger<AlbumQueue>.Instance);
+
+        _tracerProvider = Sdk.CreateTracerProviderBuilder()
+            .AddSource("Paperoni")
+            .AddProcessor(new BatchActivityExportProcessor(
+                new TraceLogExporter(
+                    new AlbumWorkingDirectory { DownloadBasePath = _tempBase },
+                    _tempBase),
+                maxQueueSize: 2048,
+                scheduledDelayMilliseconds: 100))
+            .Build();
     }
 
     [Given("the prompt template is:")]
@@ -88,6 +102,7 @@ public class AlbumProcessingSteps
         var services = new ServiceCollection();
         services.AddSingleton(_queue);
         services.AddSingleton<AlbumWorkingDirectory>(_ => new AlbumWorkingDirectory { DownloadBasePath = _tempBase });
+        services.AddSingleton<AlbumIdAccessor>();
         services.AddSingleton<ITelegramReplier>(_telegram);
         services.AddAiService();
         services.AddImageProcessing();
@@ -193,10 +208,30 @@ public class AlbumProcessingSteps
         Assert.StartsWith(expectedStartsWith, _telegram.Calls.Last().Text);
     }
 
+    [Then("the trace log contains expected traces")]
+    public void ThenTraceLogContainsExpectedTraces()
+    {
+        _tracerProvider?.ForceFlush();
+
+        var traceLogPath = Path.Combine(_tempBase, TestMessageId.ToString(), "traces.log");
+        Assert.True(File.Exists(traceLogPath), $"Expected trace log at {traceLogPath}");
+
+        var fallbackPath = Path.Combine(_tempBase, "traces.log");
+        Assert.False(File.Exists(fallbackPath), $"Unexpected fallback trace log at {fallbackPath} — some spans are missing AlbumId tag");
+
+        var lines = File.ReadAllLines(traceLogPath);
+        var joined = string.Join("\n", lines);
+        Assert.Contains("AlbumProcessor.ExecuteAsync", joined);
+        Assert.Contains("AiService.CreateAiSummary", joined);
+        Assert.Contains("PdfCreator.CreatePdf", joined);
+        Assert.Contains("FilePublisher.PublishFileAsync", joined);
+    }
+
     [AfterScenario]
     public async Task Cleanup()
     {
         _cts?.Cancel();
+        _tracerProvider?.Dispose();
         if (_sp is IAsyncDisposable ad)
             await ad.DisposeAsync();
     }

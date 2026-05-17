@@ -204,6 +204,9 @@ Extracted text from the document.", ((global::Reqnroll.Table)(null)), "And ");
 #line 34
   await testRunner.AndAsync("the last bot reply starts with \"Done:\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "And ");
 #line hidden
+#line 35
+  await testRunner.AndAsync("the trace log contains expected traces", ((string)(null)), ((global::Reqnroll.Table)(null)), "And ");
+#line hidden
             }
             await this.ScenarioCleanupAsync();
         }
@@ -219,7 +222,7 @@ Extracted text from the document.", ((global::Reqnroll.Table)(null)), "And ");
             global::Reqnroll.ScenarioInfo scenarioInfo = new global::Reqnroll.ScenarioInfo("Album retry re-processes and cleans old published files", null, tagsOfScenario, argumentsOfScenario, featureTags, pickleIndex);
             string[] tagsOfRule = ((string[])(null));
             global::Reqnroll.RuleInfo ruleInfo = null;
-#line 36
+#line 37
  this.ScenarioInitialize(scenarioInfo, ruleInfo);
 #line hidden
             if ((global::Reqnroll.TagHelper.ContainsIgnoreTag(scenarioInfo.CombinedTags) || global::Reqnroll.TagHelper.ContainsIgnoreTag(featureTags)))
@@ -229,10 +232,10 @@ Extracted text from the document.", ((global::Reqnroll.Table)(null)), "And ");
             else
             {
                 await this.ScenarioStartAsync();
-#line 37
+#line 38
   await testRunner.GivenAsync("the system is configured for integration testing", ((string)(null)), ((global::Reqnroll.Table)(null)), "Given ");
 #line hidden
-#line 38
+#line 39
   await testRunner.AndAsync("the prompt template is:", @"Analyse the following document and extract the text.
 Extrakt the full visible content and return it as a markdown.
 
@@ -248,34 +251,34 @@ Short summary of the document
 # Complete Text
 Extracted text from the document.", ((global::Reqnroll.Table)(null)), "And ");
 #line hidden
-#line 55
+#line 56
   await testRunner.AndAsync("the processing pipeline is built", ((string)(null)), ((global::Reqnroll.Table)(null)), "And ");
 #line hidden
-#line 56
+#line 57
   await testRunner.AndAsync("the pipeline is started", ((string)(null)), ((global::Reqnroll.Table)(null)), "And ");
 #line hidden
-#line 57
+#line 58
   await testRunner.WhenAsync("I enqueue a photo with caption \"Test document\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "When ");
 #line hidden
-#line 58
-  await testRunner.ThenAsync("the album finishes processing", ((string)(null)), ((global::Reqnroll.Table)(null)), "Then ");
-#line hidden
 #line 59
-  await testRunner.AndAsync("the summary is published to Obsidian", ((string)(null)), ((global::Reqnroll.Table)(null)), "And ");
+  await testRunner.ThenAsync("the album finishes processing", ((string)(null)), ((global::Reqnroll.Table)(null)), "Then ");
 #line hidden
 #line 60
-  await testRunner.AndAsync("the PDF is published to the output directory", ((string)(null)), ((global::Reqnroll.Table)(null)), "And ");
-#line hidden
-#line 61
-  await testRunner.WhenAsync("I request a retry", ((string)(null)), ((global::Reqnroll.Table)(null)), "When ");
-#line hidden
-#line 62
-  await testRunner.ThenAsync("the album finishes processing", ((string)(null)), ((global::Reqnroll.Table)(null)), "Then ");
-#line hidden
-#line 63
   await testRunner.AndAsync("the summary is published to Obsidian", ((string)(null)), ((global::Reqnroll.Table)(null)), "And ");
 #line hidden
+#line 61
+  await testRunner.AndAsync("the PDF is published to the output directory", ((string)(null)), ((global::Reqnroll.Table)(null)), "And ");
+#line hidden
+#line 62
+  await testRunner.WhenAsync("I request a retry", ((string)(null)), ((global::Reqnroll.Table)(null)), "When ");
+#line hidden
+#line 63
+  await testRunner.ThenAsync("the album finishes processing", ((string)(null)), ((global::Reqnroll.Table)(null)), "Then ");
+#line hidden
 #line 64
+  await testRunner.AndAsync("the summary is published to Obsidian", ((string)(null)), ((global::Reqnroll.Table)(null)), "And ");
+#line hidden
+#line 65
   await testRunner.AndAsync("the PDF is published to the output directory", ((string)(null)), ((global::Reqnroll.Table)(null)), "And ");
 #line hidden
             }

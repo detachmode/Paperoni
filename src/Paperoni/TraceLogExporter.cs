@@ -1,45 +1,46 @@
 using System.Diagnostics;
-using System.Linq;
 using OpenTelemetry;
+using Paperoni.Contract;
 
 namespace Paperoni;
 
-internal sealed class TraceLogExporter(string outputPath) : BaseExporter<Activity>
+internal sealed class TraceLogExporter(
+    AlbumWorkingDirectory workingDirectory,
+    string fallbackPath) : BaseExporter<Activity>
 {
-    private readonly string _filePath = Path.Combine(outputPath, "traces.log");
-
     public override ExportResult Export(in Batch<Activity> batch)
     {
         try
         {
-            var spans = new List<Activity>((int)batch.Count);
+            var byAlbumId = new Dictionary<int, List<string>>();
+            var fallback = new List<string>();
+
             foreach (var item in batch)
-                spans.Add(item);
-
-            var lines = new List<string>();
-
-            foreach (var traceGroup in spans.GroupBy(s => s.TraceId))
             {
-                var ordered = traceGroup.OrderBy(s => s.StartTimeUtc).ToList();
-                if (lines.Count > 0)
-                    lines.Add("");
+                var line = FormatSpan(item);
+                var albumId = item.GetTagItem("AlbumId");
 
-                var children = ordered
-                    .GroupBy(s => s.ParentSpanId)
-                    .ToDictionary(g => g.Key, g => g.ToList());
-
-                var roots = ordered
-                    .Where(s => s.ParentSpanId == default || !children.ContainsKey(s.ParentSpanId))
-                    .ToList();
-
-                foreach (var root in roots)
+                if (albumId is int id)
                 {
-                    WriteSpan(lines, root, "");
-                    PrintTree(lines, root, children, "");
+                    if (!byAlbumId.ContainsKey(id))
+                        byAlbumId[id] = new List<string>();
+                    byAlbumId[id].Add(line);
+                }
+                else
+                {
+                    fallback.Add(line);
                 }
             }
 
-            File.AppendAllLines(_filePath, lines);
+            foreach (var (id, lines) in byAlbumId)
+            {
+                var path = Path.Combine(workingDirectory.GetDownloadPath(id), "traces.log");
+                File.AppendAllLines(path, lines);
+            }
+
+            if (fallback.Count > 0)
+                File.AppendAllLines(Path.Combine(fallbackPath, "traces.log"), fallback);
+
             return ExportResult.Success;
         }
         catch
@@ -48,37 +49,18 @@ internal sealed class TraceLogExporter(string outputPath) : BaseExporter<Activit
         }
     }
 
-    private static void PrintTree(List<string> lines, Activity parent,
-        Dictionary<ActivitySpanId, List<Activity>> children, string prefix)
+    private static string FormatSpan(Activity activity)
     {
-        if (!children.TryGetValue(parent.SpanId, out var siblings))
-            return;
+        var ts = activity.StartTimeUtc.ToString("HH:mm:ss.fff");
+        var status = activity.Status == ActivityStatusCode.Ok ? "OK" :
+            activity.Status == ActivityStatusCode.Error ? "ER" : "UN";
 
-        for (var i = 0; i < siblings.Count; i++)
-        {
-            var isLast = i == siblings.Count - 1;
-            var connector = isLast ? "└── " : "├── ";
-            var nextPrefix = prefix + (isLast ? "    " : "│   ");
-
-            WriteSpan(lines, siblings[i], prefix + connector);
-            PrintTree(lines, siblings[i], children, nextPrefix);
-        }
-    }
-
-    private static void WriteSpan(List<string> lines, Activity activity, string treePrefix)
-    {
-        var ts = activity.StartTimeUtc.ToString("yyyy-MM-dd HH:mm:ss.fff");
         var dur = activity.Duration.TotalMilliseconds;
-        var status = activity.Status.ToString();
-        var parentId = activity.ParentSpanId == default
-            ? "       " : activity.ParentSpanId.ToString()[..6];
+
         var tags = string.Join(", ", activity.TagObjects
             .Where(t => t.Value is not null)
             .Select(t => $"{t.Key}={t.Value}"));
 
-        lines.Add(
-            $"{treePrefix}[{ts}] [{activity.TraceId.ToString()[..12]}] " +
-            $"[{activity.SpanId.ToString()[..6]}] [{parentId}] " +
-            $"{activity.DisplayName,-40} {dur,8:F1}ms {status,-8} {tags}");
+        return $"{ts}  {status,-3} {activity.DisplayName,-45} {dur,8:F0}ms  {{{tags}}}";
     }
 }

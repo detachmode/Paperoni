@@ -32,6 +32,7 @@ Extracted text from the document.
 		And the bot replied with "🤖 AI is reading"
 		And the bot replied with "📄 Creating PDF"
 		And the last bot reply starts with "Done:"
+		And the trace log contains expected traces
 
 	Scenario: Album retry re-processes and cleans old published files
 		Given the system is configured for integration testing

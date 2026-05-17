@@ -8,6 +8,10 @@ Paperoni is a background service that ingests photo albums from Telegram, produc
 A set of photos sent together as a Telegram media group, collected with a 2-second debounce, and processed as a single unit.
 _Avoid_: Message group, batch
 
+**AlbumId**:
+The Telegram message ID of the first photo in an album. Used as the primary key throughout the pipeline — keys the working directory, reply message, span tags, and trace log routing.
+_Avoid_: msgId, MessageId
+
 **Photo**:
 A single image file received from a Telegram user.
 _Avoid_: Image (prefer Photo when it comes from Telegram specifically; Image is acceptable in OpenCV/processing contexts)

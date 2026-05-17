@@ -20,6 +20,7 @@ internal class AlbumProcessor(
     IPdfCreator pdfCreator,
     ITelegramReplier telegram,
     AlbumWorkingDirectory workingDirectory,
+    AlbumIdAccessor albumIdAccessor,
     ILogger<AlbumProcessor> logger,
     IConfiguration configuration) : BackgroundService
 {
@@ -32,14 +33,16 @@ internal class AlbumProcessor(
             {
                 item = await queue.Dequeue(stoppingToken);
 
-                using var activity = Tracer.StartActivity("ProcessAlbum");
-                activity?.SetTag("msgId", item.MessageId);
+                albumIdAccessor.Id = item.MessageId;
+                using var activity = Tracer.StartActivity<AlbumProcessor>();
+                activity?.SetTag("AlbumId", item.MessageId);
                 activity?.SetTag("isRetry", item.IsRetry);
 
                 using var _ = logger.BeginScope(new Dictionary<string, object> { ["MsgId"] = item.MessageId });
                 logger.ProcessingAlbum(item.MessageId, item.IsRetry);
                 await ProcessAlbum(item.MessageId, item.IsRetry, stoppingToken);
 
+                albumIdAccessor.Id = null;
                 activity?.SetStatus(ActivityStatusCode.Ok);
             }
             catch (OperationCanceledException)
@@ -48,6 +51,7 @@ internal class AlbumProcessor(
             }
             catch (Exception e)
             {
+                albumIdAccessor.Id = null;
                 logger.AlbumProcessingError(e, item?.MessageId);
             }
         }
@@ -67,7 +71,7 @@ internal class AlbumProcessor(
                     await pdfPublisher.DeletePreviousAsync(oldAiResult.Title, stoppingToken);
                 }
             }
-    
+
             logger.AiSummaryStarting(msgId);
             await telegram.EditReply(msgId, isRetry ? "🔄 Retrying ..." : "🤖 AI is reading it ..");
             await ai.CreateAiSummary(msgId, stoppingToken);
@@ -83,7 +87,7 @@ internal class AlbumProcessor(
             logger.PublishingPdf(msgId);
             await pdfPublisher.PublishFileAsync(msgId, stoppingToken);
 
-   
+
 
             var testMode = bool.TryParse(configuration["TestMode"], out var tm) && tm;
             await telegram.EditReply(msgId,

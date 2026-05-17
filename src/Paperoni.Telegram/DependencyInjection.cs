@@ -1,4 +1,3 @@
-using System.Threading.Channels;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Paperoni.Telegram.Album;
@@ -11,7 +10,6 @@ public static class DependencyInjection
     public static IServiceCollection AddTelegramPhotoAlbumCollector(this IServiceCollection collection)
     {
         collection.AddSingleton<AlbumQueue>();
-        collection.AddSingleton(_ => Channel.CreateUnbounded<int>());
         collection.AddSingleton<ITelegramReplier, TelegramReplier>();
 
         collection.AddSingleton<TelegramBotClient>(sp =>

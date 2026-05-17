@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Paperoni.Contract;
 using Paperoni.Telegram;
 using Reqnroll;
@@ -32,6 +33,7 @@ public class AiIntegrationSteps
             .Build();
 
         IServiceCollection serviceCollection = new ServiceCollection();
+        serviceCollection.AddLogging();
         serviceCollection.AddSingleton(new AlbumWorkingDirectory { DownloadBasePath = tempDir });
         serviceCollection.AddSingleton<ITelegramReplier>(new StubTelegramReplier());
         serviceCollection.AddSingleton<IConfiguration>(config);

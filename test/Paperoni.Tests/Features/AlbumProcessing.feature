@@ -69,3 +69,9 @@ Scenario: Log command returns logs and traces after album processing
     When I enqueue the message
     Then the album is processed
     And the log content for the message contains logs and traces
+
+Scenario: Log content is interleaved and chronologically sorted with short timestamps
+    When I enqueue the message
+    Then the album is processed
+    And the log content is chronologically sorted
+    And the log content uses short timestamp format

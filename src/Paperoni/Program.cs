@@ -9,12 +9,18 @@ using Paperoni.ImageProcessing;
 using Paperoni.Telegram;
 using Serilog;
 
-using var instanceLock = new Mutex(true, "Paperoni-8765", out var createdNew);
-if (!createdNew)
+var lockFilePath = Path.Combine(Path.GetTempPath(), "Paperoni.lock");
+FileStream? lockFile;
+try
+{
+    lockFile = new FileStream(lockFilePath, FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None);
+}
+catch (IOException)
 {
     Console.Error.WriteLine("Another instance of Paperoni is already running.");
     return;
 }
+using var _ = lockFile;
 
 var builder = Host.CreateApplicationBuilder(args);
 

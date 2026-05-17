@@ -137,7 +137,7 @@ Extracted text from the document.", ((global::Reqnroll.Table)(null)), "And ");
         
         private static global::Reqnroll.Formatters.RuntimeSupport.FeatureLevelCucumberMessages InitializeCucumberMessages()
         {
-            return new global::Reqnroll.Formatters.RuntimeSupport.FeatureLevelCucumberMessages("Features/AlbumProcessing.feature.ndjson", 7);
+            return new global::Reqnroll.Formatters.RuntimeSupport.FeatureLevelCucumberMessages("Features/AlbumProcessing.feature.ndjson", 8);
         }
         
         async global::System.Threading.Tasks.Task global::Xunit.IAsyncLifetime.InitializeAsync()
@@ -405,6 +405,46 @@ await this.FeatureBackgroundAsync();
 #line hidden
 #line 71
     await testRunner.AndAsync("the log content for the message contains logs and traces", ((string)(null)), ((global::Reqnroll.Table)(null)), "And ");
+#line hidden
+            }
+            await this.ScenarioCleanupAsync();
+        }
+        
+        [global::Xunit.SkippableFactAttribute(DisplayName="Log content is interleaved and chronologically sorted with short timestamps")]
+        [global::Xunit.TraitAttribute("FeatureTitle", "Album Processing")]
+        [global::Xunit.TraitAttribute("Description", "Log content is interleaved and chronologically sorted with short timestamps")]
+        public async global::System.Threading.Tasks.Task LogContentIsInterleavedAndChronologicallySortedWithShortTimestamps()
+        {
+            string[] tagsOfScenario = ((string[])(null));
+            global::System.Collections.Specialized.OrderedDictionary argumentsOfScenario = new global::System.Collections.Specialized.OrderedDictionary();
+            string pickleIndex = "5";
+            global::Reqnroll.ScenarioInfo scenarioInfo = new global::Reqnroll.ScenarioInfo("Log content is interleaved and chronologically sorted with short timestamps", null, tagsOfScenario, argumentsOfScenario, featureTags, pickleIndex);
+            string[] tagsOfRule = ((string[])(null));
+            global::Reqnroll.RuleInfo ruleInfo = null;
+#line 73
+this.ScenarioInitialize(scenarioInfo, ruleInfo);
+#line hidden
+            if ((global::Reqnroll.TagHelper.ContainsIgnoreTag(scenarioInfo.CombinedTags) || global::Reqnroll.TagHelper.ContainsIgnoreTag(featureTags)))
+            {
+                await testRunner.SkipScenarioAsync();
+            }
+            else
+            {
+                await this.ScenarioStartAsync();
+#line 6
+await this.FeatureBackgroundAsync();
+#line hidden
+#line 74
+    await testRunner.WhenAsync("I enqueue the message", ((string)(null)), ((global::Reqnroll.Table)(null)), "When ");
+#line hidden
+#line 75
+    await testRunner.ThenAsync("the album is processed", ((string)(null)), ((global::Reqnroll.Table)(null)), "Then ");
+#line hidden
+#line 76
+    await testRunner.AndAsync("the log content is chronologically sorted", ((string)(null)), ((global::Reqnroll.Table)(null)), "And ");
+#line hidden
+#line 77
+    await testRunner.AndAsync("the log content uses short timestamp format", ((string)(null)), ((global::Reqnroll.Table)(null)), "And ");
 #line hidden
             }
             await this.ScenarioCleanupAsync();

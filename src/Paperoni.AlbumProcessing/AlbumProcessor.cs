@@ -91,7 +91,7 @@ internal class AlbumProcessor(
             logger.PublishingPdf(msgId);
             await pdfPublisher.PublishFileAsync(msgId, stoppingToken);
 
-            await telegram.SetReaction(msgId, "✅");
+            await telegram.SetReaction(msgId, "👏");
 
             var testMode = bool.TryParse(configuration["TestMode"], out var tm) && tm;
             await telegram.EditReply(msgId,

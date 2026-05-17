@@ -12,10 +12,18 @@ public sealed class TraceLogExporter(
     {
         try
         {
+            var activities = new List<Activity>();
+            foreach (var item in batch)
+            {
+                activities.Add(item);
+            }
+
+            activities.Sort((a, b) => a.StartTimeUtc.CompareTo(b.StartTimeUtc));
+
             var byAlbumId = new Dictionary<int, List<string>>();
             var fallback = new List<string>();
 
-            foreach (var item in batch)
+            foreach (var item in activities)
             {
                 var line = FormatSpan(item);
                 var albumId = item.GetTagItem("AlbumId");
@@ -57,7 +65,7 @@ public sealed class TraceLogExporter(
 
     private static string FormatSpan(Activity activity)
     {
-        var ts = activity.StartTimeUtc.ToString("HH:mm:ss.fff");
+        var ts = activity.StartTimeUtc.ToString("yyyy-MM-dd HH:mm:ss.fff");
         var status = activity.Status == ActivityStatusCode.Ok ? "OK" :
             activity.Status == ActivityStatusCode.Error ? "ER" : "UN";
 

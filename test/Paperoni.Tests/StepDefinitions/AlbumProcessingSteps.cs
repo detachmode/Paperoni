@@ -292,6 +292,57 @@ public class AlbumProcessingSteps
         Assert.Contains("Album 42 processing started", logContent);
     }
 
+    [Then("the log content is chronologically sorted")]
+    public void ThenLogContentIsChronologicallySorted()
+    {
+        _tracerProvider?.ForceFlush();
+
+        var logRetriever = _sp.GetRequiredService<ILogRetriever>();
+        var logContent = logRetriever.GetLogContent(TestMessageId);
+
+        _output.WriteLine("=== Log Content ===");
+        _output.WriteLine(logContent);
+
+        var lines = logContent.Split('\n', StringSplitOptions.RemoveEmptyEntries);
+
+        var timestamps = new List<DateTime>();
+        foreach (var line in lines)
+        {
+            if (line.Length >= 23 &&
+                DateTime.TryParseExact(line[..23], "yyyy-MM-dd HH:mm:ss.fff", null,
+                    System.Globalization.DateTimeStyles.None, out var dt))
+            {
+                timestamps.Add(dt);
+            }
+        }
+
+        for (var i = 1; i < timestamps.Count; i++)
+        {
+            Assert.True(timestamps[i] >= timestamps[i - 1],
+                $"Log lines are not chronologically sorted at index {i}: {timestamps[i - 1]} > {timestamps[i]}");
+        }
+    }
+
+    [Then("the log content uses short timestamp format")]
+    public void ThenLogContentUsesShortTimestampFormat()
+    {
+        _tracerProvider?.ForceFlush();
+
+        var logRetriever = _sp.GetRequiredService<ILogRetriever>();
+        var logContent = logRetriever.GetLogContent(TestMessageId);
+
+        _output.WriteLine("=== Log Content ===");
+        _output.WriteLine(logContent);
+
+        Assert.DoesNotContain("--- Traces ---", logContent);
+
+        var lines = logContent.Split('\n', StringSplitOptions.RemoveEmptyEntries);
+        foreach (var line in lines)
+        {
+            Assert.Matches(@"^\d{4}-\d{2}-\d{2}", line);
+        }
+    }
+
     [Then("the trace log contains expected traces")]
     public void ThenTraceLogContainsExpectedTraces()
     {

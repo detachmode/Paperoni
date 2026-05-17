@@ -32,23 +32,24 @@ builder.Configuration
     .AddUserSecrets<Program>()
     .AddEnvironmentVariables();
 
-builder.Services.AddSerilog((config) =>
+builder.Services.AddSerilog(config =>
 {
     config
         .Enrich.FromLogContext()
-        .WriteTo.Console(outputTemplate: "[{Timestamp:HH:mm:ss}] [{Level:u3}] [AlbumId={AlbumId}] {Message:lj}{NewLine}{Exception}")
+        .WriteTo.Console(
+            outputTemplate: "[{Timestamp:HH:mm:ss}] [{Level:u3}] [AlbumId={AlbumId}] {Message:lj}{NewLine}{Exception}")
         .WriteTo.File(
             Path.Combine(logDir, "paperoni.log"),
             rollingInterval: RollingInterval.Day,
             retainedFileCountLimit: 7,
-            outputTemplate: "[{Timestamp:yyyy-MM-dd HH:mm:ss.fff}] [{Level:u3}] [AlbumId={AlbumId}] {Message:lj}{NewLine}{Exception}");
+            outputTemplate:
+            "[{Timestamp:yyyy-MM-dd HH:mm:ss.fff}] [{Level:u3}] [AlbumId={AlbumId}] {Message:lj}{NewLine}{Exception}");
 });
 
 builder.Services.AddOpenTelemetry()
     .ConfigureResource(r => r.AddService("Paperoni"))
     .WithTracing(tracing => tracing
         .AddSource(Diagnostics.Tracer.Name)
-        .AddConsoleExporter()
         .AddProcessor(new BatchActivityExportProcessor(
             new TraceLogExporter(workingDir, logDir),
             maxQueueSize: 2048,

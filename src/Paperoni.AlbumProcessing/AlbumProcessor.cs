@@ -5,10 +5,10 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Paperoni.Ai;
 using Paperoni.Contract;
+using Paperoni.Diagnostics;
 using Paperoni.ImageProcessing;
 using Paperoni.Telegram;
 using Paperoni.Telegram.Album;
-using Paperoni.Diagnostics;
 using static Paperoni.Diagnostics.Diagnostics;
 
 namespace Paperoni.AlbumProcessing;
@@ -16,8 +16,10 @@ namespace Paperoni.AlbumProcessing;
 internal class AlbumProcessor(
     AlbumQueue queue,
     IAiService ai,
-    [FromKeyedServices(PublisherTarget.Markdown)] IFilePublisher markdownPublisher,
-    [FromKeyedServices(PublisherTarget.Pdf)] IFilePublisher pdfPublisher,
+    [FromKeyedServices(PublisherTarget.Markdown)]
+    IFilePublisher markdownPublisher,
+    [FromKeyedServices(PublisherTarget.Pdf)]
+    IFilePublisher pdfPublisher,
     IPdfCreator pdfCreator,
     ITelegramReplier telegram,
     AlbumWorkingDirectory workingDirectory,
@@ -39,7 +41,7 @@ internal class AlbumProcessor(
                 activity?.SetTag("AlbumId", item.MessageId);
                 activity?.SetTag("isRetry", item.IsRetry);
 
-                using var _ = logger.BeginScope(new Dictionary<string, object> { ["MsgId"] = item.MessageId });
+                using var _ = logger.BeginScope(new Dictionary<string, object> { ["AlbumId"] = item.MessageId });
                 logger.ProcessingAlbum(item.MessageId, item.IsRetry);
                 await ProcessAlbum(item.MessageId, item.IsRetry, stoppingToken);
 

@@ -163,7 +163,7 @@ public class AlbumProcessingSteps
     public async Task ThenAlbumIsProcessed()
     {
         await GivenPipelineStarted();
-        await _telegram.WaitForCompletionAsync(_cts.Token);
+        await _telegram.WaitForCompletionAsync(_cts!.Token);
 
         var workDir = Path.Combine(_tempBase, TestMessageId.ToString());
         var content = await File.ReadAllTextAsync(Path.Combine(workDir, "firstAiResponse.md"));
@@ -173,7 +173,7 @@ public class AlbumProcessingSteps
     [Then("the album finishes processing")]
     public async Task ThenAlbumFinishesProcessing()
     {
-        await _telegram.WaitForCompletionAsync(_cts.Token);
+        await _telegram.WaitForCompletionAsync(_cts!.Token);
 
         var workDir = Path.Combine(_tempBase, TestMessageId.ToString());
         var content = await File.ReadAllTextAsync(Path.Combine(workDir, "firstAiResponse.md"));

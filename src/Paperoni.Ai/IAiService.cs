@@ -5,7 +5,7 @@ namespace Paperoni.Ai;
 public interface IAiService
 {
     Task<string> AskWithFilesAsync(IEnumerable<FileContent> files, string prompt,
-        Action<DebugOutputType, string> debugOutput = null, CancellationToken cancellationToken = default);
+        Action<DebugOutputType, string>? debugOutput = null, CancellationToken cancellationToken = default);
 
     Task CreateAiSummary(int files, CancellationToken stoppingToken = default);
 }

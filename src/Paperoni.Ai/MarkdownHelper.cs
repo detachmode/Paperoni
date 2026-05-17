@@ -38,7 +38,7 @@ public static class MarkdownHelper
 
             return $"{now:yyyy-MM-dd} {title.Trim()}";
         }
-        catch (Exception e)
+        catch (Exception)
         {
             return title;
         }

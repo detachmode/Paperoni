@@ -37,7 +37,7 @@ internal class AiService : IAiService, IDisposable
 
 
     public async Task<string> AskWithFilesAsync(IEnumerable<FileContent> files, string prompt,
-        Action<DebugOutputType, string> debugOutput = null,
+        Action<DebugOutputType, string>? debugOutput = null,
         CancellationToken cancellationToken = default)
     {
         var message = new ChatMessage(ChatRole.User, prompt);

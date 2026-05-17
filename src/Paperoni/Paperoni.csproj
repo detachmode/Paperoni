@@ -9,6 +9,7 @@
 
     <ItemGroup>
       <InternalsVisibleTo Include="Paperoni.Tests" />
+      <InternalsVisibleTo Include="Paperoni.RealAi.Tests" />
     </ItemGroup>
 
     <ItemGroup>

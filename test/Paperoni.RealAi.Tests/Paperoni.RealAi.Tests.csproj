@@ -1,0 +1,40 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Configuration" />
+    <PackageReference Include="Microsoft.Extensions.Logging" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" />
+    <PackageReference Include="OpenTelemetry" />
+    <PackageReference Include="Reqnroll" />
+    <PackageReference Include="Reqnroll.xUnit" />
+    <PackageReference Include="xunit" />
+    <PackageReference Include="xunit.runner.visualstudio" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Paperoni.Ai\Paperoni.Ai.csproj" />
+    <ProjectReference Include="..\..\src\Paperoni.AlbumProcessing\Paperoni.AlbumProcessing.csproj" />
+    <ProjectReference Include="..\..\src\Paperoni.ImageProcessing\Paperoni.ImageProcessing.csproj" />
+    <ProjectReference Include="..\..\src\Paperoni.Telegram\Paperoni.Telegram.csproj" />
+    <ProjectReference Include="..\..\src\Paperoni\Paperoni.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\Paperoni.Ai.Tests\Images\*.png" Link="Images\%(Filename)%(Extension)">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
+</Project>

@@ -8,8 +8,8 @@
     <Project Path="src\Paperoni\Paperoni.csproj" />
   </Folder>
   <Folder Name="/test/">
-    <Project Path="test/Paperoni.Ai.Tests/Paperoni.Ai.Tests.csproj" />
     <Project Path="test/Paperoni.Tests/Paperoni.Tests.csproj" />
+    <Project Path="test/Paperoni.RealAi.Tests/Paperoni.RealAi.Tests.csproj" />
   </Folder>
   <Folder Name="/_settings/">
     <File Path="README.md" />

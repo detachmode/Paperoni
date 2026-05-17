@@ -15,10 +15,10 @@ using Paperoni.Telegram.Album;
 using Reqnroll;
 using Xunit.Abstractions;
 
-namespace Paperoni.Tests.StepDefinitions;
+namespace Paperoni.RealAi.Tests.StepDefinitions;
 
 [Binding]
-public class AlbumProcessingSteps
+public class AlbumProcessingSmokeSteps
 {
     private readonly ITestOutputHelper _output;
     private string _tempBase = null!;
@@ -31,12 +31,12 @@ public class AlbumProcessingSteps
     private TracerProvider? _tracerProvider;
     private const int TestMessageId = 42;
 
-    public AlbumProcessingSteps(ITestOutputHelper output)
+    public AlbumProcessingSmokeSteps(ITestOutputHelper output)
     {
         _output = output;
     }
 
-    [Given("the system is configured for integration testing")]
+    [Given("the system is configured for real AI integration testing")]
     public async Task GivenSystemIsConfigured()
     {
         _tempBase = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
@@ -47,7 +47,7 @@ public class AlbumProcessingSteps
         var msgDir = Path.Combine(_tempBase, TestMessageId.ToString());
         Directory.CreateDirectory(msgDir);
 
-        var assemblyDir = Path.GetDirectoryName(typeof(AlbumProcessingSteps).Assembly.Location)!;
+        var assemblyDir = Path.GetDirectoryName(typeof(AlbumProcessingSmokeSteps).Assembly.Location)!;
         File.Copy(Path.Combine(assemblyDir, "Images", "example-doc.png"),
             Path.Combine(msgDir, "1.jpg"), overwrite: true);
 
@@ -84,7 +84,7 @@ public class AlbumProcessingSteps
         await File.WriteAllTextAsync(_promptFilePath, prompt);
     }
 
-    [Given("the processing pipeline is built")]
+    [Given("the real AI processing pipeline is built")]
     public void GivenPipelineIsBuilt()
     {
         var config = new ConfigurationBuilder()
@@ -104,8 +104,7 @@ public class AlbumProcessingSteps
         services.AddSingleton<AlbumWorkingDirectory>(_ => new AlbumWorkingDirectory { DownloadBasePath = _tempBase });
         services.AddSingleton<AlbumIdAccessor>();
         services.AddSingleton<ITelegramReplier>(_telegram);
-        services.AddSingleton<FakeAiService>();
-        services.AddSingleton<IAiService>(sp => sp.GetRequiredService<FakeAiService>());
+        services.AddAiService();
         services.AddImageProcessing();
         services.AddAlbumProcessor();
         services.AddSingleton<IConfiguration>(config);
@@ -126,53 +125,23 @@ public class AlbumProcessingSteps
 
     private bool _servicesStarted;
 
-    [Given("the pipeline is started")]
-    public async Task GivenPipelineStarted()
-    {
-        if (_servicesStarted)
-            return;
-        _cts = new CancellationTokenSource(TimeSpan.FromSeconds(120));
-        var hostedServices = _sp.GetServices<IHostedService>();
-        foreach (var service in hostedServices)
-            await service.StartAsync(_cts.Token);
-        _servicesStarted = true;
-    }
-
-    [Then("the album is processed")]
+    [Then("the album is processed with real AI")]
     public async Task ThenAlbumIsProcessed()
     {
-        await GivenPipelineStarted();
+        if (!_servicesStarted)
+        {
+            _cts = new CancellationTokenSource(TimeSpan.FromSeconds(120));
+            var hostedServices = _sp.GetServices<IHostedService>();
+            foreach (var service in hostedServices)
+                await service.StartAsync(_cts.Token);
+            _servicesStarted = true;
+        }
+
         await _telegram.WaitForCompletionAsync(_cts.Token);
 
         var workDir = Path.Combine(_tempBase, TestMessageId.ToString());
         var content = await File.ReadAllTextAsync(Path.Combine(workDir, "firstAiResponse.md"));
         _output.WriteLine($"AI Summary:\n{content}");
-    }
-
-    [Then("the album finishes processing")]
-    public async Task ThenAlbumFinishesProcessing()
-    {
-        await _telegram.WaitForCompletionAsync(_cts.Token);
-
-        var workDir = Path.Combine(_tempBase, TestMessageId.ToString());
-        var content = await File.ReadAllTextAsync(Path.Combine(workDir, "firstAiResponse.md"));
-        _output.WriteLine($"AI Summary:\n{content}");
-        _telegram.Reset();
-    }
-
-    [When("I request a retry")]
-    public void WhenRequestRetry()
-    {
-        var queue = _sp.GetRequiredService<AlbumQueue>();
-        queue.Enqueue(new WorkItem(TestMessageId, true));
-    }
-
-    [Then("the AI summary mentions {string}")]
-    public async Task ThenAiSummaryMentions(string expectedText)
-    {
-        var workDir = Path.Combine(_tempBase, TestMessageId.ToString());
-        var content = await File.ReadAllTextAsync(Path.Combine(workDir, "firstAiResponse.md"));
-        Assert.Contains(expectedText, content, StringComparison.OrdinalIgnoreCase);
     }
 
     [Then("a PDF is created")]
@@ -195,18 +164,6 @@ public class AlbumProcessingSteps
     {
         var pdfFiles = Directory.GetFiles(_outputDir, "*.pdf");
         Assert.NotEmpty(pdfFiles);
-    }
-
-    [Then("the bot replied with {string}")]
-    public void ThenBotRepliedWith(string expectedStartsWith)
-    {
-        Assert.Contains(_telegram.Calls, c => c.Text.StartsWith(expectedStartsWith));
-    }
-
-    [Then("the last bot reply starts with {string}")]
-    public void ThenLastBotReplyStartsWith(string expectedStartsWith)
-    {
-        Assert.StartsWith(expectedStartsWith, _telegram.Calls.Last().Text);
     }
 
     [Then("the trace log contains expected traces")]
@@ -240,7 +197,7 @@ public class AlbumProcessingSteps
     private static string FindSolutionDirectory()
     {
         var dir = new DirectoryInfo(
-            Path.GetDirectoryName(typeof(AlbumProcessingSteps).Assembly.Location)!);
+            Path.GetDirectoryName(typeof(AlbumProcessingSmokeSteps).Assembly.Location)!);
         while (dir != null)
         {
             if (dir.GetFiles("Paperoni.slnx").Length > 0)

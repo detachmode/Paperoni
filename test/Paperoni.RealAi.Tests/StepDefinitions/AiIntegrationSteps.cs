@@ -46,6 +46,7 @@ public class AiIntegrationSteps
     private class StubTelegramReplier : ITelegramReplier
     {
         public Task EditReply(int msgId, string text) => Task.CompletedTask;
+        public Task SetReaction(int albumMsgId, string emoji) => Task.CompletedTask;
     }
 
 

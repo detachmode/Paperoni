@@ -24,8 +24,8 @@ namespace Paperoni.Tests.Features
         
         private static string[] featureTags = ((string[])(null));
         
-        private static global::Reqnroll.FeatureInfo featureInfo = new global::Reqnroll.FeatureInfo(new global::System.Globalization.CultureInfo("en-US"), "Features", "Album Processing", "\tAs a user sending photos to Telegram\n\tI want albums to be processed automaticall" +
-                "y\n\tSo that I receive AI summaries and processed PDFs", global::Reqnroll.ProgrammingLanguage.CSharp, featureTags, InitializeCucumberMessages());
+        private static global::Reqnroll.FeatureInfo featureInfo = new global::Reqnroll.FeatureInfo(new global::System.Globalization.CultureInfo("en-US"), "Features", "Album Processing", "As a user sending photos to Telegram\nI want albums to be processed automatically\n" +
+                "So that I receive AI summaries and processed PDFs", global::Reqnroll.ProgrammingLanguage.CSharp, featureTags, InitializeCucumberMessages());
         
         private global::Xunit.Abstractions.ITestOutputHelper _testOutputHelper;
         
@@ -104,9 +104,40 @@ namespace Paperoni.Tests.Features
             await testRunner.CollectScenarioErrorsAsync();
         }
         
+        public virtual async global::System.Threading.Tasks.Task FeatureBackgroundAsync()
+        {
+#line 6
+#line hidden
+#line 7
+    await testRunner.GivenAsync("the system is configured for integration testing", ((string)(null)), ((global::Reqnroll.Table)(null)), "Given ");
+#line hidden
+#line 8
+    await testRunner.AndAsync("the prompt template is:", @"Analyse the following document and extract the text.
+Extrakt the full visible content and return it as a markdown.
+
+## Output format (Markdown)
+
+---
+title: put here the heading you find in the document
+---
+
+# Summary
+Short summary of the document
+
+# Complete Text
+Extracted text from the document.", ((global::Reqnroll.Table)(null)), "And ");
+#line hidden
+#line 25
+    await testRunner.AndAsync("the processing pipeline is built", ((string)(null)), ((global::Reqnroll.Table)(null)), "And ");
+#line hidden
+#line 26
+    await testRunner.AndAsync("the pipeline is started", ((string)(null)), ((global::Reqnroll.Table)(null)), "And ");
+#line hidden
+        }
+        
         private static global::Reqnroll.Formatters.RuntimeSupport.FeatureLevelCucumberMessages InitializeCucumberMessages()
         {
-            return new global::Reqnroll.Formatters.RuntimeSupport.FeatureLevelCucumberMessages("Features/AlbumProcessing.feature.ndjson", 4);
+            return new global::Reqnroll.Formatters.RuntimeSupport.FeatureLevelCucumberMessages("Features/AlbumProcessing.feature.ndjson", 6);
         }
         
         async global::System.Threading.Tasks.Task global::Xunit.IAsyncLifetime.InitializeAsync()
@@ -145,8 +176,8 @@ namespace Paperoni.Tests.Features
             global::Reqnroll.ScenarioInfo scenarioInfo = new global::Reqnroll.ScenarioInfo("Single photo album is processed end-to-end", null, tagsOfScenario, argumentsOfScenario, featureTags, pickleIndex);
             string[] tagsOfRule = ((string[])(null));
             global::Reqnroll.RuleInfo ruleInfo = null;
-#line 6
- this.ScenarioInitialize(scenarioInfo, ruleInfo);
+#line 28
+this.ScenarioInitialize(scenarioInfo, ruleInfo);
 #line hidden
             if ((global::Reqnroll.TagHelper.ContainsIgnoreTag(scenarioInfo.CombinedTags) || global::Reqnroll.TagHelper.ContainsIgnoreTag(featureTags)))
             {
@@ -155,57 +186,93 @@ namespace Paperoni.Tests.Features
             else
             {
                 await this.ScenarioStartAsync();
-#line 7
-  await testRunner.GivenAsync("the system is configured for integration testing", ((string)(null)), ((global::Reqnroll.Table)(null)), "Given ");
-#line hidden
-#line 8
-  await testRunner.AndAsync("the prompt template is:", @"Analyse the following document and extract the text.
-Extrakt the full visible content and return it as a markdown.
-
-## Output format (Markdown)
-
----
-title: put here the heading you find in the document
----
-
-# Summary
-Short summary of the document
-
-# Complete Text
-Extracted text from the document.", ((global::Reqnroll.Table)(null)), "And ");
-#line hidden
-#line 25
-  await testRunner.AndAsync("the processing pipeline is built", ((string)(null)), ((global::Reqnroll.Table)(null)), "And ");
-#line hidden
-#line 26
-  await testRunner.WhenAsync("I enqueue a photo with caption \"Test document\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "When ");
-#line hidden
-#line 27
-  await testRunner.ThenAsync("the album is processed", ((string)(null)), ((global::Reqnroll.Table)(null)), "Then ");
-#line hidden
-#line 28
-  await testRunner.AndAsync("the AI summary mentions \"title: Lorem ipsum\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "And ");
+#line 6
+await this.FeatureBackgroundAsync();
 #line hidden
 #line 29
-  await testRunner.AndAsync("a PDF is created", ((string)(null)), ((global::Reqnroll.Table)(null)), "And ");
+    await testRunner.WhenAsync("I enqueue a photo with caption \"Test document\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "When ");
 #line hidden
 #line 30
-  await testRunner.AndAsync("the summary is published to Obsidian", ((string)(null)), ((global::Reqnroll.Table)(null)), "And ");
+    await testRunner.ThenAsync("the album is processed", ((string)(null)), ((global::Reqnroll.Table)(null)), "Then ");
 #line hidden
 #line 31
-  await testRunner.AndAsync("the PDF is published to the output directory", ((string)(null)), ((global::Reqnroll.Table)(null)), "And ");
+    await testRunner.AndAsync("the AI summary mentions \"title: Lorem ipsum\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "And ");
 #line hidden
 #line 32
-  await testRunner.AndAsync("the bot replied with \"🤖 AI is reading\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "And ");
+    await testRunner.AndAsync("a PDF is created", ((string)(null)), ((global::Reqnroll.Table)(null)), "And ");
 #line hidden
 #line 33
-  await testRunner.AndAsync("the bot replied with \"📄 Creating PDF\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "And ");
+    await testRunner.AndAsync("the summary is published to Obsidian", ((string)(null)), ((global::Reqnroll.Table)(null)), "And ");
 #line hidden
 #line 34
-  await testRunner.AndAsync("the last bot reply starts with \"Done:\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "And ");
+    await testRunner.AndAsync("the PDF is published to the output directory", ((string)(null)), ((global::Reqnroll.Table)(null)), "And ");
 #line hidden
 #line 35
-  await testRunner.AndAsync("the trace log contains expected traces", ((string)(null)), ((global::Reqnroll.Table)(null)), "And ");
+    await testRunner.AndAsync("the bot replied with \"🤖 AI is reading\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "And ");
+#line hidden
+#line 36
+    await testRunner.AndAsync("the bot replied with \"📄 Creating PDF\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "And ");
+#line hidden
+#line 37
+    await testRunner.AndAsync("the last bot reply starts with \"Done:\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "And ");
+#line hidden
+#line 38
+    await testRunner.AndAsync("the bot reacted with \"✅\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "And ");
+#line hidden
+#line 39
+    await testRunner.AndAsync("the trace log contains expected traces", ((string)(null)), ((global::Reqnroll.Table)(null)), "And ");
+#line hidden
+            }
+            await this.ScenarioCleanupAsync();
+        }
+        
+        [global::Xunit.SkippableFactAttribute(DisplayName="Multi-photo album produces a PDF with correct page count")]
+        [global::Xunit.TraitAttribute("FeatureTitle", "Album Processing")]
+        [global::Xunit.TraitAttribute("Description", "Multi-photo album produces a PDF with correct page count")]
+        public async global::System.Threading.Tasks.Task Multi_PhotoAlbumProducesAPDFWithCorrectPageCount()
+        {
+            string[] tagsOfScenario = ((string[])(null));
+            global::System.Collections.Specialized.OrderedDictionary argumentsOfScenario = new global::System.Collections.Specialized.OrderedDictionary();
+            string pickleIndex = "1";
+            global::Reqnroll.ScenarioInfo scenarioInfo = new global::Reqnroll.ScenarioInfo("Multi-photo album produces a PDF with correct page count", null, tagsOfScenario, argumentsOfScenario, featureTags, pickleIndex);
+            string[] tagsOfRule = ((string[])(null));
+            global::Reqnroll.RuleInfo ruleInfo = null;
+#line 41
+this.ScenarioInitialize(scenarioInfo, ruleInfo);
+#line hidden
+            if ((global::Reqnroll.TagHelper.ContainsIgnoreTag(scenarioInfo.CombinedTags) || global::Reqnroll.TagHelper.ContainsIgnoreTag(featureTags)))
+            {
+                await testRunner.SkipScenarioAsync();
+            }
+            else
+            {
+                await this.ScenarioStartAsync();
+#line 6
+await this.FeatureBackgroundAsync();
+#line hidden
+#line 42
+    await testRunner.GivenAsync("the album has 3 photos", ((string)(null)), ((global::Reqnroll.Table)(null)), "Given ");
+#line hidden
+#line 43
+    await testRunner.WhenAsync("I enqueue a photo with caption \"Test document\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "When ");
+#line hidden
+#line 44
+    await testRunner.ThenAsync("the album is processed", ((string)(null)), ((global::Reqnroll.Table)(null)), "Then ");
+#line hidden
+#line 45
+    await testRunner.AndAsync("the AI summary mentions \"title: Lorem ipsum\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "And ");
+#line hidden
+#line 46
+    await testRunner.AndAsync("the PDF has 3 pages", ((string)(null)), ((global::Reqnroll.Table)(null)), "And ");
+#line hidden
+#line 47
+    await testRunner.AndAsync("the last bot reply starts with \"Done:\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "And ");
+#line hidden
+#line 48
+    await testRunner.AndAsync("the bot reacted with \"✅\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "And ");
+#line hidden
+#line 49
+    await testRunner.AndAsync("the trace log contains expected traces", ((string)(null)), ((global::Reqnroll.Table)(null)), "And ");
 #line hidden
             }
             await this.ScenarioCleanupAsync();
@@ -218,12 +285,12 @@ Extracted text from the document.", ((global::Reqnroll.Table)(null)), "And ");
         {
             string[] tagsOfScenario = ((string[])(null));
             global::System.Collections.Specialized.OrderedDictionary argumentsOfScenario = new global::System.Collections.Specialized.OrderedDictionary();
-            string pickleIndex = "1";
+            string pickleIndex = "2";
             global::Reqnroll.ScenarioInfo scenarioInfo = new global::Reqnroll.ScenarioInfo("Album retry re-processes and cleans old published files", null, tagsOfScenario, argumentsOfScenario, featureTags, pickleIndex);
             string[] tagsOfRule = ((string[])(null));
             global::Reqnroll.RuleInfo ruleInfo = null;
-#line 37
- this.ScenarioInitialize(scenarioInfo, ruleInfo);
+#line 51
+this.ScenarioInitialize(scenarioInfo, ruleInfo);
 #line hidden
             if ((global::Reqnroll.TagHelper.ContainsIgnoreTag(scenarioInfo.CombinedTags) || global::Reqnroll.TagHelper.ContainsIgnoreTag(featureTags)))
             {
@@ -232,54 +299,75 @@ Extracted text from the document.", ((global::Reqnroll.Table)(null)), "And ");
             else
             {
                 await this.ScenarioStartAsync();
-#line 38
-  await testRunner.GivenAsync("the system is configured for integration testing", ((string)(null)), ((global::Reqnroll.Table)(null)), "Given ");
+#line 6
+await this.FeatureBackgroundAsync();
 #line hidden
-#line 39
-  await testRunner.AndAsync("the prompt template is:", @"Analyse the following document and extract the text.
-Extrakt the full visible content and return it as a markdown.
-
-## Output format (Markdown)
-
----
-title: put here the heading you find in the document
----
-
-# Summary
-Short summary of the document
-
-# Complete Text
-Extracted text from the document.", ((global::Reqnroll.Table)(null)), "And ");
+#line 52
+    await testRunner.WhenAsync("I enqueue a photo with caption \"Test document\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "When ");
+#line hidden
+#line 53
+    await testRunner.ThenAsync("the album finishes processing", ((string)(null)), ((global::Reqnroll.Table)(null)), "Then ");
+#line hidden
+#line 54
+    await testRunner.AndAsync("the summary is published to Obsidian", ((string)(null)), ((global::Reqnroll.Table)(null)), "And ");
+#line hidden
+#line 55
+    await testRunner.AndAsync("the PDF is published to the output directory", ((string)(null)), ((global::Reqnroll.Table)(null)), "And ");
 #line hidden
 #line 56
-  await testRunner.AndAsync("the processing pipeline is built", ((string)(null)), ((global::Reqnroll.Table)(null)), "And ");
+    await testRunner.WhenAsync("I request a retry", ((string)(null)), ((global::Reqnroll.Table)(null)), "When ");
 #line hidden
 #line 57
-  await testRunner.AndAsync("the pipeline is started", ((string)(null)), ((global::Reqnroll.Table)(null)), "And ");
+    await testRunner.ThenAsync("the album finishes processing", ((string)(null)), ((global::Reqnroll.Table)(null)), "Then ");
 #line hidden
 #line 58
-  await testRunner.WhenAsync("I enqueue a photo with caption \"Test document\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "When ");
+    await testRunner.AndAsync("the summary is published to Obsidian", ((string)(null)), ((global::Reqnroll.Table)(null)), "And ");
 #line hidden
 #line 59
-  await testRunner.ThenAsync("the album finishes processing", ((string)(null)), ((global::Reqnroll.Table)(null)), "Then ");
+    await testRunner.AndAsync("the PDF is published to the output directory", ((string)(null)), ((global::Reqnroll.Table)(null)), "And ");
 #line hidden
 #line 60
-  await testRunner.AndAsync("the summary is published to Obsidian", ((string)(null)), ((global::Reqnroll.Table)(null)), "And ");
+    await testRunner.AndAsync("the bot reacted with \"✅\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "And ");
 #line hidden
-#line 61
-  await testRunner.AndAsync("the PDF is published to the output directory", ((string)(null)), ((global::Reqnroll.Table)(null)), "And ");
-#line hidden
+            }
+            await this.ScenarioCleanupAsync();
+        }
+        
+        [global::Xunit.SkippableFactAttribute(DisplayName="AI timeout is reported to the user")]
+        [global::Xunit.TraitAttribute("FeatureTitle", "Album Processing")]
+        [global::Xunit.TraitAttribute("Description", "AI timeout is reported to the user")]
+        public async global::System.Threading.Tasks.Task AITimeoutIsReportedToTheUser()
+        {
+            string[] tagsOfScenario = ((string[])(null));
+            global::System.Collections.Specialized.OrderedDictionary argumentsOfScenario = new global::System.Collections.Specialized.OrderedDictionary();
+            string pickleIndex = "3";
+            global::Reqnroll.ScenarioInfo scenarioInfo = new global::Reqnroll.ScenarioInfo("AI timeout is reported to the user", null, tagsOfScenario, argumentsOfScenario, featureTags, pickleIndex);
+            string[] tagsOfRule = ((string[])(null));
+            global::Reqnroll.RuleInfo ruleInfo = null;
 #line 62
-  await testRunner.WhenAsync("I request a retry", ((string)(null)), ((global::Reqnroll.Table)(null)), "When ");
+this.ScenarioInitialize(scenarioInfo, ruleInfo);
+#line hidden
+            if ((global::Reqnroll.TagHelper.ContainsIgnoreTag(scenarioInfo.CombinedTags) || global::Reqnroll.TagHelper.ContainsIgnoreTag(featureTags)))
+            {
+                await testRunner.SkipScenarioAsync();
+            }
+            else
+            {
+                await this.ScenarioStartAsync();
+#line 6
+await this.FeatureBackgroundAsync();
 #line hidden
 #line 63
-  await testRunner.ThenAsync("the album finishes processing", ((string)(null)), ((global::Reqnroll.Table)(null)), "Then ");
+    await testRunner.GivenAsync("the AI service is unresponsive", ((string)(null)), ((global::Reqnroll.Table)(null)), "Given ");
 #line hidden
 #line 64
-  await testRunner.AndAsync("the summary is published to Obsidian", ((string)(null)), ((global::Reqnroll.Table)(null)), "And ");
+    await testRunner.WhenAsync("I enqueue a photo with caption \"Test document\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "When ");
 #line hidden
 #line 65
-  await testRunner.AndAsync("the PDF is published to the output directory", ((string)(null)), ((global::Reqnroll.Table)(null)), "And ");
+    await testRunner.ThenAsync("the album processing fails", ((string)(null)), ((global::Reqnroll.Table)(null)), "Then ");
+#line hidden
+#line 66
+    await testRunner.AndAsync("the bot replied with \"Failed to process\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "And ");
 #line hidden
             }
             await this.ScenarioCleanupAsync();

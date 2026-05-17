@@ -1,6 +1,7 @@
 using System.ClientModel;
 using System.Diagnostics;
 using Microsoft.Extensions.AI;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using OpenAI;
 using Paperoni.Contract;
@@ -16,14 +17,16 @@ internal class AiService : IAiService, IDisposable
     private readonly ITelegramReplier _telegram;
     private readonly ILogger<AiService> _logger;
     private readonly IChatClient _chatClient;
+    private readonly int _timeoutSeconds;
 
     public AiService(AlbumWorkingDirectory workingDirectory, IPromptProvider promptProvider,
-        ITelegramReplier telegram, ILogger<AiService> logger)
+        ITelegramReplier telegram, ILogger<AiService> logger, IConfiguration configuration)
     {
         _workingDirectory = workingDirectory;
         _promptProvider = promptProvider;
         _telegram = telegram;
         _logger = logger;
+        _timeoutSeconds = int.TryParse(configuration["AiTimeoutSeconds"], out var t) ? t : 600;
 
         var endpoint = Environment.GetEnvironmentVariable("AI_ENDPOINT") ?? "http://localhost:2276";
         var model = Environment.GetEnvironmentVariable("AI_MODEL") ?? "qwen-3.6-35b-a3b-q4";
@@ -126,16 +129,27 @@ internal class AiService : IAiService, IDisposable
         var prompt = await _promptProvider.GetPromptAsync(msgId, stoppingToken);
         DebugOutputType? lastDebugType = null;
         var sw = Stopwatch.StartNew();
-        var aiResult = await AskWithFilesAsync(fileContents, prompt, (t, s) =>
+
+        using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(stoppingToken);
+        timeoutCts.CancelAfter(TimeSpan.FromSeconds(_timeoutSeconds));
+        string aiResult;
+        try
         {
-            if (lastDebugType == t) return;
-            _ = t switch
+            aiResult = await AskWithFilesAsync(fileContents, prompt, (t, s) =>
             {
-                DebugOutputType.Reasoning => _telegram.EditReply(msgId, "🤖 AI is thinking .."),
-                DebugOutputType.PartialOutput => _telegram.EditReply(msgId, "🤖 AI is formulating the final output .."),
-                _ => Task.CompletedTask
-            };
-        }, stoppingToken);
+                if (lastDebugType == t) return;
+                _ = t switch
+                {
+                    DebugOutputType.Reasoning => _telegram.EditReply(msgId, "🤖 AI is thinking .."),
+                    DebugOutputType.PartialOutput => _telegram.EditReply(msgId, "🤖 AI is formulating the final output .."),
+                    _ => Task.CompletedTask
+                };
+            }, timeoutCts.Token);
+        }
+        catch (OperationCanceledException) when (!stoppingToken.IsCancellationRequested)
+        {
+            throw new TimeoutException("AI summary timed out after 10 minutes.");
+        }
         sw.Stop();
 
         await File.WriteAllTextAsync(Path.Combine(workingDir, "firstAiResponse.md"), aiResult, stoppingToken);

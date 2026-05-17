@@ -7,6 +7,8 @@ namespace Paperoni.Tests;
 
 internal sealed class FakeAiService(AlbumWorkingDirectory workingDirectory) : IAiService
 {
+    public bool ShouldThrowOnCreateAiSummary { get; set; }
+
     public Task<string> AskWithFilesAsync(IEnumerable<FileContent> files, string prompt,
         Action<DebugOutputType, string>? debugOutput = null, CancellationToken cancellationToken = default)
     {
@@ -15,6 +17,9 @@ internal sealed class FakeAiService(AlbumWorkingDirectory workingDirectory) : IA
 
     public async Task CreateAiSummary(int msgId, CancellationToken stoppingToken = default)
     {
+        if (ShouldThrowOnCreateAiSummary)
+            throw new TimeoutException("AI summary timed out.");
+
         using var activity = Tracer.StartActivity("AiService.CreateAiSummary");
         activity?.SetTag("AlbumId", msgId);
 

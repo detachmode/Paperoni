@@ -35,6 +35,17 @@ Scenario: Single photo album is processed end-to-end
     And the bot replied with "🤖 AI is reading"
     And the bot replied with "📄 Creating PDF"
     And the last bot reply starts with "Done:"
+    And the bot reacted with "✅"
+    And the trace log contains expected traces
+
+Scenario: Multi-photo album produces a PDF with correct page count
+    Given the album has 3 photos
+    When I enqueue a photo with caption "Test document"
+    Then the album is processed
+    And the AI summary mentions "title: Lorem ipsum"
+    And the PDF has 3 pages
+    And the last bot reply starts with "Done:"
+    And the bot reacted with "✅"
     And the trace log contains expected traces
 
 Scenario: Album retry re-processes and cleans old published files
@@ -46,3 +57,10 @@ Scenario: Album retry re-processes and cleans old published files
     Then the album finishes processing
     And the summary is published to Obsidian
     And the PDF is published to the output directory
+    And the bot reacted with "✅"
+
+Scenario: AI timeout is reported to the user
+    Given the AI service is unresponsive
+    When I enqueue a photo with caption "Test document"
+    Then the album processing fails
+    And the bot replied with "Failed to process"

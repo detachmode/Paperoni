@@ -47,6 +47,7 @@ internal class AlbumProcessor(
             }
             catch (OperationCanceledException)
             {
+                albumIdAccessor.Id = null;
                 break;
             }
             catch (Exception e)
@@ -87,7 +88,7 @@ internal class AlbumProcessor(
             logger.PublishingPdf(msgId);
             await pdfPublisher.PublishFileAsync(msgId, stoppingToken);
 
-
+            await telegram.SetReaction(msgId, "✅");
 
             var testMode = bool.TryParse(configuration["TestMode"], out var tm) && tm;
             await telegram.EditReply(msgId,
@@ -99,6 +100,10 @@ internal class AlbumProcessor(
                  {(testMode ? "🧪 Test mode" : "")}
                  """);
             logger.AlbumComplete(msgId);
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
         }
         catch (Exception e)
         {

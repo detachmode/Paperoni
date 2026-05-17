@@ -7,6 +7,7 @@ namespace Paperoni.Telegram;
 public interface ITelegramReplier
 {
     Task EditReply(int msgId, string text);
+    Task SetReaction(int albumMsgId, string emoji);
 }
 
 public class TelegramReplier(ITelegramBotClient bot, AlbumWorkingDirectory workingDirectory) : ITelegramReplier
@@ -26,5 +27,11 @@ public class TelegramReplier(ITelegramBotClient bot, AlbumWorkingDirectory worki
         ]);
 
         await bot.EditMessageText(chatId, replyMessageId.Value, text, replyMarkup: markup);
+    }
+
+    public async Task SetReaction(int albumMsgId, string emoji)
+    {
+        var metadata = await workingDirectory.RequireData<MetaData>(albumMsgId);
+        await bot.SetMessageReaction(metadata.ChatId, albumMsgId, [emoji]);
     }
 }

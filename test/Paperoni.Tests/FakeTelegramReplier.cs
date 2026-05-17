@@ -6,6 +6,7 @@ public class FakeTelegramReplier : ITelegramReplier
 {
     private TaskCompletionSource _done = new();
     private readonly List<(int MsgId, string Text)> _calls = [];
+    private readonly List<(int MsgId, string Emoji)> _reactions = [];
     private readonly object _lock = new();
 
     public Task EditReply(int msgId, string text)
@@ -16,6 +17,15 @@ public class FakeTelegramReplier : ITelegramReplier
         }
         if (text.StartsWith("Done:"))
             _done.TrySetResult();
+        return Task.CompletedTask;
+    }
+
+    public Task SetReaction(int albumMsgId, string emoji)
+    {
+        lock (_lock)
+        {
+            _reactions.Add((albumMsgId, emoji));
+        }
         return Task.CompletedTask;
     }
 
@@ -30,5 +40,10 @@ public class FakeTelegramReplier : ITelegramReplier
     public IReadOnlyList<(int MsgId, string Text)> Calls
     {
         get { lock (_lock) return _calls.ToList(); }
+    }
+
+    public IReadOnlyList<(int MsgId, string Emoji)> Reactions
+    {
+        get { lock (_lock) return _reactions.ToList(); }
     }
 }

@@ -19,6 +19,8 @@ public class FakeTelegramReplier : ITelegramReplier
         return Task.CompletedTask;
     }
 
+    public Task SetReaction(int albumMsgId, string emoji) => Task.CompletedTask;
+
     public void Reset()
     {
         _done = new TaskCompletionSource();

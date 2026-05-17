@@ -5,7 +5,6 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging.Abstractions;
 using OpenTelemetry;
 using OpenTelemetry.Trace;
-using Paperoni;
 using Paperoni.Ai;
 using Paperoni.AlbumProcessing;
 using Paperoni.Contract;
@@ -13,6 +12,7 @@ using Paperoni.ImageProcessing;
 using Paperoni.Telegram;
 using Paperoni.Telegram.Album;
 using Reqnroll;
+using UglyToad.PdfPig;
 using Xunit.Abstractions;
 
 namespace Paperoni.Tests.StepDefinitions;
@@ -34,6 +34,27 @@ public class AlbumProcessingSteps
     public AlbumProcessingSteps(ITestOutputHelper output)
     {
         _output = output;
+    }
+
+    [Given("the album has (.*) photos")]
+    public void GivenAlbumHasPhotos(int count)
+    {
+        var msgDir = Path.Combine(_tempBase, TestMessageId.ToString());
+        var assemblyDir = Path.GetDirectoryName(typeof(AlbumProcessingSteps).Assembly.Location)!;
+
+        var extraImages = new[] { "blue.png", "red.png" };
+        for (var i = 0; i < count - 1 && i < extraImages.Length; i++)
+        {
+            File.Copy(Path.Combine(assemblyDir, "Images", extraImages[i]),
+                Path.Combine(msgDir, $"{i + 2}.jpg"), overwrite: true);
+        }
+    }
+
+    [Given("the AI service is unresponsive")]
+    public void GivenAiServiceIsUnresponsive()
+    {
+        var fakeAi = _sp.GetRequiredService<FakeAiService>();
+        fakeAi.ShouldThrowOnCreateAiSummary = true;
     }
 
     [Given("the system is configured for integration testing")]
@@ -195,6 +216,42 @@ public class AlbumProcessingSteps
     {
         var pdfFiles = Directory.GetFiles(_outputDir, "*.pdf");
         Assert.NotEmpty(pdfFiles);
+    }
+
+    [Then("the PDF has (.*) pages")]
+    public void ThenPdfHasPages(int expectedPages)
+    {
+        var workDir = Path.Combine(_tempBase, TestMessageId.ToString());
+        var pdfFiles = Directory.GetFiles(workDir, "*.pdf");
+        var pdfPath = Assert.Single(pdfFiles);
+
+        using var pdf = PdfDocument.Open(pdfPath);
+        Assert.Equal(expectedPages, pdf.NumberOfPages);
+    }
+
+    [Then("the bot reacted with {string}")]
+    public void ThenBotReactedWith(string expectedEmoji)
+    {
+        Assert.Contains(_telegram.Reactions, r => r.Emoji == expectedEmoji);
+    }
+
+    [Then("the album processing fails")]
+    public async Task ThenAlbumProcessingFails()
+    {
+        await GivenPipelineStarted();
+
+        var workDir = Path.Combine(_tempBase, TestMessageId.ToString());
+        var maxWait = TimeSpan.FromSeconds(30);
+        var deadline = DateTime.UtcNow + maxWait;
+
+        while (DateTime.UtcNow < deadline)
+        {
+            if (_telegram.Calls.Any(c => c.Text.StartsWith("Failed to process")))
+                return;
+            await Task.Delay(100);
+        }
+
+        Assert.Fail("Album did not fail within timeout.");
     }
 
     [Then("the bot replied with {string}")]

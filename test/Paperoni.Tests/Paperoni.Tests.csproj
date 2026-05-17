@@ -16,6 +16,7 @@
     <PackageReference Include="Moq" />
     <PackageReference Include="Reqnroll" />
     <PackageReference Include="Reqnroll.xUnit" />
+    <PackageReference Include="PdfPig" />
     <PackageReference Include="xunit" />
     <PackageReference Include="xunit.runner.visualstudio" />
   </ItemGroup>

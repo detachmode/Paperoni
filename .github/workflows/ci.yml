@@ -79,6 +79,6 @@ jobs:
         with:
           platforms: linux/amd64,linux/arm64
           tags: |
-            ghcr.io/${{ github.repository }}:latest
-            ghcr.io/${{ github.repository }}:sha-${{ steps.vars.outputs.SHORT_SHA }}
+            ghcr.io/${{ github.repository_owner }}/paperoni:latest
+            ghcr.io/${{ github.repository_owner }}/paperoni:sha-${{ steps.vars.outputs.SHORT_SHA }}
           push: true

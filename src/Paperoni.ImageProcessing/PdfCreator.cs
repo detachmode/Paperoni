@@ -14,42 +14,41 @@ public record AutoCorrectImageResult(
 
 internal sealed class PdfCreator(
     ILogger<PdfCreator> logger,
-    AlbumWorkingDirectory workingDirectory,
-    AlbumIdAccessor albumIdAccessor) : IPdfCreator
+    AlbumWorkingDirectory workingDirectory) : IPdfCreator
 {
     private static readonly ImageProcessingOptions s_defaultOptions = new();
 
     public async Task CreatePdf(int messageId, CancellationToken stoppingToken)
     {
-        using var activity = Tracer.StartActivity<PdfCreator>();
-        activity?.SetTag("AlbumId", messageId);
-        var sw = Stopwatch.StartNew();
+        await Tracer.TraceAsync<PdfCreator>(async scope =>
+        {
+            var sw = Stopwatch.StartNew();
 
-        var downloadPath = workingDirectory.RequireWorkingDirectory(messageId);
-        var aiResult = await workingDirectory.GetData<AiResult>(messageId, stoppingToken);
-        ArgumentNullException.ThrowIfNull(aiResult);
+            var downloadPath = workingDirectory.RequireWorkingDirectory(messageId);
+            var aiResult = await workingDirectory.GetData<AiResult>(messageId, stoppingToken);
+            ArgumentNullException.ThrowIfNull(aiResult);
 
-        var files = Directory.GetFiles(downloadPath);
-        var originalImages = files.Where(FileHelpers.IsImageFile).OrderBy(Path.GetFileName).ToList();
-        activity?.SetTag("imageCount", originalImages.Count);
-        activity?.SetTag("title", aiResult.Title);
+            var files = Directory.GetFiles(downloadPath);
+            var originalImages = files.Where(FileHelpers.IsImageFile).OrderBy(Path.GetFileName).ToList();
+            scope.SetTag("imageCount", originalImages.Count);
+            scope.SetTag("title", aiResult.Title);
 
-        var processedData = await AutoCorrect(originalImages, stoppingToken);
+            var processedData = await AutoCorrect(originalImages, stoppingToken);
 
-        var pdfBytes = PdfMerger.MergeToPdf(processedData.Select(i => i.ImprovedImage));
-        var pdfPath = Path.Combine(downloadPath, $"{aiResult.Title}.pdf");
+            var pdfBytes = PdfMerger.MergeToPdf(processedData.Select(i => i.ImprovedImage));
+            var pdfPath = Path.Combine(downloadPath, $"{aiResult.Title}.pdf");
 
-        await File.WriteAllBytesAsync(pdfPath, pdfBytes, stoppingToken);
-        sw.Stop();
+            await File.WriteAllBytesAsync(pdfPath, pdfBytes, stoppingToken);
+            sw.Stop();
 
-        activity?.SetTag("file", Path.GetFileName(pdfPath));
-        activity?.SetTag("sizeKb", pdfBytes.Length / 1024);
-        activity?.SetTag("pages", originalImages.Count);
-        activity?.SetTag("latencySec", sw.Elapsed.TotalSeconds);
-        activity?.SetStatus(ActivityStatusCode.Ok);
+            scope.SetTag("file", Path.GetFileName(pdfPath));
+            scope.SetTag("sizeKb", pdfBytes.Length / 1024);
+            scope.SetTag("pages", originalImages.Count);
+            scope.SetTag("latencySec", sw.Elapsed.TotalSeconds);
 
-        logger.PdfCreated(Path.GetFileName(pdfPath), pdfBytes.Length / 1024,
-            originalImages.Count, sw.Elapsed.TotalSeconds);
+            logger.PdfCreated(Path.GetFileName(pdfPath), pdfBytes.Length / 1024,
+                originalImages.Count, sw.Elapsed.TotalSeconds);
+        });
     }
 
     public static Task<ProcessedImageResult> AutoCorrect(byte[] imageData, CancellationToken ct = default)
@@ -61,21 +60,21 @@ internal sealed class PdfCreator(
         var result = new List<AutoCorrectImageResult>();
         foreach (var imageFile in originalImages)
         {
-            using var activity = Tracer.StartActivity<PdfCreator>();
-            activity?.SetTag("AlbumId", albumIdAccessor.Id);
-            activity?.SetTag("file", Path.GetFileName(imageFile));
+            await Tracer.TraceAsync<PdfCreator>(async scope =>
+            {
+                scope.SetTag("file", Path.GetFileName(imageFile));
 
-            var imageData = await File.ReadAllBytesAsync(imageFile, stoppingToken);
-            var processed = await AutoCorrect(imageData, stoppingToken);
+                var imageData = await File.ReadAllBytesAsync(imageFile, stoppingToken);
+                var processed = await AutoCorrect(imageData, stoppingToken);
 
-            activity?.SetTag("documentDetected", processed.DocumentDetected);
-            activity?.SetTag("processingTimeMs", processed.ProcessingTime.TotalMilliseconds);
-            activity?.SetStatus(ActivityStatusCode.Ok);
+                scope.SetTag("documentDetected", processed.DocumentDetected);
+                scope.SetTag("processingTimeMs", processed.ProcessingTime.TotalMilliseconds);
 
-            logger.ImageProcessed(Path.GetFileName(imageFile), processed.DocumentDetected,
-                processed.ProcessingTime.TotalMilliseconds);
+                logger.ImageProcessed(Path.GetFileName(imageFile), processed.DocumentDetected,
+                    processed.ProcessingTime.TotalMilliseconds);
 
-            result.Add(new AutoCorrectImageResult(processed.ProcessedImage, imageFile));
+                result.Add(new AutoCorrectImageResult(processed.ProcessedImage, imageFile));
+            });
         }
 
         return result;

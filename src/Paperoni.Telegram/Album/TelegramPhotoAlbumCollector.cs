@@ -68,7 +68,7 @@ internal sealed class TelegramPhotoAlbumCollector(
             }
 
             queue.Enqueue(new WorkItem(retryId, true));
-            logger.LogInformation("Retry requested for album {MsgId}", retryId);
+            logger.LogInformation("Retry requested for album {AlbumId}", retryId);
         }
         else if (data.StartsWith("logs:") && int.TryParse(data.AsSpan(5), out var logId))
         {
@@ -76,18 +76,18 @@ internal sealed class TelegramPhotoAlbumCollector(
         }
     }
 
-    private async Task ShowLogs(int msgId, CallbackQuery query)
+    private async Task ShowLogs(int albumId, CallbackQuery query)
     {
         if (query.Message is not { } msg)
         {
             return;
         }
 
-        var logText = logRetriever.GetLogContent(msgId);
+        var logText = logRetriever.GetLogContent(albumId);
         if (string.IsNullOrEmpty(logText))
         {
             await botClient.EditMessageText(msg.Chat.Id, msg.MessageId,
-                $"No logs found for message {msgId}.",
+                $"No logs found for message {albumId}.",
                 replyMarkup: msg.ReplyMarkup);
             return;
         }
@@ -175,7 +175,7 @@ internal sealed class TelegramPhotoAlbumCollector(
             }
 
             var first = buffer.Photos.First().Value;
-            logger.LogInformation("Flushing album {MsgId} with {Count} photos",
+            logger.LogInformation("Flushing album {AlbumId} with {Count} photos",
                 first.MessageId, buffer.Photos.Count);
 
             await DownloadAndEnqueue(buffer);
@@ -217,7 +217,7 @@ internal sealed class TelegramPhotoAlbumCollector(
 
     private async Task DownloadAlbumFiles(Album album, string downloadFolder, long chatId, int replyMessageId)
     {
-        var msgId = album.Photos.First().Value.MessageId;
+        var albumId = album.Photos.First().Value.MessageId;
 
         await _semaphore.WaitAsync();
         try
@@ -228,9 +228,9 @@ internal sealed class TelegramPhotoAlbumCollector(
                 totalBytes += await DownloadFile(downloadFolder, albumValue.MessageId + ".jpg", albumValue.FileId);
             }
 
-            logger.AlbumDownloaded(album.Photos.Count, msgId, totalBytes);
+            logger.AlbumDownloaded(album.Photos.Count, albumId, totalBytes);
 
-            var processingPosition = queue.Enqueue(new WorkItem(msgId, false));
+            var processingPosition = queue.Enqueue(new WorkItem(albumId, false));
             var posMsg = processingPosition == 1
                 ? "📥 Processing queue: you're next"
                 : $"📥 Processing queue: position {processingPosition} ({processingPosition - 1} ahead)";

@@ -21,11 +21,11 @@ public class FilePromptProvider : IPromptProvider
         }
     }
 
-    public async Task<string> GetPromptAsync(int msgId, CancellationToken ct = default)
+    public async Task<string> GetPromptAsync(int albumId, CancellationToken ct = default)
     {
         var prompt = await File.ReadAllTextAsync(_promptFilePath, ct);
 
-        var metaData = await _workingDirectory.RequireData<MetaData>(msgId, ct);
+        var metaData = await _workingDirectory.RequireData<MetaData>(albumId, ct);
 
         var captions = metaData.Caption;
         if (captions.Count > 0)

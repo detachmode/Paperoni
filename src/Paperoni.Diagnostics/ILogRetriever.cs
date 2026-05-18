@@ -2,5 +2,5 @@ namespace Paperoni.Diagnostics;
 
 public interface ILogRetriever
 {
-    string GetLogContent(int msgId);
+    string GetLogContent(int albumId);
 }

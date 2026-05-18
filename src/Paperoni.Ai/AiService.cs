@@ -110,70 +110,69 @@ internal sealed class AiService : IAiService
         return fullResponse;
     }
 
-    public async Task CreateAiSummary(int msgId,
+    public async Task CreateAiSummary(int albumId,
         CancellationToken stoppingToken = default)
     {
-        using var activity = Tracer.StartActivity<AiService>();
-        activity?.SetTag("AlbumId", msgId);
-
-        var workingDir = _workingDirectory.RequireWorkingDirectory(msgId);
-        var files =
-            Directory
-                .GetFiles(workingDir)
-                .Where(FileHelpers.IsImageFile).ToList();
-        activity?.SetTag("fileCount", files.Count);
-        var fileContents = files
-            .Select(f => new FileContent(
-                File.ReadAllBytes(f),
-                GetMediaType(f)
-            )).ToList();
-
-        var prompt = await _promptProvider.GetPromptAsync(msgId, stoppingToken);
-        DebugOutputType? lastDebugType = null;
-        var sw = Stopwatch.StartNew();
-
-        using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(stoppingToken);
-        timeoutCts.CancelAfter(TimeSpan.FromSeconds(_timeoutSeconds));
-        string aiResult;
-        try
+        await Tracer.TraceAsync<AiService>(async scope =>
         {
-            aiResult = await AskWithFilesAsync(fileContents, prompt, (t, s) =>
+            var workingDir = _workingDirectory.RequireWorkingDirectory(albumId);
+            var files =
+                Directory
+                    .GetFiles(workingDir)
+                    .Where(FileHelpers.IsImageFile).ToList();
+            scope.SetTag("fileCount", files.Count);
+            var fileContents = files
+                .Select(f => new FileContent(
+                    File.ReadAllBytes(f),
+                    GetMediaType(f)
+                )).ToList();
+
+            var prompt = await _promptProvider.GetPromptAsync(albumId, stoppingToken);
+            DebugOutputType? lastDebugType = null;
+            var sw = Stopwatch.StartNew();
+
+            using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(stoppingToken);
+            timeoutCts.CancelAfter(TimeSpan.FromSeconds(_timeoutSeconds));
+            string aiResult;
+            try
             {
-                if (lastDebugType == t)
+                aiResult = await AskWithFilesAsync(fileContents, prompt, (t, s) =>
                 {
-                    return;
-                }
+                    if (lastDebugType == t)
+                    {
+                        return;
+                    }
 
-                lastDebugType = t;
-                _ = t switch
-                {
-                    DebugOutputType.Reasoning => _telegram.EditReply(msgId, "🤖 AI is thinking .."),
-                    DebugOutputType.PartialOutput => _telegram.EditReply(msgId,
-                        "🤖 AI is formulating the final output .."),
-                    _ => Task.CompletedTask
-                };
-            }, timeoutCts.Token);
-        }
-        catch (OperationCanceledException) when (!stoppingToken.IsCancellationRequested)
-        {
-            throw new TimeoutException("AI summary timed out after 10 minutes.");
-        }
+                    lastDebugType = t;
+                    _ = t switch
+                    {
+                        DebugOutputType.Reasoning => _telegram.EditReply(albumId, "🤖 AI is thinking .."),
+                        DebugOutputType.PartialOutput => _telegram.EditReply(albumId,
+                            "🤖 AI is formulating the final output .."),
+                        _ => Task.CompletedTask
+                    };
+                }, timeoutCts.Token);
+            }
+            catch (OperationCanceledException) when (!stoppingToken.IsCancellationRequested)
+            {
+                throw new TimeoutException("AI summary timed out after 10 minutes.");
+            }
 
-        sw.Stop();
+            sw.Stop();
 
-        await File.WriteAllTextAsync(Path.Combine(workingDir, "firstAiResponse.md"), aiResult, stoppingToken);
+            await File.WriteAllTextAsync(Path.Combine(workingDir, "firstAiResponse.md"), aiResult, stoppingToken);
 
-        aiResult = MarkdownHelper.FixMarkdownFromAi(aiResult);
-        var title = MarkdownHelper.GetTitleFromMarkdown(aiResult);
+            aiResult = MarkdownHelper.FixMarkdownFromAi(aiResult);
+            var title = MarkdownHelper.GetTitleFromMarkdown(aiResult);
 
-        await _workingDirectory.WriteData(msgId, new AiResult(title), stoppingToken);
+            await _workingDirectory.WriteData(albumId, new AiResult(title), stoppingToken);
 
-        activity?.SetTag("title", title);
-        activity?.SetTag("length", aiResult.Length);
-        activity?.SetTag("latencySec", sw.Elapsed.TotalSeconds);
-        activity?.SetStatus(ActivityStatusCode.Ok);
+            scope.SetTag("title", title);
+            scope.SetTag("length", aiResult.Length);
+            scope.SetTag("latencySec", sw.Elapsed.TotalSeconds);
 
-        _logger.AiSummaryCompleted(aiResult.Length, sw.Elapsed.TotalSeconds, title);
+            _logger.AiSummaryCompleted(aiResult.Length, sw.Elapsed.TotalSeconds, title);
+        });
     }
 
     public async Task<string> Review(IEnumerable<FileContent> files, string firstPrompt, string answer,

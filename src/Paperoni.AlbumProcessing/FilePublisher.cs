@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using Microsoft.Extensions.Logging;
 using Paperoni.Contract;
 using Paperoni.Diagnostics;
@@ -10,53 +9,50 @@ internal sealed class FilePublisher(
     AlbumWorkingDirectory workingDirectory,
     string outputPath,
     string searchPattern,
-    AlbumIdAccessor albumIdAccessor,
     ILogger<FilePublisher> logger) : IFilePublisher
 {
     private readonly string _extension = Path.GetExtension(searchPattern);
 
-    public async Task PublishFileAsync(int msgId, CancellationToken stoppingToken)
+    public async Task PublishFileAsync(int albumId, CancellationToken stoppingToken)
     {
-        using var activity = Tracer.StartActivity<FilePublisher>();
-        activity?.SetTag("AlbumId", msgId);
-        activity?.SetTag("type", _extension.TrimStart('.').ToUpperInvariant());
+        await Tracer.TraceAsync<FilePublisher>(async scope =>
+        {
+            scope.SetTag("type", _extension.TrimStart('.').ToUpperInvariant());
 
-        var aiResult = await workingDirectory.RequireData<AiResult>(msgId, stoppingToken);
-        var workingDir = workingDirectory.RequireWorkingDirectory(msgId);
-        var file = Directory.GetFiles(workingDir, searchPattern, SearchOption.TopDirectoryOnly).FirstOrDefault();
-        ArgumentNullException.ThrowIfNull(file);
+            var aiResult = await workingDirectory.RequireData<AiResult>(albumId, stoppingToken);
+            var workingDir = workingDirectory.RequireWorkingDirectory(albumId);
+            var file = Directory.GetFiles(workingDir, searchPattern, SearchOption.TopDirectoryOnly).FirstOrDefault();
+            ArgumentNullException.ThrowIfNull(file);
 
-        var destPath = Path.Combine(outputPath, $"{aiResult.Title}{_extension}");
-        Directory.CreateDirectory(outputPath);
+            var destPath = Path.Combine(outputPath, $"{aiResult.Title}{_extension}");
+            Directory.CreateDirectory(outputPath);
 
-        var fileInfo = new FileInfo(file);
-        File.Copy(file, destPath, overwrite: true);
+            var fileInfo = new FileInfo(file);
+            File.Copy(file, destPath, overwrite: true);
 
-        activity?.SetTag("source", Path.GetFileName(file));
-        activity?.SetTag("dest", destPath);
-        activity?.SetTag("sizeKb", fileInfo.Length / 1024);
-        activity?.SetStatus(ActivityStatusCode.Ok);
+            scope.SetTag("source", Path.GetFileName(file));
+            scope.SetTag("dest", destPath);
+            scope.SetTag("sizeKb", fileInfo.Length / 1024);
 
-        logger.FilePublished(_extension.TrimStart('.').ToUpperInvariant(),
-            Path.GetFileName(file), destPath, fileInfo.Length / 1024);
+            logger.FilePublished(_extension.TrimStart('.').ToUpperInvariant(),
+                Path.GetFileName(file), destPath, fileInfo.Length / 1024);
+        });
     }
 
-    public Task DeletePreviousAsync(string title, CancellationToken stoppingToken)
+    public async Task DeletePreviousAsync(string title, CancellationToken stoppingToken)
     {
-        using var activity = Tracer.StartActivity<FilePublisher>();
-        activity?.SetTag("AlbumId", albumIdAccessor.Id);
-        activity?.SetTag("type", _extension.TrimStart('.').ToUpperInvariant());
-
-        var filePath = Path.Combine(outputPath, $"{title}{_extension}");
-        activity?.SetTag("fileToDelete", Path.GetFileName(filePath));
-
-        if (File.Exists(filePath))
+        await Tracer.TraceAsync<FilePublisher>(async scope =>
         {
-            File.Delete(filePath);
-            logger.FileDeleted(_extension.TrimStart('.').ToUpperInvariant(), filePath);
-            activity?.SetStatus(ActivityStatusCode.Ok);
-        }
+            scope.SetTag("type", _extension.TrimStart('.').ToUpperInvariant());
 
-        return Task.CompletedTask;
+            var filePath = Path.Combine(outputPath, $"{title}{_extension}");
+            scope.SetTag("fileToDelete", Path.GetFileName(filePath));
+
+            if (File.Exists(filePath))
+            {
+                File.Delete(filePath);
+                logger.FileDeleted(_extension.TrimStart('.').ToUpperInvariant(), filePath);
+            }
+        });
     }
 }

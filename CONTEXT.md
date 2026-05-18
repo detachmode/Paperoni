@@ -35,6 +35,17 @@ _Avoid_: Notifier, status updater
 **File Publisher**:
 A generic component that copies a file from the **Working Directory** to a configured output directory. Registered as two keyed singletons — one for Markdown (`PublisherTarget.Markdown`) and one for PDF (`PublisherTarget.Pdf`).
 
+**ActivityScope**:
+A null-safe wrapper around `System.Diagnostics.Activity` that auto-tags `AlbumId` from the ambient **AlbumIdAccessor**,
+provides fluent `SetTag`, and is managed by `Tracer.TraceAsync<T>()` / `Tracer.TraceAsync<T, TResult>()` which
+automatically set `Ok` on success and `Error` on exception.
+_Avoid_: Manual `Tracer.StartActivity<T>()` + `?.SetTag` + `?.SetStatus` pattern (use `TraceAsync` instead).
+
+**AlbumIdAccessor**:
+A singleton service that flows the current **AlbumId** through async context via `AsyncLocal<int?>`. Used by *
+*ActivityScope** to auto-tag all spans without manual wiring.
+_Avoid_: Passing `msgId` as a parameter to every trace call.
+
 ## Relationships
 
 - An **Album** is composed of one or more **Photos**

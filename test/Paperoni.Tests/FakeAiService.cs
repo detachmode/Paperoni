@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Text.Json;
 using Paperoni.Ai;
 using Paperoni.Contract;
 using static Paperoni.Diagnostics.Diagnostics;
@@ -17,7 +18,7 @@ internal sealed class FakeAiService(AlbumWorkingDirectory workingDirectory) : IA
 
     public Task<string> TryFunctionCalling() => Task.FromResult("Fake function calling response");
 
-    public async Task CreateAiSummary(int msgId, CancellationToken stoppingToken = default)
+    public async Task CreateAiSummary(int albumId, CancellationToken stoppingToken = default)
     {
         if (ShouldThrowOnCreateAiSummary)
         {
@@ -25,26 +26,26 @@ internal sealed class FakeAiService(AlbumWorkingDirectory workingDirectory) : IA
         }
 
         using var activity = Tracer.StartActivity("AiService.CreateAiSummary");
-        activity?.SetTag("AlbumId", msgId);
+        activity?.SetTag("AlbumId", albumId);
 
-        var workDir = workingDirectory.RequireWorkingDirectory(msgId);
+        var workDir = workingDirectory.RequireWorkingDirectory(albumId);
 
         var content = """
-                       ---
-                       title: Lorem Ipsum
-                       ---
+                      ---
+                      title: Lorem Ipsum
+                      ---
 
-                       # Summary
-                       Fake AI summary for testing.
+                      # Summary
+                      Fake AI summary for testing.
 
-                       # Complete Text
-                       Lorem ipsum dolor sit amet, consectetur adipiscing elit.
-                       """;
+                      # Complete Text
+                      Lorem ipsum dolor sit amet, consectetur adipiscing elit.
+                      """;
         await File.WriteAllTextAsync(Path.Combine(workDir, "firstAiResponse.md"), content, stoppingToken);
 
         var aiResult = new AiResult("Lorem Ipsum");
-        var json = System.Text.Json.JsonSerializer.Serialize(aiResult,
-            new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
+        var json = JsonSerializer.Serialize(aiResult,
+            new JsonSerializerOptions { WriteIndented = true });
         await File.WriteAllTextAsync(Path.Combine(workDir, "AiResult.json"), json, stoppingToken);
 
         activity?.SetStatus(ActivityStatusCode.Ok);

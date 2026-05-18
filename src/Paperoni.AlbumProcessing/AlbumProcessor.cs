@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -37,16 +36,17 @@ internal class AlbumProcessor(
                 item = await queue.Dequeue(stoppingToken);
 
                 albumIdAccessor.Id = item.MessageId;
-                using var activity = Tracer.StartActivity<AlbumProcessor>();
-                activity?.SetTag("AlbumId", item.MessageId);
-                activity?.SetTag("isRetry", item.IsRetry);
 
-                using var _ = logger.BeginScope(new Dictionary<string, object> { ["AlbumId"] = item.MessageId });
-                logger.ProcessingAlbum(item.IsRetry);
-                await ProcessAlbum(item.MessageId, item.IsRetry, stoppingToken);
+                await Tracer.TraceAsync<AlbumProcessor>(async scope =>
+                {
+                    scope.SetTag("isRetry", item.IsRetry);
+
+                    using var _ = logger.BeginScope(new Dictionary<string, object> { ["AlbumId"] = item.MessageId });
+                    logger.ProcessingAlbum(item.IsRetry);
+                    await ProcessAlbum(item.MessageId, item.IsRetry, stoppingToken);
+                });
 
                 albumIdAccessor.Id = null;
-                activity?.SetStatus(ActivityStatusCode.Ok);
             }
             catch (OperationCanceledException)
             {
@@ -61,13 +61,13 @@ internal class AlbumProcessor(
         }
     }
 
-    private async Task ProcessAlbum(int msgId, bool isRetry, CancellationToken stoppingToken)
+    private async Task ProcessAlbum(int albumId, bool isRetry, CancellationToken stoppingToken)
     {
         try
         {
             if (isRetry)
             {
-                var oldAiResult = await workingDirectory.GetData<AiResult>(msgId, stoppingToken);
+                var oldAiResult = await workingDirectory.GetData<AiResult>(albumId, stoppingToken);
                 if (oldAiResult?.Title is not null)
                 {
                     logger.CleaningOldFiles(oldAiResult.Title);
@@ -77,24 +77,24 @@ internal class AlbumProcessor(
             }
 
             logger.AiSummaryStarting();
-            await telegram.EditReply(msgId, isRetry ? "🔄 Retrying ..." : "🤖 AI is reading it ..");
-            await ai.CreateAiSummary(msgId, stoppingToken);
+            await telegram.EditReply(albumId, isRetry ? "🔄 Retrying ..." : "🤖 AI is reading it ..");
+            await ai.CreateAiSummary(albumId, stoppingToken);
             logger.AiSummaryDone();
 
             logger.PdfCreationStarting();
-            await telegram.EditReply(msgId, "📄 Creating PDF ..");
-            await pdfCreator.CreatePdf(msgId, stoppingToken);
+            await telegram.EditReply(albumId, "📄 Creating PDF ..");
+            await pdfCreator.CreatePdf(albumId, stoppingToken);
             logger.PdfCreationDone();
 
             logger.PublishingMarkdown();
-            await markdownPublisher.PublishFileAsync(msgId, stoppingToken);
+            await markdownPublisher.PublishFileAsync(albumId, stoppingToken);
             logger.PublishingPdf();
-            await pdfPublisher.PublishFileAsync(msgId, stoppingToken);
+            await pdfPublisher.PublishFileAsync(albumId, stoppingToken);
 
-            await telegram.SetReaction(msgId, "👏");
+            await telegram.SetReaction(albumId, "👏");
 
             var testMode = bool.TryParse(configuration["TestMode"], out var tm) && tm;
-            await telegram.EditReply(msgId,
+            await telegram.EditReply(albumId,
                 $"""
                  Done:
                  ✅ Created PDF
@@ -110,8 +110,8 @@ internal class AlbumProcessor(
         }
         catch (Exception e)
         {
-            logger.AlbumProcessingError(e, msgId);
-            await telegram.EditReply(msgId, "Failed to process: " + e.Message);
+            logger.AlbumProcessingError(e, albumId);
+            await telegram.EditReply(albumId, "Failed to process: " + e.Message);
         }
     }
 }

@@ -34,8 +34,8 @@ public static partial class Diagnostics
     [LoggerMessage(Level = LogLevel.Information, Message = "✅ Processing complete")]
     public static partial void AlbumComplete(this ILogger logger);
 
-    [LoggerMessage(Level = LogLevel.Error, Message = "❌ Processing failed for album {MsgId}")]
-    public static partial void AlbumProcessingError(this ILogger logger, Exception ex, int? msgId);
+    [LoggerMessage(Level = LogLevel.Error, Message = "❌ Processing failed for album {AlbumId}")]
+    public static partial void AlbumProcessingError(this ILogger logger, Exception ex, int? albumId);
 
     [LoggerMessage(Level = LogLevel.Information, Message = "🤖 First chunk: {Ttf}ms")]
     public static partial void TimeToFirstChunk(this ILogger logger, long ttf);
@@ -60,18 +60,18 @@ public static partial class Diagnostics
     public static partial void FileDeleted(this ILogger logger, string type, string file);
 
     [LoggerMessage(Level = LogLevel.Information,
-        Message = "📥 Enqueued album {MsgId} (retry: {IsRetry}), depth: {Depth}")]
-    public static partial void AlbumEnqueued(this ILogger logger, int msgId, bool isRetry, int depth);
+        Message = "📥 Enqueued album {AlbumId} (retry: {IsRetry}), depth: {Depth}")]
+    public static partial void AlbumEnqueued(this ILogger logger, int albumId, bool isRetry, int depth);
 
-    [LoggerMessage(Level = LogLevel.Information, Message = "📥 Dequeued album {MsgId}, depth: {Depth}")]
-    public static partial void AlbumDequeued(this ILogger logger, int msgId, int depth);
+    [LoggerMessage(Level = LogLevel.Information, Message = "📥 Dequeued album {AlbumId}, depth: {Depth}")]
+    public static partial void AlbumDequeued(this ILogger logger, int albumId, int depth);
 
     [LoggerMessage(Level = LogLevel.Information, Message = "⬇️ Downloaded {Name} ({Size} bytes)")]
     public static partial void FileDownloaded(this ILogger logger, string name, long size);
 
     [LoggerMessage(Level = LogLevel.Information,
-        Message = "⬇️ Downloaded {Count} files for album {MsgId} ({Size} bytes)")]
-    public static partial void AlbumDownloaded(this ILogger logger, int count, int msgId, long size);
+        Message = "⬇️ Downloaded {Count} files for album {AlbumId} ({Size} bytes)")]
+    public static partial void AlbumDownloaded(this ILogger logger, int count, int albumId, long size);
 
     [LoggerMessage(Level = LogLevel.Error, Message = "❌ Download failed")]
     public static partial void DownloadError(this ILogger logger, Exception ex);

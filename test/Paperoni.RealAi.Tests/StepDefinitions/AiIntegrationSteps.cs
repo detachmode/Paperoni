@@ -12,10 +12,10 @@ namespace Paperoni.RealAi.Tests.StepDefinitions;
 public class AiIntegrationSteps
 {
     private readonly IAiService _aiService;
+    private readonly List<FileContent> _files = new();
     private readonly ITestOutputHelper _output;
     private string? _answer;
     private string? _functionCallingAnswer;
-    private readonly List<FileContent> _files = new();
 
     public AiIntegrationSteps(ITestOutputHelper output)
     {
@@ -30,6 +30,8 @@ public class AiIntegrationSteps
             .AddInMemoryCollection(new Dictionary<string, string?>
             {
                 ["PromptFilePath"] = promptFile,
+                ["Ai:Endpoint"] = Environment.GetEnvironmentVariable("AI_ENDPOINT") ?? "http://localhost:2276",
+                ["Ai:Model"] = Environment.GetEnvironmentVariable("AI_MODEL") ?? "qwen-3.6-35b-a3b-q4",
             })
             .Build();
 
@@ -41,12 +43,6 @@ public class AiIntegrationSteps
         serviceCollection.AddAiService();
         var sp = serviceCollection.BuildServiceProvider();
         _aiService = sp.GetRequiredService<IAiService>();
-    }
-
-    private sealed class StubTelegramReplier : ITelegramReplier
-    {
-        public Task EditReply(int msgId, string text) => Task.CompletedTask;
-        public Task SetReaction(int albumMsgId, string emoji) => Task.CompletedTask;
     }
 
     [When("I ask {string}")]
@@ -84,7 +80,8 @@ public class AiIntegrationSteps
     [When("I ask {string} with the images")]
     public async Task WhenIAskWithImages(string question)
     {
-        _answer = await _aiService.AskWithFilesAsync(_files, question, (type, msg) => _output.WriteLine($"[{type}]{msg}"));
+        _answer = await _aiService.AskWithFilesAsync(_files, question,
+            (type, msg) => _output.WriteLine($"[{type}]{msg}"));
     }
 
     [Then("the answer should contain {string}")]
@@ -93,5 +90,11 @@ public class AiIntegrationSteps
         Assert.NotNull(_answer);
         _output.WriteLine($"AI response: {_answer}");
         Assert.Contains(expected, _answer, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private sealed class StubTelegramReplier : ITelegramReplier
+    {
+        public Task EditReply(int msgId, string text) => Task.CompletedTask;
+        public Task SetReaction(int albumMsgId, string emoji) => Task.CompletedTask;
     }
 }

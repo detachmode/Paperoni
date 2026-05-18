@@ -16,7 +16,7 @@ internal sealed class LogRetriever(
         @"(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3})",
         RegexOptions.Compiled);
 
-    public string GetLogContent(int msgId)
+    public string GetLogContent(int albumId)
     {
         var logDir = configuration["LogPath"];
         if (string.IsNullOrEmpty(logDir))
@@ -24,7 +24,6 @@ internal sealed class LogRetriever(
             logDir = workingDirectory.BasePath;
         }
 
-        var msgIdStr = msgId.ToString();
         var logEntries = new List<(DateTime Timestamp, string Line)>();
         var traceEntries = new List<(DateTime Timestamp, string Line)>();
 
@@ -33,7 +32,7 @@ internal sealed class LogRetriever(
         {
             foreach (var line in File.ReadLines(file).Reverse())
             {
-                if (!MatchesAlbum(line, msgIdStr))
+                if (!MatchesAlbum(line, albumId.ToString()))
                 {
                     continue;
                 }
@@ -57,7 +56,7 @@ internal sealed class LogRetriever(
         }
 
         // 2. Collect trace lines from traces.log (max 20)
-        var tracePath = Path.Combine(workingDirectory.RequireWorkingDirectory(msgId), "traces.log");
+        var tracePath = Path.Combine(workingDirectory.RequireWorkingDirectory(albumId), "traces.log");
         if (File.Exists(tracePath))
         {
             foreach (var line in File.ReadLines(tracePath).Reverse().Take(20))
@@ -81,19 +80,19 @@ internal sealed class LogRetriever(
 
         // 4. Build output with date header
         var firstDate = allEntries[0].Timestamp.ToString("yyyy-MM-dd");
-        var lines = new List<string>(allEntries.Count + 1) { $"📋 Album {msgId} — {firstDate}" };
+        var lines = new List<string>(allEntries.Count + 1) { $"📋 Album {albumId} — {firstDate}" };
         lines.AddRange(allEntries.Select(e => e.Line));
 
         return string.Join("\n", lines);
     }
 
-    private static bool MatchesAlbum(string line, string msgIdStr)
+    private static bool MatchesAlbum(string line, string albumId)
     {
-        return line.Contains("album " + msgIdStr, StringComparison.OrdinalIgnoreCase) ||
-               line.Contains("message " + msgIdStr, StringComparison.OrdinalIgnoreCase) ||
-               line.Contains("AlbumId=" + msgIdStr, StringComparison.Ordinal) ||
-               line.Contains(msgIdStr + ".jpg", StringComparison.OrdinalIgnoreCase) ||
-               line.Contains(msgIdStr + ".pdf", StringComparison.OrdinalIgnoreCase);
+        return line.Contains("album " + albumId, StringComparison.OrdinalIgnoreCase) ||
+               line.Contains("message " + albumId, StringComparison.OrdinalIgnoreCase) ||
+               line.Contains("AlbumId=" + albumId, StringComparison.Ordinal) ||
+               line.Contains(albumId + ".jpg", StringComparison.OrdinalIgnoreCase) ||
+               line.Contains(albumId + ".pdf", StringComparison.OrdinalIgnoreCase);
     }
 
     private static (DateTime Timestamp, string Line) ParseAndReconstructLogLine(string line)

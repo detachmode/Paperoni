@@ -30,7 +30,7 @@ internal sealed class LogRetriever(
         // 1. Collect log lines from paperoni*.log files (max 30)
         foreach (var file in Directory.EnumerateFiles(logDir, "paperoni*.log").OrderByDescending(f => f))
         {
-            foreach (var line in File.ReadLines(file).Reverse())
+            foreach (var line in ReadLinesShared(file).Reverse())
             {
                 if (!MatchesAlbum(line, albumId.ToString()))
                 {
@@ -59,7 +59,7 @@ internal sealed class LogRetriever(
         var tracePath = Path.Combine(workingDirectory.RequireWorkingDirectory(albumId), "traces.log");
         if (File.Exists(tracePath))
         {
-            foreach (var line in File.ReadLines(tracePath).Reverse().Take(20))
+            foreach (var line in ReadLinesShared(tracePath).Reverse().Take(20))
             {
                 traceEntries.Add(ParseAndReconstructTraceLine(line));
             }
@@ -93,6 +93,16 @@ internal sealed class LogRetriever(
                line.Contains("AlbumId=" + albumId, StringComparison.Ordinal) ||
                line.Contains(albumId + ".jpg", StringComparison.OrdinalIgnoreCase) ||
                line.Contains(albumId + ".pdf", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static IEnumerable<string> ReadLinesShared(string path)
+    {
+        using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+        using var reader = new StreamReader(stream);
+        while (reader.ReadLine() is { } line)
+        {
+            yield return line;
+        }
     }
 
     private static (DateTime Timestamp, string Line) ParseAndReconstructLogLine(string line)

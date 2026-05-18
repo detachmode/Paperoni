@@ -37,17 +37,22 @@ public class AlbumWorkingDirectory
         }
     }
 
-    public async Task<T> RequireData<T>(int messageId, CancellationToken stoppingToken = default) =>
+    public async Task<T> RequireData<T>(int messageId, CancellationToken stoppingToken = default) where T : class =>
         await GetData<T>(messageId, stoppingToken) ??
         throw new ArgumentException("Didn't find json for data of " + nameof(T));
 
-    public async Task<T?> GetData<T>(int messageId, CancellationToken stoppingToken = default)
+    public async Task<T?> GetData<T>(int messageId, CancellationToken stoppingToken = default) where T : class
     {
         await _semaphore.WaitAsync(stoppingToken);
         try
         {
             var workDir = RequireWorkingDirectory(messageId);
             var path = Path.Combine(workDir, typeof(T).Name + ".json");
+
+            if (!File.Exists(path))
+            {
+                return null;
+            }
 
             var json = await File.ReadAllTextAsync(path, stoppingToken);
             return JsonSerializer.Deserialize<T>(json);

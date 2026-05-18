@@ -6,7 +6,7 @@ COPY *.props .
 COPY *.slnx .
 COPY src/ ./src/
 
-RUN dotnet restore Paperoni.slnx
+RUN dotnet restore src/Paperoni/Paperoni.csproj
 
 RUN case "$TARGETARCH" in \
         arm64) RID=linux-arm64 ;; \

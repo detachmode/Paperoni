@@ -24,6 +24,7 @@
     &lt;TestAncestor&gt;
       &lt;TestId&gt;xUnit::B0A45A92-E376-E27C-FAF7-FA6DAA439444::net10.0::Paperoni.RealAi.Tests.Features.AIIntegrationFeature.AICorrectlyIdentifiesTheCapitalOfFrance&lt;/TestId&gt;
       &lt;TestId&gt;xUnit::B0A45A92-E376-E27C-FAF7-FA6DAA439444::net10.0::Paperoni.RealAi.Tests.Features.AIIntegrationFeature.AIUsesToolCallingToGetCurrentWeather&lt;/TestId&gt;
+      &lt;TestId&gt;xUnit::B0A45A92-E376-E27C-FAF7-FA6DAA439444::net10.0::Paperoni.RealAi.Tests.Features.AIIntegrationFeature&lt;/TestId&gt;
     &lt;/TestAncestor&gt;
   &lt;/Or&gt;
 &lt;/SessionState&gt;</s:String>

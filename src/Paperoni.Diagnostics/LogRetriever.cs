@@ -18,7 +18,7 @@ internal sealed class LogRetriever(
     public string GetLogContent(int albumId)
     {
         var logDir = settings.LogPath;
-        if (string.IsNullOrEmpty(logDir))
+        if (string.IsNullOrWhiteSpace(logDir))
         {
             logDir = workingDirectory.BasePath;
         }

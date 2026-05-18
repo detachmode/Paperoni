@@ -116,7 +116,9 @@ public class AlbumProcessingSteps
         var config = new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?>
             {
-                ["PromptFilePath"] = _promptFilePath, ["TestMode"] = "true", ["TestModeOutputPath"] = _outputDir,
+                ["Ai:PromptFilePath"] = _promptFilePath,
+                ["AlbumProcessing:TestMode"] = "true",
+                ["AlbumProcessing:TestModeOutputPath"] = _outputDir,
             })
             .Build();
 
@@ -140,8 +142,8 @@ public class AlbumProcessingSteps
         services.AddSingleton<FakeAiService>();
         services.AddSingleton<IAiService>(sp => sp.GetRequiredService<FakeAiService>());
         services.AddImageProcessing();
-        services.AddAlbumProcessor();
-        services.AddDiagnostics();
+        services.AddAlbumProcessor(config);
+        services.AddDiagnostics(config);
         services.AddSingleton<IConfiguration>(config);
         services.AddLogging(builder =>
         {

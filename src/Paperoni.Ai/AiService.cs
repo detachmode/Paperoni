@@ -1,6 +1,5 @@
 using System.Diagnostics;
 using Microsoft.Extensions.AI;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Paperoni.Contract;
 using Paperoni.Diagnostics;
@@ -19,7 +18,7 @@ internal sealed class AiService : IAiService
     private readonly AlbumWorkingDirectory _workingDirectory;
 
     public AiService(AlbumWorkingDirectory workingDirectory, IPromptProvider promptProvider,
-        ITelegramReplier telegram, ILogger<AiService> logger, IConfiguration configuration,
+        ITelegramReplier telegram, ILogger<AiService> logger, AiSettings aiSettings,
         IChatClient chatClient)
     {
         _workingDirectory = workingDirectory;
@@ -27,7 +26,7 @@ internal sealed class AiService : IAiService
         _telegram = telegram;
         _logger = logger;
         _chatClient = chatClient;
-        _timeoutSeconds = int.TryParse(configuration["AiTimeoutSeconds"], out var t) ? t : 600;
+        _timeoutSeconds = aiSettings.TimeoutSeconds;
     }
 
     public async Task<string> TryFunctionCalling()

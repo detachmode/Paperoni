@@ -1,13 +1,12 @@
 using System.Globalization;
 using System.Text.RegularExpressions;
-using Microsoft.Extensions.Configuration;
 using Paperoni.Contract;
 
 namespace Paperoni.Diagnostics;
 
 internal sealed class LogRetriever(
     AlbumWorkingDirectory workingDirectory,
-    IConfiguration configuration) : ILogRetriever
+    DiagnosticsSettings settings) : ILogRetriever
 {
     private const string TimestampFormat = "yyyy-MM-dd HH:mm:ss.fff";
     private const string TimeOnlyFormat = "HH:mm:ss.fff";
@@ -18,7 +17,7 @@ internal sealed class LogRetriever(
 
     public string GetLogContent(int albumId)
     {
-        var logDir = configuration["LogPath"];
+        var logDir = settings.LogPath;
         if (string.IsNullOrEmpty(logDir))
         {
             logDir = workingDirectory.BasePath;

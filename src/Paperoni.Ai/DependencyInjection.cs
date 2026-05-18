@@ -12,6 +12,7 @@ public static class DependencyInjection
     public static IServiceCollection AddAiService(this IServiceCollection collection, IConfiguration configuration)
     {
         collection.Configure<AiSettings>(configuration.GetSection("Ai"));
+        collection.PostConfigure<AiSettings>(settings => { settings.ApiKey ??= configuration["AI_API_KEY"]; });
         collection.AddSingleton<AiSettings>(sp => sp.GetRequiredService<IOptions<AiSettings>>().Value);
         collection.AddChatClient(sp =>
             {

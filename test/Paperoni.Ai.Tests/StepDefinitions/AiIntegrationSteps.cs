@@ -28,7 +28,7 @@ public class AiIntegrationSteps
         var config = new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?>
             {
-                ["PromptFilePath"] = promptFile,
+                ["Ai:PromptFilePath"] = promptFile,
             })
             .Build();
 

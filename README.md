@@ -36,27 +36,33 @@ flowchart LR
 
 Configuration is loaded from `appsettings.json`, user secrets, and environment variables:
 
-| Key                       | Source                                                | Description                                            |
-|---------------------------|-------------------------------------------------------|--------------------------------------------------------|
-| `TELEGRAM_BOT_TOKEN`      | User secret / env                                     | Telegram bot token                                     |
-| `MarkdownOutputPath`      | User secret / env                                     | Output directory for Markdown summaries                |
-| `FilePublisherOutputPath` | User secret / env                                     | Output directory for published PDFs                    |
-| `Ai:Endpoint`             | `appsettings.json` (default: `http://localhost:2276`) | OpenAI-compatible endpoint                             |
-| `Ai:Model`                | `appsettings.json` (default: `qwen-3.6-35b-a3b-q4`)   | Model name                                             |
-| `PromptFilePath`          | `appsettings.json` (default: `Prompt.md`)             | Base prompt file path                                  |
-| `TestMode`                | `appsettings.json` / `appsettings.Development.json`   | When `true`, all output routes to `TestModeOutputPath` |
-| `TestModeOutputPath`      | User secret / env                                     | Test output directory when `TestMode` is `true`        |
-| `DownloadBasePath`        | (optional)                                            | Custom download root directory                         |
+| Key                                       | Source                                                | Description                                                            |
+|-------------------------------------------|-------------------------------------------------------|------------------------------------------------------------------------|
+| `Telegram:BotToken`                       | User secret / env                                     | Telegram bot token                                                     |
+| `Ai:Endpoint`                             | `appsettings.json` (default: `http://localhost:2276`) | OpenAI-compatible endpoint                                             |
+| `Ai:Model`                                | `appsettings.json` (default: `qwen-3.6-35b-a3b-q4`)   | Model name                                                             |
+| `Ai:PromptFilePath`                       | `appsettings.json` (default: `Prompt.md`)             | Base prompt file path                                                  |
+| `Ai:TimeoutSeconds`                       | `appsettings.json` (default: `600`)                   | AI summary timeout in seconds                                          |
+| `AlbumProcessing:TestMode`                | `appsettings.json` / `appsettings.Development.json`   | When `true`, all output routes to `AlbumProcessing:TestModeOutputPath` |
+| `AlbumProcessing:TestModeOutputPath`      | User secret / env                                     | Test output directory when `AlbumProcessing:TestMode` is `true`        |
+| `AlbumProcessing:MarkdownOutputPath`      | User secret / env                                     | Output directory for Markdown summaries                                |
+| `AlbumProcessing:FilePublisherOutputPath` | User secret / env                                     | Output directory for published PDFs                                    |
+| `Diagnostics:LogPath`                     | `appsettings.json` (default: `""`)                    | Log directory (empty = working directory base path)                    |
+| `DownloadBasePath`                        | (optional)                                            | Custom download root directory                                         |
 
 ### Quick start
 
 ```bash
 # Set required secrets
-dotnet user-secrets set "AI_API_KEY" "your-api-key" (only needed in case you use a cloud LLM)
-dotnet user-secrets set "TELEGRAM_BOT_TOKEN" "your-bot-token"
-dotnet user-secrets set "MarkdownOutputPath" "/path/to/markdown-output"
-dotnet user-secrets set "FilePublisherOutputPath" "/path/to/output"
-dotnet user-secrets set "TestModeOutputPath" "~/Downloads/paperoni-test" # optional
+dotnet user-secrets set "Ai:ApiKey" "your-api-key" (only needed in case you use a cloud LLM)
+dotnet user-secrets set "Telegram:BotToken" "your-bot-token"
+dotnet user-secrets set "AlbumProcessing:MarkdownOutputPath" "/path/to/markdown-output"
+dotnet user-secrets set "AlbumProcessing:FilePublisherOutputPath" "/path/to/output"
+dotnet user-secrets set "AlbumProcessing:TestModeOutputPath" "~/Downloads/paperoni-test" # optional
+
+# Backward-compatible env var aliases (old flat keys still work):
+#   AI_API_KEY        → Ai:ApiKey
+#   TELEGRAM_BOT_TOKEN → Telegram:BotToken
 
 # Run (use DOTNET_ENVIRONMENT=Development for test mode)
 dotnet run --project src/Paperoni

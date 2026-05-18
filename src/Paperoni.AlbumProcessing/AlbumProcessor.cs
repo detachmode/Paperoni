@@ -1,4 +1,3 @@
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -24,7 +23,7 @@ internal class AlbumProcessor(
     AlbumWorkingDirectory workingDirectory,
     AlbumIdAccessor albumIdAccessor,
     ILogger<AlbumProcessor> logger,
-    IConfiguration configuration) : BackgroundService
+    AlbumProcessingSettings settings) : BackgroundService
 {
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
@@ -93,7 +92,7 @@ internal class AlbumProcessor(
 
             await telegram.SetReaction(albumId, "👏");
 
-            var testMode = bool.TryParse(configuration["TestMode"], out var tm) && tm;
+            var testMode = settings.TestMode;
             await telegram.EditReply(albumId,
                 $"""
                  Done:

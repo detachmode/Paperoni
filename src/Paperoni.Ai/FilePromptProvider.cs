@@ -1,4 +1,3 @@
-using Microsoft.Extensions.Configuration;
 using Paperoni.Contract;
 
 namespace Paperoni.Ai;
@@ -8,13 +7,12 @@ public class FilePromptProvider : IPromptProvider
     private readonly string _promptFilePath;
     private readonly AlbumWorkingDirectory _workingDirectory;
 
-    public FilePromptProvider(IConfiguration configuration, AlbumWorkingDirectory workingDirectory)
+    public FilePromptProvider(AiSettings aiSettings, AlbumWorkingDirectory workingDirectory)
     {
         _workingDirectory = workingDirectory;
-        var fromConfig = configuration["PromptFilePath"];
-        ArgumentNullException.ThrowIfNull(fromConfig);
+        ArgumentNullException.ThrowIfNull(aiSettings.PromptFilePath);
 
-        _promptFilePath = fromConfig;
+        _promptFilePath = aiSettings.PromptFilePath;
         if (!File.Exists(_promptFilePath))
         {
             throw new FileNotFoundException("Prompt file not found", _promptFilePath);

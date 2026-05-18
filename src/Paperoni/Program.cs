@@ -25,10 +25,10 @@ using var _ = lockFile;
 
 var builder = Host.CreateApplicationBuilder(args);
 
-builder.Services.AddDiagnostics();
-builder.Services.AddTelegramPhotoAlbumCollector();
+builder.Services.AddDiagnostics(builder.Configuration);
+builder.Services.AddTelegramPhotoAlbumCollector(builder.Configuration);
 builder.Services.AddAiService(builder.Configuration);
-builder.Services.AddAlbumProcessor();
+builder.Services.AddAlbumProcessor(builder.Configuration);
 builder.Services.AddImageProcessing();
 
 var workingDir = new AlbumWorkingDirectory();

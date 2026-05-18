@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 using Paperoni.Telegram.Album;
 using Telegram.Bot;
 
@@ -7,21 +8,31 @@ namespace Paperoni.Telegram;
 
 public static class DependencyInjection
 {
-    public static IServiceCollection AddTelegramPhotoAlbumCollector(this IServiceCollection collection)
+    public static IServiceCollection AddTelegramPhotoAlbumCollector(this IServiceCollection collection,
+        IConfiguration configuration)
     {
+        collection.Configure<TelegramSettings>(configuration.GetSection("Telegram"));
+        collection.PostConfigure<TelegramSettings>(settings =>
+        {
+            if (string.IsNullOrEmpty(settings.BotToken))
+            {
+                settings.BotToken = configuration["TELEGRAM_BOT_TOKEN"] ?? "";
+            }
+        });
+        collection.AddSingleton<TelegramSettings>(sp => sp.GetRequiredService<IOptions<TelegramSettings>>().Value);
+
         collection.AddSingleton<AlbumQueue>();
         collection.AddSingleton<ITelegramReplier, TelegramReplier>();
 
         collection.AddSingleton<TelegramBotClient>(sp =>
         {
-            var config = sp.GetRequiredService<IConfiguration>();
-            var botToken = config["TELEGRAM_BOT_TOKEN"];
-            if (string.IsNullOrEmpty(botToken))
+            var settings = sp.GetRequiredService<TelegramSettings>();
+            if (string.IsNullOrEmpty(settings.BotToken))
             {
                 throw new InvalidOperationException("Bot token is not configured");
             }
 
-            return new TelegramBotClient(botToken);
+            return new TelegramBotClient(settings.BotToken);
         });
         collection.AddSingleton<ITelegramBotClient>(sp => sp.GetRequiredService<TelegramBotClient>());
 

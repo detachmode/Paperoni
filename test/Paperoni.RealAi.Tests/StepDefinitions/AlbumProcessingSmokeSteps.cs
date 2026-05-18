@@ -92,7 +92,9 @@ public class AlbumProcessingSmokeSteps
         var config = new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?>
             {
-                ["PromptFilePath"] = _promptFilePath, ["TestMode"] = "true", ["TestModeOutputPath"] = _outputDir,
+                ["Ai:PromptFilePath"] = _promptFilePath,
+                ["AlbumProcessing:TestMode"] = "true",
+                ["AlbumProcessing:TestModeOutputPath"] = _outputDir,
             })
             .Build();
 
@@ -106,7 +108,7 @@ public class AlbumProcessingSmokeSteps
         services.AddSingleton<ITelegramReplier>(_telegram);
         services.AddAiService(config);
         services.AddImageProcessing();
-        services.AddAlbumProcessor();
+        services.AddAlbumProcessor(config);
         services.AddSingleton<IConfiguration>(config);
         services.AddLogging();
 

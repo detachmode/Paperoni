@@ -10,7 +10,15 @@ public static class DependencyInjection
 {
     public static IServiceCollection AddAlbumProcessor(this IServiceCollection collection, IConfiguration configuration)
     {
-        collection.Configure<AlbumProcessingSettings>(configuration.GetSection("AlbumProcessing"));
+        collection.AddOptions<AlbumProcessingSettings>()
+            .Bind(configuration.GetSection("AlbumProcessing"))
+            .Validate(settings => !settings.TestMode || !string.IsNullOrWhiteSpace(settings.TestModeOutputPath),
+                "AlbumProcessing:TestModeOutputPath is required when AlbumProcessing:TestMode is true")
+            .Validate(settings => !string.IsNullOrWhiteSpace(settings.MarkdownOutputPath),
+                "AlbumProcessing:MarkdownOutputPath is required")
+            .Validate(settings => !string.IsNullOrWhiteSpace(settings.FilePublisherOutputPath),
+                "AlbumProcessing:FilePublisherOutputPath is required")
+            .ValidateOnStart();
 
         collection.AddHostedService<AlbumProcessor>();
 
@@ -45,12 +53,9 @@ public static class DependencyInjection
     {
         if (settings.TestMode)
         {
-            return settings.TestModeOutputPath
-                   ?? throw new InvalidOperationException(
-                       "Configuration key 'TestModeOutputPath' is not set when TestMode is true");
+            return settings.TestModeOutputPath!;
         }
 
-        return normalPath
-               ?? throw new InvalidOperationException("Output path is not configured");
+        return normalPath!;
     }
 }

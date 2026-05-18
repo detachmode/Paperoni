@@ -11,7 +11,11 @@ public static class DependencyInjection
     public static IServiceCollection AddTelegramPhotoAlbumCollector(this IServiceCollection collection,
         IConfiguration configuration)
     {
-        collection.Configure<TelegramSettings>(configuration.GetSection("Telegram"));
+        collection.AddOptions<TelegramSettings>()
+            .Bind(configuration.GetSection("Telegram"))
+            .Validate(settings => !string.IsNullOrWhiteSpace(settings.BotToken),
+                "Telegram:BotToken is required")
+            .ValidateOnStart();
         collection.PostConfigure<TelegramSettings>(settings =>
         {
             if (string.IsNullOrEmpty(settings.BotToken))
@@ -27,11 +31,6 @@ public static class DependencyInjection
         collection.AddSingleton<TelegramBotClient>(sp =>
         {
             var settings = sp.GetRequiredService<TelegramSettings>();
-            if (string.IsNullOrEmpty(settings.BotToken))
-            {
-                throw new InvalidOperationException("Bot token is not configured");
-            }
-
             return new TelegramBotClient(settings.BotToken);
         });
         collection.AddSingleton<ITelegramBotClient>(sp => sp.GetRequiredService<TelegramBotClient>());

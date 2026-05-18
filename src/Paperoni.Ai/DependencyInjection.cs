@@ -11,15 +11,32 @@ public static class DependencyInjection
 {
     public static IServiceCollection AddAiService(this IServiceCollection collection, IConfiguration configuration)
     {
-        collection.Configure<AiSettings>(configuration.GetSection("Ai"));
+        collection.AddOptions<AiSettings>()
+            .Bind(configuration.GetSection("Ai"))
+            .Validate(settings => !string.IsNullOrWhiteSpace(settings.Endpoint),
+                "Ai:Endpoint is required")
+            .Validate(settings => !string.IsNullOrWhiteSpace(settings.Model),
+                "Ai:Model is required")
+            .Validate(settings => Uri.TryCreate(settings.Endpoint, UriKind.Absolute, out _),
+                "Ai:Endpoint is not a valid URI")
+            .Validate(settings =>
+                {
+                    if (!Uri.TryCreate(settings.Endpoint, UriKind.Absolute, out var endpoint))
+                    {
+                        return true;
+                    }
+
+                    var isLocal = endpoint.IsLoopback ||
+                                  string.Equals(endpoint.Host, "0.0.0.0", StringComparison.OrdinalIgnoreCase);
+                    return isLocal || !string.IsNullOrWhiteSpace(settings.ApiKey);
+                },
+                "Ai:ApiKey is required when using a remote endpoint")
+            .ValidateOnStart();
         collection.PostConfigure<AiSettings>(settings => { settings.ApiKey ??= configuration["AI_API_KEY"]; });
         collection.AddSingleton<AiSettings>(sp => sp.GetRequiredService<IOptions<AiSettings>>().Value);
         collection.AddChatClient(sp =>
             {
                 var aiSettings = sp.GetRequiredService<AiSettings>();
-
-                ArgumentException.ThrowIfNullOrWhiteSpace(aiSettings.Endpoint);
-                ArgumentException.ThrowIfNullOrWhiteSpace(aiSettings.Model);
 
                 var endpoint = new Uri(aiSettings.Endpoint);
                 var isLocal = endpoint.IsLoopback ||
@@ -28,11 +45,6 @@ public static class DependencyInjection
                 if (isLocal)
                 {
                     aiSettings.ApiKey ??= "api-key";
-                }
-                else
-                {
-                    throw new InvalidOperationException(
-                        $"ApiKey is required for remote endpoint '{endpoint.Host}'");
                 }
 
                 var openAiClient = new OpenAIClient(new ApiKeyCredential(aiSettings.ApiKey!),

@@ -49,7 +49,8 @@ builder.Services.AddSerilog(config =>
             rollingInterval: RollingInterval.Day,
             retainedFileCountLimit: 7,
             outputTemplate:
-            "[{Timestamp:yyyy-MM-dd HH:mm:ss.fff}] [{Level:u3}] [AlbumId={AlbumId}] {Message:lj}{NewLine}{Exception}");
+            "[{Timestamp:yyyy-MM-dd HH:mm:ss.fff}] [{Level:u3}] [AlbumId={AlbumId}] {Message:lj}{NewLine}{Exception}",
+            shared: true);
 });
 
 builder.Services.AddOpenTelemetry()

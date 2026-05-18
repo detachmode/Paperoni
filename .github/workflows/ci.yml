@@ -14,6 +14,8 @@ jobs:
       matrix:
         os: [ ubuntu-latest, windows-latest, macos-latest ]
     runs-on: ${{ matrix.os }}
+    env:
+      HAS_AI_KEY: ${{ secrets.AI_API_KEY != '' }}
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-dotnet@v5
@@ -22,7 +24,7 @@ jobs:
       - name: Run unit tests
         run: dotnet test test/Paperoni.Tests/Paperoni.Tests.csproj
       - name: Run RealAI tests
-        if: ${{ secrets.AI_API_KEY != '' }}
+        if: env.HAS_AI_KEY == 'true'
         run: dotnet test test/Paperoni.RealAi.Tests/Paperoni.RealAi.Tests.csproj
         env:
           AI_API_KEY: ${{ secrets.AI_API_KEY }}

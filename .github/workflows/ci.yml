@@ -1,0 +1,82 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  test:
+    strategy:
+      matrix:
+        os: [ ubuntu-latest, windows-latest, macos-latest ]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '10.0.x'
+      - name: Run unit tests
+        run: dotnet test test/Paperoni.Tests/Paperoni.Tests.csproj
+      - name: Run RealAI tests
+        if: ${{ secrets.AI_API_KEY != '' }}
+        run: dotnet test test/Paperoni.RealAi.Tests/Paperoni.RealAi.Tests.csproj
+        env:
+          AI_API_KEY: ${{ secrets.AI_API_KEY }}
+          AI_ENDPOINT: https://models.github.ai/inference
+          AI_MODEL: gpt-4o-mini
+
+  publish-binaries:
+    needs: test
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        rid: [ win-x64, linux-x64, linux-arm64, osx-arm64 ]
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '10.0.x'
+      - id: vars
+        run: echo "SHORT_SHA=${GITHUB_SHA::7}" >> $GITHUB_OUTPUT
+      - name: Publish
+        run: |
+          dotnet publish src/Paperoni/Paperoni.csproj \
+            -c Release \
+            -r ${{ matrix.rid }} \
+            -o publish/${{ matrix.rid }} \
+            --self-contained false \
+            -p:PublishSingleFile=true
+      - name: Package
+        run: |
+          cd publish/${{ matrix.rid }}
+          zip -r ../../Paperoni-${{ steps.vars.outputs.SHORT_SHA }}-${{ matrix.rid }}.zip .
+      - uses: actions/upload-artifact@v5
+        with:
+          name: Paperoni-${{ matrix.rid }}
+          path: Paperoni-${{ steps.vars.outputs.SHORT_SHA }}-${{ matrix.rid }}.zip
+
+  docker:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - id: vars
+        run: echo "SHORT_SHA=${GITHUB_SHA::7}" >> $GITHUB_OUTPUT
+      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/build-push-action@v6
+        with:
+          platforms: linux/amd64,linux/arm64
+          tags: |
+            ghcr.io/${{ github.repository }}:latest
+            ghcr.io/${{ github.repository }}:sha-${{ steps.vars.outputs.SHORT_SHA }}
+          push: true

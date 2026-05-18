@@ -11,7 +11,10 @@
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
     <PackageReference Include="OpenCvSharp4" />
     <PackageReference Include="QuestPDF" />
+    <PackageReference Include="Sdcb.OpenCvSharp4.mini.runtime.linux-arm64"/>
     <PackageReference Include="Sdcb.OpenCvSharp4.mini.runtime.osx-arm64" />
+    <PackageReference Include="OpenCvSharp4.official.runtime.linux-x64.slim"/>
+    <PackageReference Include="OpenCvSharp4.runtime.win.slim"/>
     <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
   </ItemGroup>
 

@@ -129,7 +129,8 @@ public class AlbumProcessingSteps
             .WriteTo.File(
                 Path.Combine(_tempBase, "paperoni.log"),
                 outputTemplate:
-                "[{Timestamp:yyyy-MM-dd HH:mm:ss.fff}] [{Level:u3}] [AlbumId={AlbumId}] {Message:lj}{NewLine}{Exception}")
+                "[{Timestamp:yyyy-MM-dd HH:mm:ss.fff}] [{Level:u3}] [AlbumId={AlbumId}] {Message:lj}{NewLine}{Exception}",
+                shared: true)
             .CreateLogger();
 
         var services = new ServiceCollection();

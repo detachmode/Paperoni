@@ -27,7 +27,8 @@ public static class DependencyInjection
                     }
 
                     var isLocal = endpoint.IsLoopback ||
-                                  string.Equals(endpoint.Host, "0.0.0.0", StringComparison.OrdinalIgnoreCase);
+                                  string.Equals(endpoint.Host, "0.0.0.0", StringComparison.OrdinalIgnoreCase) ||
+                                  string.Equals(endpoint.Host, "host.docker.internal", StringComparison.OrdinalIgnoreCase);
                     return isLocal || !string.IsNullOrWhiteSpace(settings.ApiKey);
                 },
                 "Ai:ApiKey is required when using a remote endpoint")
@@ -40,7 +41,8 @@ public static class DependencyInjection
 
                 var endpoint = new Uri(aiSettings.Endpoint);
                 var isLocal = endpoint.IsLoopback ||
-                              string.Equals(endpoint.Host, "0.0.0.0", StringComparison.OrdinalIgnoreCase);
+                              string.Equals(endpoint.Host, "0.0.0.0", StringComparison.OrdinalIgnoreCase) ||
+                              string.Equals(endpoint.Host, "host.docker.internal", StringComparison.OrdinalIgnoreCase);
 
                 if (isLocal)
                 {

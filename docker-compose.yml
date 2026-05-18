@@ -1,0 +1,24 @@
+services:
+  paperoni:
+    image: ghcr.io/detachmode/paperoni:latest
+    restart: unless-stopped
+    environment:
+      Telegram__BotToken: "${Telegram__BotToken:?Telegram__BotToken is required}"
+      Ai__ApiKey: "${Ai__ApiKey:-}"
+      Ai__Endpoint: "${AI_ENDPOINT:-http://host.docker.internal:2276}"
+      Ai__Model: "${AI_MODEL:-qwen-3.6-35b-a3b-q4}"
+      AlbumProcessing__MarkdownOutputPath: "${AlbumProcessing__MarkdownOutputPath:-/output/markdown}"
+      AlbumProcessing__FilePublisherOutputPath: "${AlbumProcessing__FilePublisherOutputPath:-/output/pdf}"
+      AlbumProcessing__TestModeOutputPath: "${AlbumProcessing__TestModeOutputPath:-/data/test-output}"
+      DownloadBasePath: /data/downloads
+      TestMode: "${TEST_MODE:-false}"
+    extra_hosts:
+      - host.docker.internal:host-gateway
+    volumes:
+      - paperoni_data:/data
+      - ./output/markdown:/output/markdown
+      - ./output/pdf:/output/pdf
+      - ./Prompt.md:/app/Prompt.md:ro
+
+volumes:
+  paperoni_data:

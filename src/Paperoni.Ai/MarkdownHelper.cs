@@ -6,10 +6,10 @@ public static class MarkdownHelper
     {
         var nowFormatted = (now ?? DateTime.Now).ToString("yyyy-MM-dd");
         return markdown
-            .Replace("DATE-UNKNOWN", nowFormatted)
-            .Replace("DATUM-UNKNOWN", nowFormatted)
-            .Replace("DATE-UNBEKANNT", nowFormatted)
-            .Replace("DATUM-UNBEKANNT", nowFormatted);
+            .Replace("DATE-UNKNOWN", nowFormatted, StringComparison.InvariantCultureIgnoreCase)
+            .Replace("DATUM-UNKNOWN", nowFormatted, StringComparison.InvariantCultureIgnoreCase)
+            .Replace("DATE-UNBEKANNT", nowFormatted, StringComparison.InvariantCultureIgnoreCase)
+            .Replace("DATUM-UNBEKANNT", nowFormatted, StringComparison.InvariantCultureIgnoreCase);
     }
 
     public static string GetTitleFromMarkdown(string markdown, DateTime? now = null)

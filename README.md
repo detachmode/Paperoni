@@ -9,7 +9,7 @@ flowchart LR
     Telegram -->|photos| AlbumCollector["Album Collector
     2s debounce"]
 
-    AlbumCollector --> |album 
+    AlbumCollector --> |album
     + prompt
     + captions| AI["LLM Provider"]
 
@@ -36,22 +36,23 @@ flowchart LR
 
 Configuration is loaded from `appsettings.json`, user secrets, and environment variables:
 
-| Key | Source | Description |
-|-----|--------|-------------|
-| `TELEGRAM_BOT_TOKEN` | User secret / env | Telegram bot token |
-| `MarkdownOutputPath` | User secret / env | Output directory for Markdown summaries |
-| `FilePublisherOutputPath` | User secret / env | Output directory for published PDFs |
-| `AI_ENDPOINT` | Env (default: `http://localhost:2276`) | OpenAI-compatible endpoint |
-| `AI_MODEL` | Env (default: `qwen-3.6-35b-a3b-q4`) | Model name |
-| `PromptFilePath` | `appsettings.json` (default: `Prompt.md`) | Base prompt file path |
-| `TestMode` | `appsettings.json` / `appsettings.Development.json` | When `true`, all output routes to `TestModeOutputPath` |
-| `TestModeOutputPath` | User secret / env | Test output directory when `TestMode` is `true` |
-| `DownloadBasePath` | (optional) | Custom download root directory |
+| Key                       | Source                                                | Description                                            |
+|---------------------------|-------------------------------------------------------|--------------------------------------------------------|
+| `TELEGRAM_BOT_TOKEN`      | User secret / env                                     | Telegram bot token                                     |
+| `MarkdownOutputPath`      | User secret / env                                     | Output directory for Markdown summaries                |
+| `FilePublisherOutputPath` | User secret / env                                     | Output directory for published PDFs                    |
+| `Ai:Endpoint`             | `appsettings.json` (default: `http://localhost:2276`) | OpenAI-compatible endpoint                             |
+| `Ai:Model`                | `appsettings.json` (default: `qwen-3.6-35b-a3b-q4`)   | Model name                                             |
+| `PromptFilePath`          | `appsettings.json` (default: `Prompt.md`)             | Base prompt file path                                  |
+| `TestMode`                | `appsettings.json` / `appsettings.Development.json`   | When `true`, all output routes to `TestModeOutputPath` |
+| `TestModeOutputPath`      | User secret / env                                     | Test output directory when `TestMode` is `true`        |
+| `DownloadBasePath`        | (optional)                                            | Custom download root directory                         |
 
 ### Quick start
 
 ```bash
 # Set required secrets
+dotnet user-secrets set "AI_API_KEY" "your-api-key" (only needed in case you use a cloud LLM)
 dotnet user-secrets set "TELEGRAM_BOT_TOKEN" "your-bot-token"
 dotnet user-secrets set "MarkdownOutputPath" "/path/to/markdown-output"
 dotnet user-secrets set "FilePublisherOutputPath" "/path/to/output"

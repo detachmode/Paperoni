@@ -20,13 +20,14 @@ catch (IOException)
     Console.Error.WriteLine("Another instance of Paperoni is already running.");
     return;
 }
+
 using var _ = lockFile;
 
 var builder = Host.CreateApplicationBuilder(args);
 
 builder.Services.AddDiagnostics();
 builder.Services.AddTelegramPhotoAlbumCollector();
-builder.Services.AddAiService();
+builder.Services.AddAiService(builder.Configuration);
 builder.Services.AddAlbumProcessor();
 builder.Services.AddImageProcessing();
 

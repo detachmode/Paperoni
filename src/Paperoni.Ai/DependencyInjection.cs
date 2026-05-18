@@ -2,28 +2,41 @@ using System.ClientModel;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 using OpenAI;
 
 namespace Paperoni.Ai;
 
 public static class DependencyInjection
 {
-    public static IServiceCollection AddAiService(this IServiceCollection collection)
+    public static IServiceCollection AddAiService(this IServiceCollection collection, IConfiguration configuration)
     {
+        collection.Configure<AiSettings>(configuration.GetSection("Ai"));
+        collection.AddSingleton<AiSettings>(sp => sp.GetRequiredService<IOptions<AiSettings>>().Value);
         collection.AddChatClient(sp =>
             {
-                var config = sp.GetRequiredService<IConfiguration>();
+                var aiSettings = sp.GetRequiredService<AiSettings>();
 
-                var endpoint = config["Ai:Endpoint"];
-                ArgumentException.ThrowIfNullOrWhiteSpace(endpoint);
+                ArgumentException.ThrowIfNullOrWhiteSpace(aiSettings.Endpoint);
+                ArgumentException.ThrowIfNullOrWhiteSpace(aiSettings.Model);
 
-                var model = config["Ai:Model"];
-                ArgumentException.ThrowIfNullOrWhiteSpace(model);
+                var endpoint = new Uri(aiSettings.Endpoint);
+                var isLocal = endpoint.IsLoopback ||
+                              string.Equals(endpoint.Host, "0.0.0.0", StringComparison.OrdinalIgnoreCase);
 
-                var apiKey = config["AI_API_KEY"] ?? "api-key";
-                var openAiClient = new OpenAIClient(new ApiKeyCredential(apiKey),
-                    new OpenAIClientOptions { Endpoint = new Uri(endpoint) });
-                return openAiClient.GetChatClient(model).AsIChatClient();
+                if (isLocal)
+                {
+                    aiSettings.ApiKey ??= "api-key";
+                }
+                else
+                {
+                    throw new InvalidOperationException(
+                        $"ApiKey is required for remote endpoint '{endpoint.Host}'");
+                }
+
+                var openAiClient = new OpenAIClient(new ApiKeyCredential(aiSettings.ApiKey!),
+                    new OpenAIClientOptions { Endpoint = new Uri(aiSettings.Endpoint) });
+                return openAiClient.GetChatClient(aiSettings.Model).AsIChatClient();
             })
             .UseFunctionInvocation();
 

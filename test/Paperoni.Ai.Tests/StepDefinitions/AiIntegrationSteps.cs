@@ -37,7 +37,7 @@ public class AiIntegrationSteps
         serviceCollection.AddSingleton(new AlbumWorkingDirectory { DownloadBasePath = tempDir });
         serviceCollection.AddSingleton<ITelegramReplier>(new StubTelegramReplier());
         serviceCollection.AddSingleton<IConfiguration>(config);
-        serviceCollection.AddAiService();
+        serviceCollection.AddAiService(config);
         var sp = serviceCollection.BuildServiceProvider();
         _aiService = sp.GetRequiredService<IAiService>();
     }

@@ -20,16 +20,18 @@ namespace Paperoni.RealAi.Tests.StepDefinitions;
 [Binding]
 public class AlbumProcessingSmokeSteps
 {
+    private const int TestMessageId = 42;
     private readonly ITestOutputHelper _output;
-    private string _tempBase = null!;
+    private CancellationTokenSource? _cts;
     private string _outputDir = null!;
     private string _promptFilePath = null!;
-    private ServiceProvider _sp = null!;
     private AlbumQueue _queue = null!;
+
+    private bool _servicesStarted;
+    private ServiceProvider _sp = null!;
     private FakeTelegramReplier _telegram = null!;
-    private CancellationTokenSource? _cts;
+    private string _tempBase = null!;
     private TracerProvider? _tracerProvider;
-    private const int TestMessageId = 42;
 
     public AlbumProcessingSmokeSteps(ITestOutputHelper output)
     {
@@ -90,9 +92,7 @@ public class AlbumProcessingSmokeSteps
         var config = new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?>
             {
-                ["PromptFilePath"] = _promptFilePath,
-                ["TestMode"] = "true",
-                ["TestModeOutputPath"] = _outputDir,
+                ["PromptFilePath"] = _promptFilePath, ["TestMode"] = "true", ["TestModeOutputPath"] = _outputDir,
             })
             .Build();
 
@@ -104,7 +104,7 @@ public class AlbumProcessingSmokeSteps
         services.AddSingleton<AlbumWorkingDirectory>(_ => new AlbumWorkingDirectory { DownloadBasePath = _tempBase });
         services.AddSingleton<AlbumIdAccessor>();
         services.AddSingleton<ITelegramReplier>(_telegram);
-        services.AddAiService();
+        services.AddAiService(config);
         services.AddImageProcessing();
         services.AddAlbumProcessor();
         services.AddSingleton<IConfiguration>(config);
@@ -119,8 +119,6 @@ public class AlbumProcessingSmokeSteps
         _queue.Enqueue(new WorkItem(TestMessageId, false));
     }
 
-    private bool _servicesStarted;
-
     [Then("the album is processed with real AI")]
     public async Task ThenAlbumIsProcessed()
     {
@@ -132,6 +130,7 @@ public class AlbumProcessingSmokeSteps
             {
                 await service.StartAsync(_cts.Token);
             }
+
             _servicesStarted = true;
         }
 
@@ -173,7 +172,8 @@ public class AlbumProcessingSmokeSteps
         Assert.True(File.Exists(traceLogPath), $"Expected trace log at {traceLogPath}");
 
         var fallbackPath = Path.Combine(_tempBase, "traces.log");
-        Assert.False(File.Exists(fallbackPath), $"Unexpected fallback trace log at {fallbackPath} — some spans are missing AlbumId tag");
+        Assert.False(File.Exists(fallbackPath),
+            $"Unexpected fallback trace log at {fallbackPath} — some spans are missing AlbumId tag");
 
         var lines = File.ReadAllLines(traceLogPath);
         var joined = string.Join("\n", lines);

@@ -10,7 +10,7 @@ public class AlbumWorkingDirectory
     public string BasePath =>
         DownloadBasePath ?? Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
-            "TelegramDownloads");
+            "PaperoniDownloads");
 
     public string RequireWorkingDirectory(int messageId)
     {

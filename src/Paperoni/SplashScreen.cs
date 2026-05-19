@@ -4,6 +4,8 @@ namespace Paperoni;
 
 internal static class SplashScreen
 {
+    private const string AnsiReset = "\x1b[0m";
+
     private static readonly string[] s_banner =
     [
         "███████   ███   ███████  ████████ ███████   █████  ██    █ ███████",
@@ -16,13 +18,14 @@ internal static class SplashScreen
 
     private static readonly int s_bannerWidth = s_banner[0].Length;
 
-    private const string AnsiReset = "\x1b[0m";
-
     public static void Render()
     {
         int windowWidth = Math.Max(Console.WindowWidth, 0);
         if (windowWidth < s_bannerWidth)
         {
+            Console.WriteLine($"Paperoni v{VersionInfo.Version}");
+            Console.WriteLine($"         Sha: {VersionInfo.CommitSha}");
+            Console.WriteLine();
             return;
         }
 

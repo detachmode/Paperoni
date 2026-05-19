@@ -35,11 +35,9 @@ builder.Services.AddImageProcessing();
 
 var workingDir = new AlbumWorkingDirectory();
 var logDir = workingDir.BasePath;
-builder.Services.AddSingleton(workingDir);
+Console.WriteLine($" > Album Working Directory: {workingDir.BasePath}");
 
-builder.Configuration
-    .AddUserSecrets<Program>()
-    .AddEnvironmentVariables();
+builder.Services.AddSingleton(workingDir);
 
 builder.Services.AddSerilog(config =>
 {

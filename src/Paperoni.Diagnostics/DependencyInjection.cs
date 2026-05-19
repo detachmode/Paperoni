@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
+using Paperoni.Contract;
 
 namespace Paperoni.Diagnostics;
 
@@ -11,12 +12,18 @@ public static class DependencyInjection
         collection.AddOptions<DiagnosticsSettings>()
             .Bind(configuration.GetSection("Diagnostics"))
             .ValidateOnStart();
-        collection.PostConfigure<DiagnosticsSettings>(settings =>
-        {
-            Console.WriteLine($"Diagnostics: LogPath={settings.LogPath ?? "(default)"}");
-        });
         collection.AddSingleton<DiagnosticsSettings>(sp =>
-            sp.GetRequiredService<IOptions<DiagnosticsSettings>>().Value);
+        {
+            var settings = sp.GetRequiredService<IOptions<DiagnosticsSettings>>().Value;
+            var workingDirectory = sp.GetRequiredService<AlbumWorkingDirectory>();
+            if (string.IsNullOrWhiteSpace(settings.LogPath))
+            {
+                settings.LogPath = workingDirectory.BasePath;
+            }
+            Console.WriteLine($"Diagnostics:");
+            Console.WriteLine($"  LogPath={settings.LogPath}");
+            return settings;
+        });
 
         collection.AddSingleton<AlbumIdAccessor>();
         collection.AddSingleton<ILogRetriever, LogRetriever>();

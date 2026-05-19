@@ -33,12 +33,19 @@ public static class DependencyInjection
                 },
                 "Ai:ApiKey is required when using a remote endpoint")
             .ValidateOnStart();
-        collection.PostConfigure<AiSettings>(settings => { settings.ApiKey ??= configuration["AI_API_KEY"]; });
-        collection.PostConfigure<AiSettings>(settings =>
+        collection.AddSingleton<AiSettings>(sp =>
         {
-            Console.WriteLine($"Ai: Model={settings.Model}, Endpoint={settings.Endpoint}, PromptFile={settings.PromptFilePath}, Timeout={settings.TimeoutSeconds}s");
+            var settings = sp.GetRequiredService<IOptions<AiSettings>>().Value;
+            Console.WriteLine("Ai: ");
+            Console.WriteLine($"  Endpoint: {settings.Endpoint}");
+            Console.WriteLine($"  Model: {settings.Model}");
+            Console.WriteLine($"  ApiKey: {settings.ApiKey}");
+            Console.WriteLine($"  PromptFile: {settings.PromptFilePath}");
+            Console.WriteLine($"  Timeout: {settings.TimeoutSeconds}");
+
+            // Model={settings.Model}, Endpoint={settings.Endpoint}, PromptFile={settings.PromptFilePath}, Timeout={settings.TimeoutSeconds}s");
+            return settings;
         });
-        collection.AddSingleton<AiSettings>(sp => sp.GetRequiredService<IOptions<AiSettings>>().Value);
         collection.AddChatClient(sp =>
             {
                 var aiSettings = sp.GetRequiredService<AiSettings>();

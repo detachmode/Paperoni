@@ -73,7 +73,7 @@ public class AlbumProcessingSmokeSteps
             .AddSource("Paperoni")
             .AddProcessor(new BatchActivityExportProcessor(
                 new TraceLogExporter(
-                    new AlbumWorkingDirectory { DownloadBasePath = _tempBase },
+                    new WorkingDirectory { PaperoniWorkingDirectory = _tempBase },
                     _tempBase),
                 maxQueueSize: 2048,
                 scheduledDelayMilliseconds: 100))
@@ -105,7 +105,7 @@ public class AlbumProcessingSmokeSteps
 
         var services = new ServiceCollection();
         services.AddSingleton(_queue);
-        services.AddSingleton<AlbumWorkingDirectory>(_ => new AlbumWorkingDirectory { DownloadBasePath = _tempBase });
+        services.AddSingleton<WorkingDirectory>(_ => new WorkingDirectory { PaperoniWorkingDirectory = _tempBase });
         services.AddSingleton<AlbumIdAccessor>();
         services.AddSingleton<ITelegramReplier>(_telegram);
         services.AddAiService(config);

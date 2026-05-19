@@ -5,7 +5,7 @@ using Paperoni.Contract;
 namespace Paperoni.Diagnostics;
 
 internal sealed class LogRetriever(
-    AlbumWorkingDirectory workingDirectory,
+    WorkingDirectory workingDirectory,
     DiagnosticsSettings settings) : ILogRetriever
 {
     private const string TimestampFormat = "yyyy-MM-dd HH:mm:ss.fff";

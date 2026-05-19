@@ -2,15 +2,15 @@ using System.Text.Json;
 
 namespace Paperoni.Contract;
 
-public class AlbumWorkingDirectory
+public class WorkingDirectory
 {
     private readonly SemaphoreSlim _semaphore = new(1, 1);
-    public string? DownloadBasePath { private get; init; }
+    public string? PaperoniWorkingDirectory { private get; init; }
 
     public string BasePath =>
-        DownloadBasePath ?? Path.Combine(
+        PaperoniWorkingDirectory ?? Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
-            "PaperoniDownloads");
+            ".paperoni");
 
     public string RequireWorkingDirectory(int messageId)
     {

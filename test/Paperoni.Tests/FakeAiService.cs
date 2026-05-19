@@ -6,7 +6,7 @@ using static Paperoni.Diagnostics.Diagnostics;
 
 namespace Paperoni.Tests;
 
-internal sealed class FakeAiService(AlbumWorkingDirectory workingDirectory) : IAiService
+internal sealed class FakeAiService(WorkingDirectory workingDirectory) : IAiService
 {
     public bool ShouldThrowOnCreateAiSummary { get; set; }
 
@@ -18,7 +18,8 @@ internal sealed class FakeAiService(AlbumWorkingDirectory workingDirectory) : IA
 
     public Task<string> TryFunctionCalling() => Task.FromResult("Fake function calling response");
 
-    public async Task CreateAiSummary(int albumId, Action<DebugOutputType, string>? statusCallback = null, CancellationToken stoppingToken = default)
+    public async Task CreateAiSummary(int albumId, Action<DebugOutputType, string>? statusCallback = null,
+        CancellationToken stoppingToken = default)
     {
         await Tracer.TraceAsync<AiService>(async scope =>
         {

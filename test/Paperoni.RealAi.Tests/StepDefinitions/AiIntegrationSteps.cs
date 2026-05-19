@@ -37,7 +37,7 @@ public class AiIntegrationSteps
 
         IServiceCollection serviceCollection = new ServiceCollection();
         serviceCollection.AddLogging();
-        serviceCollection.AddSingleton(new AlbumWorkingDirectory { DownloadBasePath = tempDir });
+        serviceCollection.AddSingleton(new WorkingDirectory { PaperoniWorkingDirectory = tempDir });
         serviceCollection.AddSingleton<ITelegramReplier>(new StubTelegramReplier());
         serviceCollection.AddSingleton<IConfiguration>(config);
         serviceCollection.AddAiService(config);

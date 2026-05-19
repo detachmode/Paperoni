@@ -25,7 +25,8 @@ flowchart LR
 ```
 
 1. **Telegram Album Collector** — Listens for incoming photo messages. Singles are dispatched immediately; media groups are debounced 2 seconds to form complete **Albums**.
-2. **Working Directory** — Each **Album** gets a folder on disk (`{DownloadBasePath}/{messageId}/`) for raw photos, metadata, AI response, and the PDF.
+2. **Working Directory** — Each **Album** gets a folder on disk (`{PaperoniWorkingDirectory}/{messageId}/`) for raw
+   photos, metadata, AI response, and the PDF.
 3. **OpenCV Pipeline** — Each **Photo** passes through optional document-detection + perspective warp, grayscale conversion, and histogram-based auto-levels.
 4. **AI Summary** — An LLM (OpenAI-compatible, local endpoint) produces a Markdown document with YAML frontmatter (title, date, counterparty, amount, category, tags, etc.).
 5. **PDF** — QuestPDF generates an A4 document with processed images, one per page at 1cm margins.
@@ -36,19 +37,19 @@ flowchart LR
 
 Configuration is loaded from `appsettings.json`, user secrets, and environment variables:
 
-| Key                                       | Source                                                | Description                                                            |
-|-------------------------------------------|-------------------------------------------------------|------------------------------------------------------------------------|
-| `Telegram:BotToken`                       | User secret / env                                     | Telegram bot token                                                     |
-| `Ai:Endpoint`                             | `appsettings.json` (default: `http://localhost:2276`) | OpenAI-compatible endpoint                                             |
-| `Ai:Model`                                | `appsettings.json` (default: `qwen-3.6-35b-a3b-q4`)   | Model name                                                             |
-| `Ai:PromptFilePath`                       | `appsettings.json` (default: `Prompt.md`)             | Base prompt file path                                                  |
-| `Ai:TimeoutSeconds`                       | `appsettings.json` (default: `600`)                   | AI summary timeout in seconds                                          |
-| `AlbumProcessing:TestMode`                | `appsettings.json` / `appsettings.Development.json`   | When `true`, all output routes to `AlbumProcessing:TestModeOutputPath` |
-| `AlbumProcessing:TestModeOutputPath`      | User secret / env                                     | Test output directory when `AlbumProcessing:TestMode` is `true`        |
-| `AlbumProcessing:MarkdownOutputPath`      | User secret / env                                     | Output directory for Markdown summaries                                |
-| `AlbumProcessing:PdfOutputPath` | User secret / env                                     | Output directory for published PDFs                                    |
-| `Diagnostics:LogPath`                     | `appsettings.json` (default: `""`)                    | Log directory (empty = working directory base path)                    |
-| `DownloadBasePath`                        | (optional)                                            | Custom download root directory                                         |
+| Key                                  | Source                                                | Description                                                            |
+|--------------------------------------|-------------------------------------------------------|------------------------------------------------------------------------|
+| `Telegram:BotToken`                  | User secret / env                                     | Telegram bot token                                                     |
+| `Ai:Endpoint`                        | `appsettings.json` (default: `http://localhost:2276`) | OpenAI-compatible endpoint                                             |
+| `Ai:Model`                           | `appsettings.json` (default: `qwen-3.6-35b-a3b-q4`)   | Model name                                                             |
+| `Ai:PromptFilePath`                  | `appsettings.json` (default: `Prompt.md`)             | Base prompt file path                                                  |
+| `Ai:TimeoutSeconds`                  | `appsettings.json` (default: `600`)                   | AI summary timeout in seconds                                          |
+| `AlbumProcessing:TestMode`           | `appsettings.json` / `appsettings.Development.json`   | When `true`, all output routes to `AlbumProcessing:TestModeOutputPath` |
+| `AlbumProcessing:TestModeOutputPath` | User secret / env                                     | Test output directory when `AlbumProcessing:TestMode` is `true`        |
+| `AlbumProcessing:MarkdownOutputPath` | User secret / env                                     | Output directory for Markdown summaries                                |
+| `AlbumProcessing:PdfOutputPath`      | User secret / env                                     | Output directory for published PDFs                                    |
+| `Diagnostics:LogPath`                | `appsettings.json` (default: `""`)                    | Log directory (empty = working directory base path)                    |
+| `PaperoniWorkingDirectory`           | (optional)                                            | Custom download root directory                                         |
 
 ### Quick start
 

@@ -21,7 +21,7 @@ public interface ITelegramReplier
 
 public class TelegramReplier(
     ITelegramBotClient bot,
-    AlbumWorkingDirectory workingDirectory,
+    WorkingDirectory workingDirectory,
     ILogRetriever logRetriever) : ITelegramReplier
 {
     private static readonly Regex s_timestampRegex = new(
@@ -208,7 +208,8 @@ public class TelegramReplier(
                 [InlineKeyboardButton.WithCallbackData("✖️ Close", "close_diag")]
             ]);
 
-            var sent = await bot.SendMessage(chatId, $"<pre>{encoded}</pre>", parseMode: ParseMode.Html, replyMarkup: markup);
+            var sent = await bot.SendMessage(chatId, $"<pre>{encoded}</pre>", parseMode: ParseMode.Html,
+                replyMarkup: markup);
             dm.DiagnosticMessageId = sent.MessageId;
             dm.ChatId = chatId;
             await SaveMetadata(dm);

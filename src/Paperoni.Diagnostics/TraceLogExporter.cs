@@ -5,7 +5,7 @@ using Paperoni.Contract;
 namespace Paperoni.Diagnostics;
 
 public sealed class TraceLogExporter(
-    AlbumWorkingDirectory workingDirectory,
+    WorkingDirectory workingDirectory,
     string fallbackPath) : BaseExporter<Activity>
 {
     public override ExportResult Export(in Batch<Activity> batch)

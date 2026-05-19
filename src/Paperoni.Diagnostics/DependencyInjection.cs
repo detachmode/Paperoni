@@ -15,11 +15,12 @@ public static class DependencyInjection
         collection.AddSingleton<DiagnosticsSettings>(sp =>
         {
             var settings = sp.GetRequiredService<IOptions<DiagnosticsSettings>>().Value;
-            var workingDirectory = sp.GetRequiredService<AlbumWorkingDirectory>();
+            var workingDirectory = sp.GetRequiredService<WorkingDirectory>();
             if (string.IsNullOrWhiteSpace(settings.LogPath))
             {
                 settings.LogPath = workingDirectory.BasePath;
             }
+
             Console.WriteLine("Diagnostics:");
             Console.WriteLine($"└─ LogPath={settings.LogPath}");
             return settings;

@@ -14,7 +14,7 @@ public record AutoCorrectImageResult(
 
 internal sealed class PdfCreator(
     ILogger<PdfCreator> logger,
-    AlbumWorkingDirectory workingDirectory) : IPdfCreator
+    WorkingDirectory workingDirectory) : IPdfCreator
 {
     private static readonly ImageProcessingOptions s_defaultOptions = new();
 

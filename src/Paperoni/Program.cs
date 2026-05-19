@@ -36,12 +36,7 @@ builder.Services.AddAiService(builder.Configuration);
 builder.Services.AddAlbumProcessor(builder.Configuration);
 builder.Services.AddImageProcessing();
 
-var workingDir = new AlbumWorkingDirectory();
-var logDir = workingDir.BasePath;
-Console.WriteLine($" > Album Working Directory: {workingDir.BasePath}");
-Console.WriteLine("");
-
-builder.Services.AddSingleton(workingDir);
+var workingDir = builder.Services.AddPaperoniWorkingDirectory(builder.Configuration);
 
 builder.Services.AddSerilog(config =>
 {
@@ -50,7 +45,7 @@ builder.Services.AddSerilog(config =>
         .WriteTo.Console(
             outputTemplate: "[{Timestamp:HH:mm:ss}] [{Level:u3}] [AlbumId={AlbumId}] {Message:lj}{NewLine}{Exception}")
         .WriteTo.File(
-            Path.Combine(logDir, "paperoni.log"),
+            Path.Combine(workingDir.BasePath, "paperoni.log"),
             rollingInterval: RollingInterval.Day,
             retainedFileCountLimit: 7,
             outputTemplate:
@@ -63,7 +58,7 @@ builder.Services.AddOpenTelemetry()
     .WithTracing(tracing => tracing
         .AddSource(Diagnostics.Tracer.Name)
         .AddProcessor(new BatchActivityExportProcessor(
-            new TraceLogExporter(workingDir, logDir),
+            new TraceLogExporter(workingDir, workingDir.BasePath),
             maxQueueSize: 2048,
             scheduledDelayMilliseconds: 5000)));
 

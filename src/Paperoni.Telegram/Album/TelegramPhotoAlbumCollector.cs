@@ -13,7 +13,7 @@ namespace Paperoni.Telegram.Album;
 internal sealed class TelegramPhotoAlbumCollector(
     ITelegramBotClient botClient,
     AlbumQueue queue,
-    AlbumWorkingDirectory workingDirectory,
+    WorkingDirectory workingDirectory,
     ITelegramReplier telegram,
     ILogger<TelegramPhotoAlbumCollector> logger) : IHostedService
 {

@@ -6,7 +6,7 @@ using static Paperoni.Diagnostics.Diagnostics;
 namespace Paperoni.AlbumProcessing;
 
 internal sealed class FilePublisher(
-    AlbumWorkingDirectory workingDirectory,
+    WorkingDirectory workingDirectory,
     string outputPath,
     string searchPattern,
     ILogger<FilePublisher> logger) : IFilePublisher

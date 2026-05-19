@@ -21,7 +21,7 @@ internal class AlbumProcessor(
     IFilePublisher pdfPublisher,
     IPdfCreator pdfCreator,
     ITelegramReplier telegram,
-    AlbumWorkingDirectory workingDirectory,
+    WorkingDirectory workingDirectory,
     AlbumIdAccessor albumIdAccessor,
     ILogger<AlbumProcessor> logger,
     AlbumProcessingSettings settings) : BackgroundService
@@ -102,7 +102,8 @@ internal class AlbumProcessor(
                         _ = telegram.UpdateDashboard(albumId, "🤖 AI thinking..", queue.PendingCount);
                         break;
                     case DebugOutputType.PartialOutput:
-                        _ = telegram.UpdateDashboard(albumId, "🤖 AI is formulating the final output ..", queue.PendingCount);
+                        _ = telegram.UpdateDashboard(albumId, "🤖 AI is formulating the final output ..",
+                            queue.PendingCount);
                         break;
                 }
             }, stoppingToken);

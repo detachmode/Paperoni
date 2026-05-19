@@ -5,9 +5,9 @@ namespace Paperoni.Ai;
 public class FilePromptProvider : IPromptProvider
 {
     private readonly string _promptFilePath;
-    private readonly AlbumWorkingDirectory _workingDirectory;
+    private readonly WorkingDirectory _workingDirectory;
 
-    public FilePromptProvider(AiSettings aiSettings, AlbumWorkingDirectory workingDirectory)
+    public FilePromptProvider(AiSettings aiSettings, WorkingDirectory workingDirectory)
     {
         _workingDirectory = workingDirectory;
         ArgumentNullException.ThrowIfNull(aiSettings.PromptFilePath);

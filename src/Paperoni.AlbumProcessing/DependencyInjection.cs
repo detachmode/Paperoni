@@ -30,7 +30,7 @@ public static class DependencyInjection
             Console.WriteLine($"├─ MarkdownOutputPath: {settings.MarkdownOutputPath}");
             Console.WriteLine($"├─ PdfOutputPath: {settings.PdfOutputPath}");
             Console.WriteLine($"└─ TestMode: {settings.TestMode}");
-            if(settings.TestMode)
+            if (settings.TestMode)
             {
                 Console.WriteLine($"   └─ TestModeOutputPath:{settings.TestModeOutputPath}");
             }
@@ -41,7 +41,7 @@ public static class DependencyInjection
         collection.AddKeyedSingleton<IFilePublisher, FilePublisher>(PublisherTarget.Markdown, (sp, _) =>
         {
             var settings = sp.GetRequiredService<AlbumProcessingSettings>();
-            var workingDir = sp.GetRequiredService<AlbumWorkingDirectory>();
+            var workingDir = sp.GetRequiredService<WorkingDirectory>();
             var logger = sp.GetRequiredService<ILogger<FilePublisher>>();
             var outputPath = ResolveOutputPath(settings, settings.MarkdownOutputPath);
             return new FilePublisher(workingDir, outputPath, "*.md", logger);
@@ -50,7 +50,7 @@ public static class DependencyInjection
         collection.AddKeyedSingleton<IFilePublisher, FilePublisher>(PublisherTarget.Pdf, (sp, _) =>
         {
             var settings = sp.GetRequiredService<AlbumProcessingSettings>();
-            var workingDir = sp.GetRequiredService<AlbumWorkingDirectory>();
+            var workingDir = sp.GetRequiredService<WorkingDirectory>();
             var logger = sp.GetRequiredService<ILogger<FilePublisher>>();
             var outputPath = ResolveOutputPath(settings, settings.PdfOutputPath);
             return new FilePublisher(workingDir, outputPath, "*.pdf", logger);

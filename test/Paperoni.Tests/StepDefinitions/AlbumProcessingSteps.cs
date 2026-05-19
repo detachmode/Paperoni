@@ -26,15 +26,15 @@ public class AlbumProcessingSteps
     private const int TestMessageId = 42;
     private readonly ITestOutputHelper _output;
     private CancellationTokenSource? _cts;
+    private SpyFilePublisher _markdownSpy = null!;
     private string _outputDir = null!;
+    private SpyFilePublisher _pdfSpy = null!;
     private string _promptFilePath = null!;
     private AlbumQueue _queue = null!;
 
     private bool _servicesStarted;
     private ServiceProvider _sp = null!;
     private FakeTelegramReplier _telegram = null!;
-    private SpyFilePublisher _markdownSpy = null!;
-    private SpyFilePublisher _pdfSpy = null!;
     private string _tempBase = null!;
     private TracerProvider? _tracerProvider;
 
@@ -99,7 +99,7 @@ public class AlbumProcessingSteps
             .AddSource("Paperoni")
             .AddProcessor(new SimpleActivityExportProcessor(
                 new TraceLogExporter(
-                    new AlbumWorkingDirectory { DownloadBasePath = _tempBase },
+                    new WorkingDirectory { PaperoniWorkingDirectory = _tempBase },
                     _tempBase)))
             .Build();
     }
@@ -139,7 +139,7 @@ public class AlbumProcessingSteps
 
         var services = new ServiceCollection();
         services.AddSingleton(_queue);
-        services.AddSingleton<AlbumWorkingDirectory>(_ => new AlbumWorkingDirectory { DownloadBasePath = _tempBase });
+        services.AddSingleton<WorkingDirectory>(_ => new WorkingDirectory { PaperoniWorkingDirectory = _tempBase });
         services.AddSingleton<ITelegramReplier>(_telegram);
         services.AddSingleton<FakeAiService>();
         services.AddSingleton<IAiService>(sp => sp.GetRequiredService<FakeAiService>());
@@ -150,7 +150,7 @@ public class AlbumProcessingSteps
         // Replace FilePublishers with spied versions for retry assertions
         services.AddKeyedSingleton<IFilePublisher>(PublisherTarget.Markdown, (sp, _) =>
         {
-            var wd = sp.GetRequiredService<AlbumWorkingDirectory>();
+            var wd = sp.GetRequiredService<WorkingDirectory>();
             var logger = sp.GetRequiredService<ILogger<FilePublisher>>();
             var real = new FilePublisher(wd, _outputDir, "*.md", logger);
             _markdownSpy = new SpyFilePublisher(real);
@@ -158,7 +158,7 @@ public class AlbumProcessingSteps
         });
         services.AddKeyedSingleton<IFilePublisher>(PublisherTarget.Pdf, (sp, _) =>
         {
-            var wd = sp.GetRequiredService<AlbumWorkingDirectory>();
+            var wd = sp.GetRequiredService<WorkingDirectory>();
             var logger = sp.GetRequiredService<ILogger<FilePublisher>>();
             var real = new FilePublisher(wd, _outputDir, "*.pdf", logger);
             _pdfSpy = new SpyFilePublisher(real);

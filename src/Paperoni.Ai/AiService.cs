@@ -13,9 +13,9 @@ internal sealed class AiService : IAiService
     private readonly ILogger<AiService> _logger;
     private readonly IPromptProvider _promptProvider;
     private readonly int _timeoutSeconds;
-    private readonly AlbumWorkingDirectory _workingDirectory;
+    private readonly WorkingDirectory _workingDirectory;
 
-    public AiService(AlbumWorkingDirectory workingDirectory, IPromptProvider promptProvider,
+    public AiService(WorkingDirectory workingDirectory, IPromptProvider promptProvider,
         ILogger<AiService> logger, AiSettings aiSettings,
         IChatClient chatClient)
     {

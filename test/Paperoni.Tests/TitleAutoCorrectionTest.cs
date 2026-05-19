@@ -50,7 +50,10 @@ public class TitleAutoCorrectionTest
     }
 
     [Theory]
-    [InlineData("title: a/b:c", "a_b:c")]
+    [InlineData("title: a/b\\c", "a_b_c")]
+    [InlineData("title: a>b<c", "a_b_c")]
+    [InlineData("title: a?b*c", "a_b_c")]
+    [InlineData("title: a:b|c", "a_b_c")]
     [InlineData("title: 2024-05-02 file/name", "2024-05-02 file_name")]
     public void GetTitleFromMarkdown_InvalidFilenameChars_AreReplaced(string line, string expected)
     {

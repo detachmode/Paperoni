@@ -33,6 +33,8 @@ public class AlbumProcessingSteps
     private bool _servicesStarted;
     private ServiceProvider _sp = null!;
     private FakeTelegramReplier _telegram = null!;
+    private SpyFilePublisher _markdownSpy = null!;
+    private SpyFilePublisher _pdfSpy = null!;
     private string _tempBase = null!;
     private TracerProvider? _tracerProvider;
 
@@ -95,12 +97,10 @@ public class AlbumProcessingSteps
 
         _tracerProvider = Sdk.CreateTracerProviderBuilder()
             .AddSource("Paperoni")
-            .AddProcessor(new BatchActivityExportProcessor(
+            .AddProcessor(new SimpleActivityExportProcessor(
                 new TraceLogExporter(
                     new AlbumWorkingDirectory { DownloadBasePath = _tempBase },
-                    _tempBase),
-                maxQueueSize: 2048,
-                scheduledDelayMilliseconds: 100))
+                    _tempBase)))
             .Build();
     }
 
@@ -146,6 +146,24 @@ public class AlbumProcessingSteps
         services.AddImageProcessing();
         services.AddAlbumProcessor(config);
         services.AddDiagnostics(config);
+
+        // Replace FilePublishers with spied versions for retry assertions
+        services.AddKeyedSingleton<IFilePublisher>(PublisherTarget.Markdown, (sp, _) =>
+        {
+            var wd = sp.GetRequiredService<AlbumWorkingDirectory>();
+            var logger = sp.GetRequiredService<ILogger<FilePublisher>>();
+            var real = new FilePublisher(wd, _outputDir, "*.md", logger);
+            _markdownSpy = new SpyFilePublisher(real);
+            return _markdownSpy;
+        });
+        services.AddKeyedSingleton<IFilePublisher>(PublisherTarget.Pdf, (sp, _) =>
+        {
+            var wd = sp.GetRequiredService<AlbumWorkingDirectory>();
+            var logger = sp.GetRequiredService<ILogger<FilePublisher>>();
+            var real = new FilePublisher(wd, _outputDir, "*.pdf", logger);
+            _pdfSpy = new SpyFilePublisher(real);
+            return _pdfSpy;
+        });
         services.AddSingleton<IConfiguration>(config);
         services.AddLogging(builder =>
         {
@@ -196,10 +214,18 @@ public class AlbumProcessingSteps
     {
         await _telegram.WaitForCompletionAsync(_cts!.Token);
 
+        _tracerProvider?.ForceFlush();
+
         var workDir = Path.Combine(_tempBase, TestMessageId.ToString());
         var content = await File.ReadAllTextAsync(Path.Combine(workDir, "firstAiResponse.md"));
         _output.WriteLine($"AI Summary:\n{content}");
         _telegram.Reset();
+    }
+
+    [When("I request diagnostics for the message")]
+    public async Task WhenIRequestDiagnostics()
+    {
+        await _telegram.ShowDiagnostic(TestMessageId);
     }
 
     [When("I request a retry")]
@@ -250,6 +276,79 @@ public class AlbumProcessingSteps
         Assert.Equal(expectedPages, pdf.NumberOfPages);
     }
 
+    [Then("the diagnostic was shown for the album")]
+    public void ThenDiagnosticWasShownForTheAlbum()
+    {
+        Assert.Contains(TestMessageId, _telegram.DiagnosticAlbumIds);
+    }
+
+    [Then("the dashboard was deleted")]
+    public void ThenDashboardWasDeleted()
+    {
+        Assert.Equal(1, _telegram.DeleteDashboardCount);
+    }
+
+    [Then("the old published files were cleaned before re-publishing")]
+    public void ThenOldPublishedFilesWereCleaned()
+    {
+        Assert.True(_markdownSpy.DeletePreviousCalled, "Expected Markdown publisher to clean old file");
+        Assert.True(_pdfSpy.DeletePreviousCalled, "Expected PDF publisher to clean old file");
+        Assert.Equal("Lorem Ipsum", _markdownSpy.LastDeletedTitle);
+        Assert.Equal("Lorem Ipsum", _pdfSpy.LastDeletedTitle);
+    }
+
+    [Then("the old trace log was cleaned before re-processing")]
+    public void ThenOldTraceLogWasCleanedBeforeReprocessing()
+    {
+        _tracerProvider?.ForceFlush();
+
+        var traceLogPath = Path.Combine(_tempBase, TestMessageId.ToString(), "traces.log");
+        Assert.True(File.Exists(traceLogPath));
+
+        var lines = File.ReadAllLines(traceLogPath);
+        var spanCount = lines.Count(l => l.Contains("AlbumProcessor.ExecuteAsync"));
+        Assert.Equal(1, spanCount);
+    }
+
+    [Then("the trace log shows (.*) images were processed")]
+    public void ThenTraceLogShowsImagesProcessed(int expectedCount)
+    {
+        _tracerProvider?.ForceFlush();
+
+        var traceLogPath = Path.Combine(_tempBase, TestMessageId.ToString(), "traces.log");
+        var lines = File.ReadAllLines(traceLogPath);
+        var autoCorrectCount = lines.Count(l => l.Contains("PdfCreator.AutoCorrect"));
+        Assert.Equal(expectedCount, autoCorrectCount);
+    }
+
+    [Then("the trace log is written to the correct album directory")]
+    public void ThenTraceLogIsWrittenToCorrectAlbumDirectory()
+    {
+        var expectedPath = Path.Combine(_tempBase, TestMessageId.ToString(), "traces.log");
+        Assert.True(File.Exists(expectedPath),
+            $"Expected trace log at {expectedPath} for AlbumId {TestMessageId}");
+    }
+
+    [Then("no PDF was created in the working directory")]
+    public void ThenNoPdfWasCreated()
+    {
+        var workDir = Path.Combine(_tempBase, TestMessageId.ToString());
+        var pdfFiles = Directory.GetFiles(workDir, "*.pdf");
+        Assert.Empty(pdfFiles);
+    }
+
+    [Then("no files were published to the output directory")]
+    public void ThenNoFilesWerePublished()
+    {
+        if (!Directory.Exists(_outputDir))
+        {
+            return;
+        }
+
+        var files = Directory.GetFiles(_outputDir);
+        Assert.Empty(files);
+    }
+
     [Then("the bot reacted with {string}")]
     public void ThenBotReactedWith(string expectedEmoji)
     {
@@ -282,6 +381,25 @@ public class AlbumProcessingSteps
     public void ThenBotRepliedWith(string expectedStartsWith)
     {
         Assert.Contains(_telegram.Calls, c => c.Text.StartsWith(expectedStartsWith));
+    }
+
+    [Then("the dashboard showed {string}")]
+    public void ThenDashboardShowed(string expectedStartsWith)
+    {
+        Assert.Contains(_telegram.DashboardCalls,
+            c => c.Stage.StartsWith(expectedStartsWith) && c.AlbumId == TestMessageId);
+    }
+
+    [Then("the diagnostic was shown for album {int}")]
+    public void ThenDiagnosticWasShownForAlbum(int albumId)
+    {
+        Assert.Contains(albumId, _telegram.DiagnosticAlbumIds);
+    }
+
+    [Then("the diagnostic was shown {int} times")]
+    public void ThenDiagnosticWasShown(int count)
+    {
+        Assert.Equal(count, _telegram.DiagnosticAlbumIds.Count);
     }
 
     [Then("the last bot reply starts with {string}")]

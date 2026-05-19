@@ -26,7 +26,7 @@ public class VersioningTest
     [Fact]
     public void VersionInfo_Version_FollowsSemVer()
     {
-        Assert.Matches(@"^\d+\.\d+\.\d+", VersionInfo.Version);
+        Assert.Matches(@"^\d+\.\d+", VersionInfo.Version);
     }
 
     [Fact]

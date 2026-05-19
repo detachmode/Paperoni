@@ -14,7 +14,7 @@ public class FakeTelegramReplier : ITelegramReplier
         {
             _calls.Add((msgId, text));
         }
-        if (text.StartsWith("Done:"))
+        if (text.StartsWith("Done "))
         {
             _done.TrySetResult();
         }
@@ -22,6 +22,9 @@ public class FakeTelegramReplier : ITelegramReplier
     }
 
     public Task SetReaction(int albumMsgId, string emoji) => Task.CompletedTask;
+    public Task UpdateDashboard(int albumId, string stage, int queueDepth) => Task.CompletedTask;
+    public Task DeleteDashboard() => Task.CompletedTask;
+    public Task ShowDiagnostic(int albumId) => Task.CompletedTask;
 
     public void Reset()
     {

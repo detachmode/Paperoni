@@ -1,7 +1,7 @@
-using System.Diagnostics;
 using System.Text.Json;
 using Paperoni.Ai;
 using Paperoni.Contract;
+using Paperoni.Diagnostics;
 using static Paperoni.Diagnostics.Diagnostics;
 
 namespace Paperoni.Tests;
@@ -18,36 +18,40 @@ internal sealed class FakeAiService(AlbumWorkingDirectory workingDirectory) : IA
 
     public Task<string> TryFunctionCalling() => Task.FromResult("Fake function calling response");
 
-    public async Task CreateAiSummary(int albumId, CancellationToken stoppingToken = default)
+    public async Task CreateAiSummary(int albumId, Action<DebugOutputType, string>? statusCallback = null, CancellationToken stoppingToken = default)
     {
-        if (ShouldThrowOnCreateAiSummary)
+        await Tracer.TraceAsync<AiService>(async scope =>
         {
-            throw new TimeoutException("AI summary timed out.");
-        }
+            if (ShouldThrowOnCreateAiSummary)
+            {
+                throw new TimeoutException("AI summary timed out.");
+            }
 
-        using var activity = Tracer.StartActivity("AiService.CreateAiSummary");
-        activity?.SetTag("AlbumId", albumId);
+            var workDir = workingDirectory.RequireWorkingDirectory(albumId);
 
-        var workDir = workingDirectory.RequireWorkingDirectory(albumId);
+            statusCallback?.Invoke(DebugOutputType.Reasoning, "AI thinking..");
+            await Task.Delay(10, stoppingToken);
 
-        var content = """
-                      ---
-                      title: Lorem Ipsum
-                      ---
+            statusCallback?.Invoke(DebugOutputType.PartialOutput, "AI is formulating the final output ..");
+            await Task.Delay(10, stoppingToken);
 
-                      # Summary
-                      Fake AI summary for testing.
+            var content = """
+                          ---
+                          title: Lorem Ipsum
+                          ---
 
-                      # Complete Text
-                      Lorem ipsum dolor sit amet, consectetur adipiscing elit.
-                      """;
-        await File.WriteAllTextAsync(Path.Combine(workDir, "firstAiResponse.md"), content, stoppingToken);
+                          # Summary
+                          Fake AI summary for testing.
 
-        var aiResult = new AiResult("Lorem Ipsum");
-        var json = JsonSerializer.Serialize(aiResult,
-            new JsonSerializerOptions { WriteIndented = true });
-        await File.WriteAllTextAsync(Path.Combine(workDir, "AiResult.json"), json, stoppingToken);
+                          # Complete Text
+                          Lorem ipsum dolor sit amet, consectetur adipiscing elit.
+                          """;
+            await File.WriteAllTextAsync(Path.Combine(workDir, "firstAiResponse.md"), content, stoppingToken);
 
-        activity?.SetStatus(ActivityStatusCode.Ok);
+            var aiResult = new AiResult("Lorem Ipsum");
+            var json = JsonSerializer.Serialize(aiResult,
+                new JsonSerializerOptions { WriteIndented = true });
+            await File.WriteAllTextAsync(Path.Combine(workDir, "AiResult.json"), json, stoppingToken);
+        });
     }
 }

@@ -82,6 +82,7 @@ Desktop.ini
 # Logs and temporary files
 *.log
 *.tmp
+*.feature.cs
 *.DotSettings.user
 # Package directories
 [Pp]ackages/

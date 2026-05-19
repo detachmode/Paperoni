@@ -4,13 +4,20 @@ services:
     restart: on-failure:3
     environment:
       Telegram__BotToken: "${Telegram__BotToken:?Telegram__BotToken is required}"
-      Ai__ApiKey: "${Ai__ApiKey:-}"
-      Ai__Endpoint: "${AI__ENDPOINT:-http://host.docker.internal:2276}"
-      Ai__Model: "${AI__MODEL:-qwen-3.6-35b-a3b-q4}"
+
+      # For Local LLM - example cpp server
+      Ai__Endpoint: "http://host.docker.internal:2276"
+      Ai__Model: "qwen-3.6-35b-a3b-q4"
+
+      # For Cloud LLM - example OpenCode Go
+      #      Ai__ApiKey: "<your api key>"
+      #      Ai__Endpoint: "https://opencode.ai/zen/go/v1"
+      #      Ai__Model: "qwen3.6-plus"
+
       AlbumProcessing__MarkdownOutputPath: /output/markdown
       AlbumProcessing__PdfOutputPath: /output/pdf
       AlbumProcessing__TestModeOutputPath: /data/test-output
-      DownloadBasePath: /data/downloads
+      PaperoniWorkingDirectory: /data
     extra_hosts:
       - host.docker.internal:host-gateway
     volumes:

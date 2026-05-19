@@ -26,7 +26,8 @@ public static class DependencyInjection
         collection.AddSingleton<TelegramSettings>(sp =>
         {
             var settings = sp.GetRequiredService<IOptions<TelegramSettings>>().Value;
-            Console.WriteLine($"Telegram: BotToken={(!string.IsNullOrEmpty(settings.BotToken) ? "***" : "not set")}");
+            Console.WriteLine("Telegram:");
+            Console.WriteLine($"└─ BotToken={(!string.IsNullOrEmpty(settings.BotToken) ? "***" : "not set")}");
             return settings;
         });
 

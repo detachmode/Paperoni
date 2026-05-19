@@ -1,6 +1,6 @@
 services:
   paperoni:
-    image: ghcr.io/detachmode/paperoni:latest
+    image: ghcr.io/detachmode/paperoni:0.1.0-pre.e363c7c
     restart: on-failure:3
     environment:
       Telegram__BotToken: "${Telegram__BotToken:?Telegram__BotToken is required}"
@@ -8,7 +8,7 @@ services:
       Ai__Endpoint: "${AI__ENDPOINT:-http://host.docker.internal:2276}"
       Ai__Model: "${AI__MODEL:-qwen-3.6-35b-a3b-q4}"
       AlbumProcessing__MarkdownOutputPath: /output/markdown
-      AlbumProcessing__FilePublisherOutputPath: /output/pdf
+      AlbumProcessing__PdfPublisherOutputPath: /output/pdf
       AlbumProcessing__TestModeOutputPath: /data/test-output
       DownloadBasePath: /data/downloads
     extra_hosts:

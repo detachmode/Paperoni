@@ -120,7 +120,7 @@ public class AlbumProcessingSteps
                 ["AlbumProcessing:TestMode"] = "true",
                 ["AlbumProcessing:TestModeOutputPath"] = _outputDir,
                 ["AlbumProcessing:MarkdownOutputPath"] = _outputDir,
-                ["AlbumProcessing:FilePublisherOutputPath"] = _outputDir,
+                ["AlbumProcessing:PdfPublisherOutputPath"] = _outputDir,
             })
             .Build();
 

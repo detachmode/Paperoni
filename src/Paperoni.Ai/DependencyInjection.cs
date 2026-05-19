@@ -36,12 +36,12 @@ public static class DependencyInjection
         collection.AddSingleton<AiSettings>(sp =>
         {
             var settings = sp.GetRequiredService<IOptions<AiSettings>>().Value;
-            Console.WriteLine("Ai: ");
-            Console.WriteLine($"  Endpoint: {settings.Endpoint}");
-            Console.WriteLine($"  Model: {settings.Model}");
-            Console.WriteLine($"  ApiKey: {settings.ApiKey}");
-            Console.WriteLine($"  PromptFile: {settings.PromptFilePath}");
-            Console.WriteLine($"  Timeout: {settings.TimeoutSeconds}");
+            Console.WriteLine("Ai:");
+            Console.WriteLine($"├─ Endpoint: {settings.Endpoint}");
+            Console.WriteLine($"├─ Model: {settings.Model}");
+            Console.WriteLine($"├─ ApiKey: {(!string.IsNullOrEmpty(settings.ApiKey) ? "***" : "not set")}");
+            Console.WriteLine($"├─ PromptFile: {settings.PromptFilePath}");
+            Console.WriteLine($"└─ Timeout: {settings.TimeoutSeconds} seconds");
 
             // Model={settings.Model}, Endpoint={settings.Endpoint}, PromptFile={settings.PromptFilePath}, Timeout={settings.TimeoutSeconds}s");
             return settings;

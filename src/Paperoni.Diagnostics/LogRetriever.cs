@@ -18,10 +18,6 @@ internal sealed class LogRetriever(
     public string GetLogContent(int albumId)
     {
         var logDir = settings.LogPath;
-        if (string.IsNullOrWhiteSpace(logDir))
-        {
-            logDir = workingDirectory.BasePath;
-        }
 
         var logEntries = new List<(DateTime Timestamp, string Line)>();
         var traceEntries = new List<(DateTime Timestamp, string Line)>();

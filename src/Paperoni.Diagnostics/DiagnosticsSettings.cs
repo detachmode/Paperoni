@@ -2,5 +2,5 @@ namespace Paperoni.Diagnostics;
 
 public class DiagnosticsSettings
 {
-    public string? LogPath { get; set; }
+    public required string LogPath { get; set; }
 }

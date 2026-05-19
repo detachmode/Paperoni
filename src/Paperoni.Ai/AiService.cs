@@ -3,7 +3,6 @@ using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Logging;
 using Paperoni.Contract;
 using Paperoni.Diagnostics;
-using Paperoni.Telegram;
 using static Paperoni.Diagnostics.Diagnostics;
 
 namespace Paperoni.Ai;
@@ -13,17 +12,15 @@ internal sealed class AiService : IAiService
     private readonly IChatClient _chatClient;
     private readonly ILogger<AiService> _logger;
     private readonly IPromptProvider _promptProvider;
-    private readonly ITelegramReplier _telegram;
     private readonly int _timeoutSeconds;
     private readonly AlbumWorkingDirectory _workingDirectory;
 
     public AiService(AlbumWorkingDirectory workingDirectory, IPromptProvider promptProvider,
-        ITelegramReplier telegram, ILogger<AiService> logger, AiSettings aiSettings,
+        ILogger<AiService> logger, AiSettings aiSettings,
         IChatClient chatClient)
     {
         _workingDirectory = workingDirectory;
         _promptProvider = promptProvider;
-        _telegram = telegram;
         _logger = logger;
         _chatClient = chatClient;
         _timeoutSeconds = aiSettings.TimeoutSeconds;
@@ -110,6 +107,7 @@ internal sealed class AiService : IAiService
     }
 
     public async Task CreateAiSummary(int albumId,
+        Action<DebugOutputType, string>? statusCallback = null,
         CancellationToken stoppingToken = default)
     {
         await Tracer.TraceAsync<AiService>(async scope =>
@@ -143,13 +141,7 @@ internal sealed class AiService : IAiService
                     }
 
                     lastDebugType = t;
-                    _ = t switch
-                    {
-                        DebugOutputType.Reasoning => _telegram.EditReply(albumId, "🤖 AI is thinking .."),
-                        DebugOutputType.PartialOutput => _telegram.EditReply(albumId,
-                            "🤖 AI is formulating the final output .."),
-                        _ => Task.CompletedTask
-                    };
+                    statusCallback?.Invoke(t, s);
                 }, timeoutCts.Token);
             }
             catch (OperationCanceledException) when (!stoppingToken.IsCancellationRequested)

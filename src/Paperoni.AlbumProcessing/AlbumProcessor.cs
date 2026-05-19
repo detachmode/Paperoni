@@ -31,6 +31,7 @@ internal class AlbumProcessor(
         while (!stoppingToken.IsCancellationRequested)
         {
             WorkItem? item = null;
+            bool success = false;
             try
             {
                 item = await queue.Dequeue(stoppingToken);
@@ -43,7 +44,7 @@ internal class AlbumProcessor(
 
                     using var _ = logger.BeginScope(new Dictionary<string, object> { ["AlbumId"] = item.MessageId });
                     logger.ProcessingAlbum(item.IsRetry);
-                    await ProcessAlbum(item.MessageId, item.IsRetry, stoppingToken);
+                    success = await ProcessAlbum(item.MessageId, item.IsRetry, stoppingToken);
                 });
 
                 albumIdAccessor.Id = null;
@@ -58,10 +59,15 @@ internal class AlbumProcessor(
                 albumIdAccessor.Id = null;
                 logger.AlbumProcessingError(e, item?.MessageId);
             }
+
+            if (success && queue.PendingCount == 0)
+            {
+                await telegram.DeleteDashboard();
+            }
         }
     }
 
-    private async Task ProcessAlbum(int albumId, bool isRetry, CancellationToken stoppingToken)
+    private async Task<bool> ProcessAlbum(int albumId, bool isRetry, CancellationToken stoppingToken)
     {
         var sw = Stopwatch.StartNew();
 
@@ -69,6 +75,13 @@ internal class AlbumProcessor(
         {
             if (isRetry)
             {
+                var traceDir = workingDirectory.RequireWorkingDirectory(albumId);
+                var tracePath = Path.Combine(traceDir, "traces.log");
+                if (File.Exists(tracePath))
+                {
+                    File.Delete(tracePath);
+                }
+
                 var oldAiResult = await workingDirectory.GetData<AiResult>(albumId, stoppingToken);
                 if (oldAiResult?.Title is not null)
                 {
@@ -79,26 +92,42 @@ internal class AlbumProcessor(
             }
 
             logger.AiSummaryStarting();
-            await telegram.EditReply(albumId, isRetry ? "🔄 Retrying ..." : "🤖 AI is reading it ..");
-            await ai.CreateAiSummary(albumId, stoppingToken);
+            await telegram.UpdateDashboard(albumId,
+                isRetry ? "🔄 Retrying.." : "🤖 AI reading..", queue.PendingCount);
+            await ai.CreateAiSummary(albumId, (type, desc) =>
+            {
+                switch (type)
+                {
+                    case DebugOutputType.Reasoning:
+                        _ = telegram.UpdateDashboard(albumId, "🤖 AI thinking..", queue.PendingCount);
+                        break;
+                    case DebugOutputType.PartialOutput:
+                        _ = telegram.UpdateDashboard(albumId, "🤖 AI is formulating the final output ..", queue.PendingCount);
+                        break;
+                }
+            }, stoppingToken);
             logger.AiSummaryDone();
 
             logger.PdfCreationStarting();
-            await telegram.EditReply(albumId, "📄 Creating PDF ..");
+            await telegram.UpdateDashboard(albumId, "📄 Creating PDF ..", queue.PendingCount);
             await pdfCreator.CreatePdf(albumId, stoppingToken);
             logger.PdfCreationDone();
 
             logger.PublishingMarkdown();
+            await telegram.UpdateDashboard(albumId, "📤 Publishing..", queue.PendingCount);
             await markdownPublisher.PublishFileAsync(albumId, stoppingToken);
             logger.PublishingPdf();
             await pdfPublisher.PublishFileAsync(albumId, stoppingToken);
 
             await telegram.SetReaction(albumId, "👏");
 
+            sw.Stop();
+            var duration = sw.Elapsed.TotalSeconds;
             var testMode = settings.TestMode;
             await telegram.EditReply(albumId,
-                $"Done in {sw.Elapsed.TotalSeconds:F1}s — Paperoni v{VersionInfo.Version}{(testMode ? " 🧪" : "")}");
+                $"Done in {duration:F1}s — Paperoni v{VersionInfo.Version}{(testMode ? " 🧪" : "")}");
             logger.AlbumComplete();
+            return true;
         }
         catch (OperationCanceledException)
         {
@@ -108,6 +137,8 @@ internal class AlbumProcessor(
         {
             logger.AlbumProcessingError(e, albumId);
             await telegram.EditReply(albumId, "Failed to process: " + e.Message);
+            await telegram.UpdateDashboard(albumId, $"❌ Failed: {e.Message}", queue.PendingCount);
+            return false;
         }
     }
 }

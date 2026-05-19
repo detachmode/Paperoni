@@ -20,8 +20,8 @@ public static class DependencyInjection
             {
                 settings.LogPath = workingDirectory.BasePath;
             }
-            Console.WriteLine($"Diagnostics:");
-            Console.WriteLine($"  LogPath={settings.LogPath}");
+            Console.WriteLine("Diagnostics:");
+            Console.WriteLine($"└─ LogPath={settings.LogPath}");
             return settings;
         });
 

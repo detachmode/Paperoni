@@ -1,7 +1,7 @@
 using System.Runtime.InteropServices;
 using Paperoni.Contract;
 
-namespace Paperoni.Telegram.Album;
+namespace Paperoni.Telegram;
 
 public static class CommandResponses
 {

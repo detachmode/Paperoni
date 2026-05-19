@@ -1,5 +1,5 @@
 using Paperoni.Contract;
-using Paperoni.Telegram.Album;
+using Paperoni.Telegram;
 
 namespace Paperoni.Tests;
 

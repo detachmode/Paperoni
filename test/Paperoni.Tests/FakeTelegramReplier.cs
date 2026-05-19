@@ -15,7 +15,7 @@ public class FakeTelegramReplier : ITelegramReplier
         {
             _calls.Add((msgId, text));
         }
-        if (text.StartsWith("Done:"))
+        if (text.StartsWith("Done "))
         {
             _done.TrySetResult();
         }

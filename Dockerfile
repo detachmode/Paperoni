@@ -1,5 +1,7 @@
 FROM --platform=$BUILDPLATFORM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 ARG TARGETARCH
+ARG VERSION
+ARG GIT_SHA
 WORKDIR /src
 
 COPY *.props .
@@ -17,7 +19,9 @@ RUN case "$TARGETARCH" in \
         -r "$RID" \
         -o /app \
         --self-contained false \
-        -p:PublishSingleFile=true
+        -p:PublishSingleFile=true \
+        -p:Version="${VERSION}" \
+        -p:GitSha="${GIT_SHA}"
 
 FROM mcr.microsoft.com/dotnet/runtime:10.0
 WORKDIR /app

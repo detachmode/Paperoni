@@ -105,8 +105,26 @@ internal sealed class TelegramPhotoAlbumCollector(
             replyMarkup: msg.ReplyMarkup);
     }
 
+    private async Task HandleCommand(Message message, string text)
+    {
+        if (text == "/version")
+        {
+            await botClient.SendMessage(message.Chat.Id, CommandResponses.Version());
+        }
+        else if (text == "/help")
+        {
+            await botClient.SendMessage(message.Chat.Id, CommandResponses.Help());
+        }
+    }
+
     private async Task HandleMessage(Message message, UpdateType type)
     {
+        if (message.Text is { } text && text.StartsWith('/'))
+        {
+            await HandleCommand(message, text);
+            return;
+        }
+
         if (message.Photo is not { Length: > 0 } photoSizes)
         {
             return;

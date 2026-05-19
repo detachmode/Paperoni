@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -62,6 +63,8 @@ internal class AlbumProcessor(
 
     private async Task ProcessAlbum(int albumId, bool isRetry, CancellationToken stoppingToken)
     {
+        var sw = Stopwatch.StartNew();
+
         try
         {
             if (isRetry)
@@ -94,13 +97,7 @@ internal class AlbumProcessor(
 
             var testMode = settings.TestMode;
             await telegram.EditReply(albumId,
-                $"""
-                 Done:
-                 ✅ Created PDF
-                 ✅ Published Markdown summary
-                 ✅ Published PDF
-                 {(testMode ? "🧪 Test mode" : "")}
-                 """);
+                $"Done in {sw.Elapsed.TotalSeconds:F1}s — Paperoni v{VersionInfo.Version}{(testMode ? " 🧪" : "")}");
             logger.AlbumComplete();
         }
         catch (OperationCanceledException)

@@ -290,6 +290,12 @@ public class AlbumProcessingSteps
         Assert.StartsWith(expectedStartsWith, _telegram.Calls.Last().Text);
     }
 
+    [Then("the last bot reply contains {string}")]
+    public void ThenLastBotReplyContains(string expectedContains)
+    {
+        Assert.Contains(expectedContains, _telegram.Calls.Last().Text);
+    }
+
     [Then("the log content for the message contains logs and traces")]
     public void ThenLogContentContainsLogsAndTraces()
     {

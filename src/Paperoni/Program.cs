@@ -9,6 +9,8 @@ using Paperoni.ImageProcessing;
 using Paperoni.Telegram;
 using Serilog;
 
+Console.WriteLine($"Paperoni v{VersionInfo.Version} starting...");
+
 var lockFilePath = Path.Combine(Path.GetTempPath(), "Paperoni.lock");
 FileStream? lockFile;
 try
@@ -55,7 +57,7 @@ builder.Services.AddSerilog(config =>
 });
 
 builder.Services.AddOpenTelemetry()
-    .ConfigureResource(r => r.AddService("Paperoni"))
+    .ConfigureResource(r => r.AddService("Paperoni", serviceVersion: VersionInfo.Version))
     .WithTracing(tracing => tracing
         .AddSource(Diagnostics.Tracer.Name)
         .AddProcessor(new BatchActivityExportProcessor(

@@ -34,7 +34,8 @@ Scenario: Single photo album is processed end-to-end
     And the PDF is published to the output directory
     And the bot replied with "🤖 AI is reading"
     And the bot replied with "📄 Creating PDF"
-    And the last bot reply starts with "Done:"
+    And the last bot reply starts with "Done in"
+    And the last bot reply contains "Paperoni v"
     And the bot reacted with "👏"
     And the trace log contains expected traces
 
@@ -44,7 +45,8 @@ Scenario: Multi-photo album produces a PDF with correct page count
     Then the album is processed
     And the AI summary mentions "title: Lorem ipsum"
     And the PDF has 3 pages
-    And the last bot reply starts with "Done:"
+    And the last bot reply starts with "Done in"
+    And the last bot reply contains "Paperoni v"
     And the bot reacted with "👏"
     And the trace log contains expected traces
 

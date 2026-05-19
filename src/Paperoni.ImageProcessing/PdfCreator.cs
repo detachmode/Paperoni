@@ -85,7 +85,9 @@ internal sealed class PdfCreator(
         => await Task.Run(() => Process(imageData, options), ct);
 
     public static byte[] ApplyCrop(byte[] imageData, Point2f[] corners, int jpegQuality = 85,
-        double? claheClipLimit = null)
+        bool histogramLevels = false,
+        int? denoiseD = null, double denoiseSigmaColor = 75, double denoiseSigmaSpace = 75,
+        double brightness = 0, double contrast = 1.0, double gamma = 1.0)
     {
         if (corners.Length != 4)
         {
@@ -113,6 +115,13 @@ internal sealed class PdfCreator(
         using var warped = new Mat();
         Cv2.WarpPerspective(src, warped, transform, destSize);
 
+        if (denoiseD.HasValue)
+        {
+            ApplyBilateralFilter(warped, denoiseD.Value, denoiseSigmaColor, denoiseSigmaSpace);
+        }
+
+        ApplyAdjustments(warped, brightness, contrast, gamma);
+
         using var gray = new Mat();
         if (warped.Channels() == 3)
         {
@@ -123,9 +132,9 @@ internal sealed class PdfCreator(
             warped.CopyTo(gray);
         }
 
-        if (claheClipLimit.HasValue)
+        if (histogramLevels)
         {
-            ApplyClahe(gray, claheClipLimit.Value);
+            AutoLevels(gray);
         }
 
         Cv2.ImEncode(".jpg", gray, out var encoded,
@@ -262,7 +271,7 @@ internal sealed class PdfCreator(
         return Math.Sqrt(dx * dx + dy * dy);
     }
 
-    private static void AutoLevels(Mat gray)
+    public static void AutoLevels(Mat gray)
     {
         using var hist = new Mat();
         Cv2.CalcHist(new[] { gray }, [0], null, hist, 1, [256], [new[] { 0f, 256f }]);
@@ -305,5 +314,40 @@ internal sealed class PdfCreator(
     {
         using var clahe = Cv2.CreateCLAHE(clipLimit, new Size(tileGridSize, tileGridSize));
         clahe.Apply(gray, gray);
+    }
+
+    public static void ApplyAdaptiveThreshold(Mat gray, int blockSize = 11, double c = 2.0)
+    {
+        Cv2.AdaptiveThreshold(gray, gray, 255,
+            AdaptiveThresholdTypes.GaussianC, ThresholdTypes.Binary,
+            blockSize, c);
+    }
+
+    public static void ApplyBilateralFilter(Mat src, int d = 9, double sigmaColor = 75, double sigmaSpace = 75)
+    {
+        using var temp = new Mat();
+        Cv2.BilateralFilter(src, temp, d, sigmaColor, sigmaSpace);
+        temp.CopyTo(src);
+    }
+
+    public static void ApplyAdjustments(Mat gray, double brightness = 0, double contrast = 1.0, double gamma = 1.0)
+    {
+        if (Math.Abs(gamma - 1.0) > 0.001)
+        {
+            var lut = new Mat(1, 256, MatType.CV_8UC1);
+            var indexer = lut.GetGenericIndexer<byte>();
+            for (var i = 0; i < 256; i++)
+            {
+                indexer[0, i] = (byte)Math.Clamp(255.0 * Math.Pow(i / 255.0, 1.0 / gamma), 0, 255);
+            }
+
+            Cv2.LUT(gray, lut, gray);
+            lut.Dispose();
+        }
+
+        if (Math.Abs(contrast - 1.0) > 0.001 || Math.Abs(brightness) > 0.001)
+        {
+            gray.ConvertTo(gray, MatType.CV_8UC1, contrast, brightness);
+        }
     }
 }

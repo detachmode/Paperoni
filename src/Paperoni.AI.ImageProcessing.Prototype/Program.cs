@@ -10,12 +10,13 @@ using Paperoni.ImageProcessing;
 if (args.Length < 2 || args[0] != "--input")
 {
     Console.Error.WriteLine(
-        "Usage: Paperoni.AI.ImageProcessing.Prototype --input <file1.jpg> [file2.jpg ...] [--max-dimension <px>] [--auto-levels] [--auto-levels-only] [--clahe-clip <value>]");
+        "Usage: Paperoni.AI.ImageProcessing.Prototype --input <file.jpg> [file2.jpg ...] [--max-dimension <px>] [--no-ai] [--histogram] [--denoise] [--denoise-d <n>] [--denoise-sigma-color <v>] [--denoise-sigma-space <v>]");
     return 1;
 }
 
 var inputFiles = args[1..]
-    .TakeWhile(a => a is not ("--max-dimension" or "--auto-levels" or "--auto-levels-only" or "--clahe-clip"))
+    .TakeWhile(a => a is not ("--max-dimension" or "--no-ai" or "--histogram"
+        or "--denoise" or "--denoise-d" or "--denoise-sigma-color" or "--denoise-sigma-space"))
     .ToArray();
 if (inputFiles.Length == 0)
 {
@@ -30,21 +31,71 @@ if (maxDimIdx >= 0 && maxDimIdx + 1 < args.Length && int.TryParse(args[maxDimIdx
     maxDimension = dim;
 }
 
-var autoLevels = args.Contains("--auto-levels");
-var autoLevelsOnly = args.Contains("--auto-levels-only");
+var noAi = args.Contains("--no-ai");
+var histogram = args.Contains("--histogram");
 
-var claheClip = 2.0;
-
-var claheClipIdx = Array.IndexOf(args, "--clahe-clip");
-if (claheClipIdx >= 0 && claheClipIdx + 1 < args.Length && double.TryParse(args[claheClipIdx + 1], out var clip))
+var denoise = args.Contains("--denoise");
+var denoiseD = 9;
+var denoiseDIdx = Array.IndexOf(args, "--denoise-d");
+if (denoiseDIdx >= 0 && denoiseDIdx + 1 < args.Length && int.TryParse(args[denoiseDIdx + 1], out var dd) && dd > 0)
 {
-    claheClip = clip;
+    denoiseD = dd;
 }
 
-if (autoLevelsOnly)
+var denoiseSigmaColor = 75.0;
+var denoiseSigmaColorIdx = Array.IndexOf(args, "--denoise-sigma-color");
+if (denoiseSigmaColorIdx >= 0 && denoiseSigmaColorIdx + 1 < args.Length
+                              && double.TryParse(args[denoiseSigmaColorIdx + 1], out var sc))
 {
-    Console.WriteLine($"Auto-levels only: CLAHE (clip={claheClip})");
+    denoiseSigmaColor = sc;
+}
+
+var denoiseSigmaSpace = 75.0;
+var denoiseSigmaSpaceIdx = Array.IndexOf(args, "--denoise-sigma-space");
+if (denoiseSigmaSpaceIdx >= 0 && denoiseSigmaSpaceIdx + 1 < args.Length
+                              && double.TryParse(args[denoiseSigmaSpaceIdx + 1], out var ss))
+{
+    denoiseSigmaSpace = ss;
+}
+
+// --- No-AI path: pure OpenCV ---
+
+if (noAi)
+{
+    var methods = new List<string>();
+    if (denoise)
+    {
+        methods.Add($"denoise (d={denoiseD}, sc={denoiseSigmaColor}, ss={denoiseSigmaSpace})");
+    }
+
+    if (histogram)
+    {
+        methods.Add("histogram stretch");
+    }
+
+    if (methods.Count > 0)
+    {
+        Console.WriteLine($"Processing: {string.Join(", ", methods)}");
+    }
+    else
+    {
+        Console.WriteLine("Processing: grayscale only");
+    }
+
     Console.WriteLine();
+
+    var suffix = new List<string>();
+    if (histogram)
+    {
+        suffix.Add("histogram");
+    }
+
+    if (denoise)
+    {
+        suffix.Add("denoised");
+    }
+
+    var fileNameSuffix = suffix.Count > 0 ? "_" + string.Join("_", suffix) : "_grayscale";
 
     foreach (var inputFile in inputFiles)
     {
@@ -61,11 +112,13 @@ if (autoLevelsOnly)
         using var src = Cv2.ImDecode(imageData, ImreadModes.Color);
         Console.Write($"{Path.GetFileName(fullPath)} ({src.Width}x{src.Height}) ... ");
 
-        var outputBytes = ToGrayscaleJpeg(imageData, claheClipLimit: claheClip);
+        var outputBytes = ToGrayscaleJpeg(imageData, histogramLevels: histogram,
+            denoiseD: denoise ? denoiseD : null,
+            denoiseSigmaColor: denoiseSigmaColor, denoiseSigmaSpace: denoiseSigmaSpace);
         sw.Stop();
 
         var basePath = Path.ChangeExtension(fullPath, null);
-        var outputPath = $"{basePath}_clahe.jpg";
+        var outputPath = $"{basePath}{fileNameSuffix}.jpg";
         await File.WriteAllBytesAsync(outputPath, outputBytes);
         Console.WriteLine($"-> {Path.GetFileName(outputPath)} ({sw.Elapsed.TotalSeconds:F1}s)");
     }
@@ -73,6 +126,8 @@ if (autoLevelsOnly)
     Console.WriteLine("Done.");
     return 0;
 }
+
+// --- AI path ---
 
 var config = LoadConfiguration();
 
@@ -91,9 +146,14 @@ if (maxDimension > 0)
     Console.WriteLine($"Max dimension: {maxDimension}px");
 }
 
-if (autoLevels)
+if (histogram)
 {
-    Console.WriteLine($"Auto-levels: CLAHE (clip={claheClip})");
+    Console.WriteLine("Post-processing: histogram stretch");
+}
+
+if (denoise)
+{
+    Console.WriteLine($"Post-processing: denoise (d={denoiseD}, sc={denoiseSigmaColor}, ss={denoiseSigmaSpace})");
 }
 
 Console.WriteLine();
@@ -127,8 +187,7 @@ var openAiClient = new OpenAIClient(new ApiKeyCredential(apiKey),
 var chatClient = openAiClient.GetChatClient(model).AsIChatClient();
 
 var modelSuffix = SanitizeForFilename(model);
-
-var claheClipValue = autoLevels ? claheClip : (double?)null;
+var denoiseDValue = denoise ? denoiseD : (int?)null;
 
 foreach (var inputFile in inputFiles)
 {
@@ -172,7 +231,6 @@ foreach (var inputFile in inputFiles)
     aiSw.Stop();
 
     var responseText = response.Text;
-
     var basePath = Path.ChangeExtension(fullPath, null);
 
     await File.WriteAllTextAsync(basePath + "_response.json", responseText);
@@ -185,18 +243,54 @@ foreach (var inputFile in inputFiles)
         throw new InvalidOperationException("AI response missing 'crop' field");
     }
 
+    var (aiBrightness, aiContrast, aiGamma) = ParseAdjustments(doc.RootElement);
+
     byte[] outputBytes;
+    var postLabels = new List<string>();
+
+    if (histogram)
+    {
+        postLabels.Add("histogram");
+    }
+
+    if (Math.Abs(aiBrightness) > 0.001 || Math.Abs(aiContrast - 1.0) > 0.001 || Math.Abs(aiGamma - 1.0) > 0.001)
+    {
+        var parts = new List<string>();
+        if (Math.Abs(aiBrightness) > 0.001)
+        {
+            parts.Add($"brightness={aiBrightness:F0}");
+        }
+
+        if (Math.Abs(aiContrast - 1.0) > 0.001)
+        {
+            parts.Add($"contrast={aiContrast:F2}");
+        }
+
+        if (Math.Abs(aiGamma - 1.0) > 0.001)
+        {
+            parts.Add($"gamma={aiGamma:F2}");
+        }
+
+        postLabels.Add($"AI adjust ({string.Join(" ", parts)})");
+    }
+
+    if (denoise)
+    {
+        postLabels.Add("denoise");
+    }
 
     if (cropElement.ValueKind == JsonValueKind.Null)
     {
         Console.Write("no document, grayscale only");
-        if (autoLevels)
+        if (postLabels.Count > 0)
         {
-            Console.Write(" + CLAHE");
+            Console.Write(" + " + string.Join(" + ", postLabels));
         }
 
         Console.Write(" ... ");
-        outputBytes = ToGrayscaleJpeg(imageData, claheClipLimit: claheClipValue);
+        outputBytes = ToGrayscaleJpeg(imageData, histogramLevels: histogram,
+            denoiseD: denoiseDValue, denoiseSigmaColor: denoiseSigmaColor, denoiseSigmaSpace: denoiseSigmaSpace,
+            brightness: aiBrightness, contrast: aiContrast, gamma: aiGamma);
     }
     else
     {
@@ -207,11 +301,14 @@ foreach (var inputFile in inputFiles)
             .Select(p => new Point2f(p.X * src.Width, p.Y * src.Height))
             .ToArray();
 
-        outputBytes = PdfCreator.ApplyCrop(imageData, pixelCorners, claheClipLimit: claheClipValue);
+        outputBytes = PdfCreator.ApplyCrop(imageData, pixelCorners,
+            histogramLevels: histogram,
+            denoiseD: denoiseDValue, denoiseSigmaColor: denoiseSigmaColor, denoiseSigmaSpace: denoiseSigmaSpace,
+            brightness: aiBrightness, contrast: aiContrast, gamma: aiGamma);
         Console.Write("cropped");
-        if (autoLevels)
+        if (postLabels.Count > 0)
         {
-            Console.Write(" + CLAHE");
+            Console.Write(" + " + string.Join(" + ", postLabels));
         }
 
         Console.Write(" ... ");
@@ -224,6 +321,8 @@ foreach (var inputFile in inputFiles)
 
 Console.WriteLine("Done.");
 return 0;
+
+// --- Helpers ---
 
 static IConfiguration LoadConfiguration()
 {
@@ -319,6 +418,35 @@ static string ExtractJson(string text)
     return text[start..(end + 1)];
 }
 
+static (double brightness, double contrast, double gamma) ParseAdjustments(JsonElement root)
+{
+    if (!root.TryGetProperty("adjustments", out var adj) || adj.ValueKind == JsonValueKind.Null)
+    {
+        return (0, 1.0, 1.0);
+    }
+
+    var brightness = 0.0;
+    var contrast = 1.0;
+    var gamma = 1.0;
+
+    if (adj.TryGetProperty("brightness", out var b) && b.ValueKind == JsonValueKind.Number)
+    {
+        brightness = Math.Clamp(b.GetDouble(), -50, 50);
+    }
+
+    if (adj.TryGetProperty("contrast", out var c) && c.ValueKind == JsonValueKind.Number)
+    {
+        contrast = Math.Clamp(c.GetDouble(), 0.5, 2.0);
+    }
+
+    if (adj.TryGetProperty("gamma", out var g) && g.ValueKind == JsonValueKind.Number)
+    {
+        gamma = Math.Clamp(g.GetDouble(), 0.3, 3.0);
+    }
+
+    return (brightness, contrast, gamma);
+}
+
 static Point2f[] ParseCorners(JsonElement cropElement)
 {
     if (cropElement.ValueKind != JsonValueKind.Array)
@@ -360,9 +488,20 @@ static Point2f[] ParseCorners(JsonElement cropElement)
     return points.ToArray();
 }
 
-static byte[] ToGrayscaleJpeg(byte[] imageData, int quality = 85, double? claheClipLimit = null)
+static byte[] ToGrayscaleJpeg(byte[] imageData, int quality = 85,
+    bool histogramLevels = false,
+    int? denoiseD = null, double denoiseSigmaColor = 75, double denoiseSigmaSpace = 75,
+    double brightness = 0, double contrast = 1.0, double gamma = 1.0)
 {
     using var src = Cv2.ImDecode(imageData, ImreadModes.Color);
+
+    if (denoiseD.HasValue)
+    {
+        PdfCreator.ApplyBilateralFilter(src, denoiseD.Value, denoiseSigmaColor, denoiseSigmaSpace);
+    }
+
+    PdfCreator.ApplyAdjustments(src, brightness, contrast, gamma);
+
     using var gray = new Mat();
     if (src.Channels() == 3)
     {
@@ -373,9 +512,9 @@ static byte[] ToGrayscaleJpeg(byte[] imageData, int quality = 85, double? claheC
         src.CopyTo(gray);
     }
 
-    if (claheClipLimit.HasValue)
+    if (histogramLevels)
     {
-        PdfCreator.ApplyClahe(gray, claheClipLimit.Value);
+        PdfCreator.AutoLevels(gray);
     }
 
     Cv2.ImEncode(".jpg", gray, out var encoded,

@@ -16,8 +16,8 @@ public static class DependencyInjection
                 "AlbumProcessing:TestModeOutputPath is required when AlbumProcessing:TestMode is true")
             .Validate(settings => !string.IsNullOrWhiteSpace(settings.MarkdownOutputPath),
                 "AlbumProcessing:MarkdownOutputPath is required")
-            .Validate(settings => !string.IsNullOrWhiteSpace(settings.PdfPublisherOutputPath),
-                "AlbumProcessing:PdfPublisherOutputPath is required")
+            .Validate(settings => !string.IsNullOrWhiteSpace(settings.PdfOutputPath),
+                "AlbumProcessing:PdfOutputPath is required")
             .ValidateOnStart();
 
         collection.AddHostedService<AlbumProcessor>();
@@ -28,7 +28,7 @@ public static class DependencyInjection
             var settings = options.Value;
             Console.WriteLine("AlbumProcessing:");
             Console.WriteLine($"├─ MarkdownOutputPath: {settings.MarkdownOutputPath}");
-            Console.WriteLine($"├─ PdfPublisherOutputPath: {settings.PdfPublisherOutputPath}");
+            Console.WriteLine($"├─ PdfOutputPath: {settings.PdfOutputPath}");
             Console.WriteLine($"└─ TestMode: {settings.TestMode}");
             if(settings.TestMode)
             {
@@ -52,7 +52,7 @@ public static class DependencyInjection
             var settings = sp.GetRequiredService<AlbumProcessingSettings>();
             var workingDir = sp.GetRequiredService<AlbumWorkingDirectory>();
             var logger = sp.GetRequiredService<ILogger<FilePublisher>>();
-            var outputPath = ResolveOutputPath(settings, settings.PdfPublisherOutputPath);
+            var outputPath = ResolveOutputPath(settings, settings.PdfOutputPath);
             return new FilePublisher(workingDir, outputPath, "*.pdf", logger);
         });
 

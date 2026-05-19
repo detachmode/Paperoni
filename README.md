@@ -46,7 +46,7 @@ Configuration is loaded from `appsettings.json`, user secrets, and environment v
 | `AlbumProcessing:TestMode`                | `appsettings.json` / `appsettings.Development.json`   | When `true`, all output routes to `AlbumProcessing:TestModeOutputPath` |
 | `AlbumProcessing:TestModeOutputPath`      | User secret / env                                     | Test output directory when `AlbumProcessing:TestMode` is `true`        |
 | `AlbumProcessing:MarkdownOutputPath`      | User secret / env                                     | Output directory for Markdown summaries                                |
-| `AlbumProcessing:PdfPublisherOutputPath` | User secret / env                                     | Output directory for published PDFs                                    |
+| `AlbumProcessing:PdfOutputPath` | User secret / env                                     | Output directory for published PDFs                                    |
 | `Diagnostics:LogPath`                     | `appsettings.json` (default: `""`)                    | Log directory (empty = working directory base path)                    |
 | `DownloadBasePath`                        | (optional)                                            | Custom download root directory                                         |
 
@@ -57,7 +57,7 @@ Configuration is loaded from `appsettings.json`, user secrets, and environment v
 dotnet user-secrets set "Ai:ApiKey" "your-api-key" (only needed in case you use a cloud LLM)
 dotnet user-secrets set "Telegram:BotToken" "your-bot-token"
 dotnet user-secrets set "AlbumProcessing:MarkdownOutputPath" "/path/to/markdown-output"
-dotnet user-secrets set "AlbumProcessing:PdfPublisherOutputPath" "/path/to/output"
+dotnet user-secrets set "AlbumProcessing:PdfOutputPath" "/path/to/output"
 dotnet user-secrets set "AlbumProcessing:TestModeOutputPath" "~/Downloads/paperoni-test" # optional
 
 # Backward-compatible env var aliases (old flat keys still work):

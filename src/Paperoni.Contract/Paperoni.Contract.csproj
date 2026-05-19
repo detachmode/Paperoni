@@ -13,7 +13,20 @@
             <VersionInfoFile>$(IntermediateOutputPath)VersionInfo.g.cs</VersionInfoFile>
             <BuildTimeUtc>$([System.DateTime]::UtcNow.ToString("yyyy-MM-dd HH:mm:ss"))</BuildTimeUtc>
         </PropertyGroup>
-        <Exec Command="printf '%s\n' '// &lt;auto-generated/&gt;' 'namespace Paperoni.Contract;' '' 'public static class VersionInfo' '{' '    public const string Version = &quot;$(Version)&quot;;' '    public const string CommitSha = &quot;$(GitSha)&quot;;' '    public const string BuildTime = &quot;$(BuildTimeUtc)&quot;;' '}' > '$(VersionInfoFile)'" />
+        <ItemGroup>
+            <VersionInfoLine Include="// &lt;auto-generated/&gt;" />
+            <VersionInfoLine Include="namespace Paperoni.Contract%3b" />
+            <VersionInfoLine Include="public static class VersionInfo" />
+            <VersionInfoLine Include="{" />
+            <VersionInfoLine Include="    public const string Version = &quot;$(Version)&quot;%3b" />
+            <VersionInfoLine Include="    public const string CommitSha = &quot;$(GitSha)&quot;%3b" />
+            <VersionInfoLine Include="    public const string BuildTime = &quot;$(BuildTimeUtc)&quot;%3b" />
+            <VersionInfoLine Include="}" />
+        </ItemGroup>
+        <WriteLinesToFile
+            File="$(VersionInfoFile)"
+            Lines="@(VersionInfoLine)"
+            Overwrite="true" />
         <ItemGroup>
             <Compile Include="$(VersionInfoFile)" />
         </ItemGroup>

@@ -16,7 +16,9 @@ if (args.Length < 2 || args[0] != "--input")
 
 var inputFiles = args[1..]
     .TakeWhile(a => a is not ("--max-dimension" or "--no-ai" or "--histogram"
-        or "--denoise" or "--denoise-d" or "--denoise-sigma-color" or "--denoise-sigma-space"))
+        or "--denoise" or "--denoise-d" or "--denoise-sigma-color" or "--denoise-sigma-space"
+        or "--auto-levels" or "--auto-levels-only" or "--clahe-clip"
+        or "--adaptive-threshold" or "--threshold-block" or "--threshold-c"))
     .ToArray();
 if (inputFiles.Length == 0)
 {
@@ -227,10 +229,18 @@ foreach (var inputFile in inputFiles)
     message.Contents.Add(new DataContent(aiImageData, "image/jpeg"));
 
     var aiSw = Stopwatch.StartNew();
-    var response = await chatClient.GetResponseAsync(message);
-    aiSw.Stop();
+    var responseText = "";
+    await foreach (var update in chatClient.GetStreamingResponseAsync(message))
+    {
+        responseText += update.Text;
 
-    var responseText = response.Text;
+        var reasoning = update.Contents.FirstOrDefault() as TextReasoningContent;
+        if (reasoning?.Text != null)
+        {
+            Console.Write(reasoning.Text);
+        }
+    }
+
     var basePath = Path.ChangeExtension(fullPath, null);
 
     await File.WriteAllTextAsync(basePath + "_response.json", responseText);

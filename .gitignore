@@ -86,3 +86,4 @@ Desktop.ini
 # Package directories
 [Pp]ackages/
 node_modules/
+/FakeDocuments

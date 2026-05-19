@@ -164,6 +164,11 @@ internal sealed class AiService : IAiService
             aiResult = MarkdownHelper.FixMarkdownFromAi(aiResult);
             var title = MarkdownHelper.GetTitleFromMarkdown(aiResult);
 
+            if (string.IsNullOrWhiteSpace(title))
+            {
+                throw new InvalidOperationException($"AI returned empty title for album {albumId}");
+            }
+
             await _workingDirectory.WriteData(albumId, new AiResult(title), stoppingToken);
 
             scope.SetTag("title", title);

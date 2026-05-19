@@ -20,6 +20,11 @@ public static class DependencyInjection
                 "AlbumProcessing:FilePublisherOutputPath is required")
             .ValidateOnStart();
 
+        collection.PostConfigure<AlbumProcessingSettings>(settings =>
+        {
+            Console.WriteLine($"AlbumProcessing: TestMode={settings.TestMode}, MarkdownOutputPath={settings.MarkdownOutputPath}, FilePublisherOutputPath={settings.FilePublisherOutputPath}");
+        });
+
         collection.AddHostedService<AlbumProcessor>();
 
         collection.AddSingleton<AlbumProcessingSettings>(sp =>

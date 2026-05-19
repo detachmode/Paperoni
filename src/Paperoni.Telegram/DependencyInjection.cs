@@ -23,6 +23,10 @@ public static class DependencyInjection
                 settings.BotToken = configuration["TELEGRAM_BOT_TOKEN"] ?? "";
             }
         });
+        collection.PostConfigure<TelegramSettings>(settings =>
+        {
+            Console.WriteLine($"Telegram: BotToken={(!string.IsNullOrEmpty(settings.BotToken) ? "***" : "not set")}");
+        });
         collection.AddSingleton<TelegramSettings>(sp => sp.GetRequiredService<IOptions<TelegramSettings>>().Value);
 
         collection.AddSingleton<AlbumQueue>();

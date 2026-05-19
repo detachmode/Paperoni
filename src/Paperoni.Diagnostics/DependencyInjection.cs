@@ -8,7 +8,13 @@ public static class DependencyInjection
 {
     public static IServiceCollection AddDiagnostics(this IServiceCollection collection, IConfiguration configuration)
     {
-        collection.Configure<DiagnosticsSettings>(configuration.GetSection("Diagnostics"));
+        collection.AddOptions<DiagnosticsSettings>()
+            .Bind(configuration.GetSection("Diagnostics"))
+            .ValidateOnStart();
+        collection.PostConfigure<DiagnosticsSettings>(settings =>
+        {
+            Console.WriteLine($"Diagnostics: LogPath={settings.LogPath ?? "(default)"}");
+        });
         collection.AddSingleton<DiagnosticsSettings>(sp =>
             sp.GetRequiredService<IOptions<DiagnosticsSettings>>().Value);
 

@@ -5,6 +5,7 @@
     <Project Path="src/Paperoni.Contract/Paperoni.Contract.csproj" />
     <Project Path="src/Paperoni.Diagnostics/Paperoni.Diagnostics.csproj" />
     <Project Path="src/Paperoni.ImageProcessing/Paperoni.ImageProcessing.csproj" />
+      <Project Path="src/Paperoni.AI.ImageProcessing.Prototype/Paperoni.AI.ImageProcessing.Prototype.csproj"/>
     <Project Path="src/Paperoni.Telegram/Paperoni.Telegram.csproj" />
     <Project Path="src\Paperoni\Paperoni.csproj" />
   </Folder>
@@ -14,6 +15,8 @@
   </Folder>
   <Folder Name="/_settings/">
     <File Path=".editorconfig" />
+      <File Path=".github\workflows\ci.yml"/>
+      <File Path=".gitignore"/>
     <File Path="Directory.Build.props" />
       <File Path="Directory.Packages.props" />
       <File Path="docker-compose-example.yml"/>

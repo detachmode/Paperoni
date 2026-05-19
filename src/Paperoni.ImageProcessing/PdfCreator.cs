@@ -84,6 +84,56 @@ internal sealed class PdfCreator(
         CancellationToken ct = default)
         => await Task.Run(() => Process(imageData, options), ct);
 
+    public static byte[] ApplyCrop(byte[] imageData, Point2f[] corners, int jpegQuality = 85,
+        double? claheClipLimit = null)
+    {
+        if (corners.Length != 4)
+        {
+            throw new ArgumentException("Exactly 4 corners are required", nameof(corners));
+        }
+
+        using var src = Cv2.ImDecode(imageData, ImreadModes.Color);
+
+        var ordered = OrderCorners(corners);
+        var destSize = ComputeDestSize(ordered);
+
+        if (destSize.Width < 200 || destSize.Height < 200)
+        {
+            throw new InvalidOperationException(
+                $"Crop result too small: {destSize.Width}x{destSize.Height} (minimum 200x200)");
+        }
+
+        var dstPoints = new[]
+        {
+            new Point2f(0, 0), new Point2f(destSize.Width - 1, 0),
+            new Point2f(destSize.Width - 1, destSize.Height - 1), new Point2f(0, destSize.Height - 1)
+        };
+
+        var transform = Cv2.GetPerspectiveTransform(ordered, dstPoints);
+        using var warped = new Mat();
+        Cv2.WarpPerspective(src, warped, transform, destSize);
+
+        using var gray = new Mat();
+        if (warped.Channels() == 3)
+        {
+            Cv2.CvtColor(warped, gray, ColorConversionCodes.BGR2GRAY);
+        }
+        else
+        {
+            warped.CopyTo(gray);
+        }
+
+        if (claheClipLimit.HasValue)
+        {
+            ApplyClahe(gray, claheClipLimit.Value);
+        }
+
+        Cv2.ImEncode(".jpg", gray, out var encoded,
+            new ImageEncodingParam(ImwriteFlags.JpegQuality, jpegQuality));
+
+        return encoded;
+    }
+
     private static ProcessedImageResult Process(byte[] imageData, ImageProcessingOptions options)
     {
         var sw = Stopwatch.StartNew();
@@ -249,5 +299,11 @@ internal sealed class PdfCreator(
             var scale = 255.0 / (maxVal - minVal);
             gray.ConvertTo(gray, MatType.CV_8UC1, scale, -minVal * scale);
         }
+    }
+
+    public static void ApplyClahe(Mat gray, double clipLimit = 2.0, int tileGridSize = 8)
+    {
+        using var clahe = Cv2.CreateCLAHE(clipLimit, new Size(tileGridSize, tileGridSize));
+        clahe.Apply(gray, gray);
     }
 }

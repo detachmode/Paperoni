@@ -8,6 +8,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <InternalsVisibleTo Include="Paperoni.AI.ImageProcessing.Prototype"/>
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
     <PackageReference Include="OpenCvSharp4" />
     <PackageReference Include="QuestPDF" />

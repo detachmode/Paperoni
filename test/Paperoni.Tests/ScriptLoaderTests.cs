@@ -164,6 +164,7 @@ public class ScriptLoaderTests
             var ex = await Assert.ThrowsAsync<InvalidPipelineScriptException>(
                 () => _loader.LoadAsync(path));
             Assert.NotEmpty(ex.Message);
+            Assert.Contains("CS", ex.Message);
         }
         finally
         {

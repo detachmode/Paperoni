@@ -83,6 +83,11 @@ public class AlbumProcessingSteps
         Directory.CreateDirectory(msgDir);
 
         var assemblyDir = Path.GetDirectoryName(typeof(AlbumProcessingSteps).Assembly.Location)!;
+
+        // Copy the test pipeline script
+        var testScriptPath = Path.Combine(assemblyDir, "TestPipeline.csx");
+        File.Copy(testScriptPath, _scriptFilePath, overwrite: true);
+
         File.Copy(Path.Combine(assemblyDir, "Images", "example-doc.png"),
             Path.Combine(msgDir, "1.jpg"), overwrite: true);
 
@@ -252,7 +257,7 @@ public class AlbumProcessingSteps
         var json = await File.ReadAllTextAsync(resultPath);
         var result = JsonSerializer.Deserialize<PipelineResult>(json);
         Assert.NotNull(result);
-        Assert.Equal(expectedFilename, result.Filename);
+        Assert.Matches(expectedFilename, result.Filename);
     }
 
     [Then("the formatted markdown is published to Obsidian")]

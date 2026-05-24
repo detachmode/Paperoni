@@ -24,9 +24,6 @@ public record AlbumNote(
     [property: Description("Amount if present (gross/total), null if not applicable")]
     decimal? Amount,
 
-    [property: Description("Summary sentence")]
-    string Summary,
-
     [property: Description("Full note content formatted in markdown")]
     string MarkdownBody
 );
@@ -39,7 +36,7 @@ für die private Verwaltung.
 
 ## Anforderungen an die Extraktion
 
-### Frontmatter-Felder (YAML)
+###  Rules
 - `title`: Erstelle einen Titel nach folgendem Muster:
   **Format:** `YYYY-MM-DD Kategorie Gegenpart Tag1 Tag2`
   **Beispiel:** `2025-06-05 Auto Serer GmbH Werkstatt Rechnung`
@@ -50,13 +47,14 @@ für die private Verwaltung.
     - 2-4 relevante Tags (ohne Bindestriche, Leerzeichen getrennt)
       → Maximal 8-10 Wörter insgesamt
 
-- `document_date`: Das auf dem Dokument stehende Datum (NUR HINZUFÜGEN, WENN IM DOKUMENT EIN DATUM ZU SEHEN IST, SONST BITTE DATUM-UNBEKANNT EINTRAGEN!)
-- `counterparty`: Vertragspartner / Aussteller / andere Partei (Firma oder Person)
-- `document_type`: Art des Dokuments (z.B. "Rechnung", "Quittung", "Vertrag", "Brief", "Garantie", "Mahnung")
-- `amount`: Falls ein Geldbetrag genannt wird – der **Endbetrag (Brutto)** als Zahl (sonst leer lassen)
-- `importance`: "high", "medium" oder "low"
-- `category`: Eine der folgenden Kategorien – "[[Auto]]", "[[Motorrad]]", "[[🌱 Gesundheit]]", "[[🧑‍🍳 Kochen]]", "[[🏠 Wohnung]]", "[[Bosch]]", "[[Software development]]", "[[💶 Finanzen]]", "[[Other]]"
-- `tags`: Liste von relevanten Tags (3-6 Stück, klein geschrieben und keine Leerzeichen, z.B. rechnung, werkstatt, bezahlt, feder)
+- `DocumentDate`: Das auf dem Dokument stehende Datum
+   Wichtig! NUR HINZUFÜGEN, WENN IM DOKUMENT EIN DATUM ZU SEHEN IST, SONST BITTE LEER LASSEN !
+- `Counterparty`: Vertragspartner / Aussteller / andere Partei (Firma oder Person)
+- `DocumentType`: Art des Dokuments (z.B. "Rechnung", "Quittung", "Vertrag", "Brief", "Garantie", "Mahnung")
+- `Amount`: Falls ein Geldbetrag genannt wird – der **Endbetrag (Brutto)** als Zahl (sonst leer lassen)
+- `Importance`: "high", "medium" oder "low"
+- `Category`: Eine der folgenden Kategorien – "[[Auto]]", "[[Motorrad]]", "[[🌱 Gesundheit]]", "[[🧑‍🍳 Kochen]]", "[[🏠 Wohnung]]", "[[Bosch]]", "[[Software development]]", "[[💶 Finanzen]]", "[[Other]]"
+- `Tags`: Liste von relevanten Tags (3-6 Stück, z.B. rechnung, werkstatt, bezahlt, feder)
 
 ### Regeln für die Wichtigkeitsbewertung (importance)
 - **high**: Betrag > 400 €, oder wichtige Verträge (Mietvertrag, Arbeitsvertrag), oder Garantie-/Gewährleistungsdokumente, oder Kündigungen/Mahnungen
@@ -69,8 +67,26 @@ für die private Verwaltung.
 - Fehlende Felder einfach leer lassen (z.B. `amount: `)
 - Vor jeder Markdowntabellen IMMER eine leere Zeile einfügen!
 
-Current date and time: {CurrentDate:yyyy-MM-dd HH:mm:ss}
-{(Captions.Count > 0 ? $"User's instructions: {string.Join(" | ", Captions)}" : "")}
+### MarkdownBody
+Der MarkdownBody soll folgendes Layout haben:
+
+# Zusammenfassung
+> Kurz und prägnante zusammenfassung des dokuments. Ca. 50 Wörter
+
+# Wichtige Fakten
+> Extrahiere wichtige Fakten aus dem Dokumente.
+> Benutze Markdown Tabellen, wenn im Dokument Daten in Tabellen vorliegen, oder im Fall einer Rechnung,
+> dann die einzelnen Artikel als Tabelle
+
+
+
+
+
+
+
+### Andere Fakten
+Aktuelles Datum: {CurrentDate:yyyy-MM-dd HH:mm:ss}
+{(Captions.Count > 0 ? $"Zusätzliche Anweisungen vom Benutzer: {string.Join(" | ", Captions)}" : "")}
 """;
 
 Func<AlbumNote, string> GetFilename = note =>
@@ -82,7 +98,7 @@ Func<AlbumNote, string> GetFilename = note =>
 Func<AlbumNote, string> Format = note =>
 {
     var filename = GetFilename(note);
-    var tagsStr = string.Join(", ", (note.Tags ?? []).Select(t => $"#{t.ToLower()}"));
+    var tagsStr = string.Join(", ", (note.Tags ?? []).Select(t => $"#{t.ToLower().Replace(" ", "-")}"));
     var amountStr = note.Amount.HasValue ? note.Amount.Value.ToString("F2") : "";
     return $"""
 ---
@@ -95,8 +111,9 @@ importance: {note.Importance}
 amount: {amountStr}
 ---
 
-# Summary
+# Zusammenfassung
 {note.Summary}
+
 
 {note.MarkdownBody}
 """;

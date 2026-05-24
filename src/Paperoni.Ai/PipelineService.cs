@@ -45,6 +45,8 @@ internal sealed class PipelineService : IPipelineService
                 GetMediaType(f)
             )).ToList();
 
+            statusCallback?.Invoke(DebugOutputType.Reasoning, "AI thinking..");
+
             var prompt = script.Prompt;
             var chatOptions = new ChatOptions
             {
@@ -73,7 +75,10 @@ internal sealed class PipelineService : IPipelineService
                         }
 
                         lastDebugType = t;
-                        statusCallback?.Invoke(t, s);
+                        if (t == DebugOutputType.Timing)
+                        {
+                            statusCallback?.Invoke(DebugOutputType.PartialOutput, "AI is formulating the final output ..");
+                        }
                     }, timeoutCts.Token);
             }
             catch (OperationCanceledException) when (!stoppingToken.IsCancellationRequested)

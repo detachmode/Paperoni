@@ -5,38 +5,6 @@ So that I receive AI summaries and processed PDFs
 
 Background:
     Given the system is configured for integration testing
-    And the pipeline script is:
-        """
-using System.ComponentModel;
-using Paperoni.Ai;
-
-public record TestNote(
-    [property: Description("Title")]
-    string Title,
-
-    [property: Description("Summary")]
-    string Summary,
-
-    [property: Description("Full content in markdown")]
-    string MarkdownBody
-);
-
-var Schema = typeof(TestNote);
-
-var Prompt = "Analyse the document.";
-
-Func<TestNote, string> GetFilename = note =>
-{
-    var safe = MarkdownHelper.AutoFixDate(note.Title ?? "Unknown");
-    return MarkdownHelper.SanitizeFilename(safe);
-};
-
-Func<TestNote, string> Format = note =>
-{
-    var filename = GetFilename(note);
-    return "---\ntitle: " + filename + "\n---\n\n# " + note.Summary + "\n\n" + note.MarkdownBody;
-};
-        """
     And the processing pipeline is built
     And the pipeline is started
 
@@ -96,6 +64,7 @@ Scenario: Invalid pipeline script is reported via Telegram
     When I enqueue the message
     Then the album processing fails
     And the bot replied with "Script error"
+    And the dashboard showed "❌ Script error"
 
 Scenario: Log command returns logs and traces after album processing
     When I enqueue the message

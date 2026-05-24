@@ -22,28 +22,16 @@ public class ScriptLoader : IScriptLoader
 
         var scriptContent = await File.ReadAllTextAsync(scriptPath);
 
-        var assemblyPaths = AppDomain.CurrentDomain.GetAssemblies()
-#pragma warning disable IL3000
-            .Where(a => !a.IsDynamic && !string.IsNullOrEmpty(a.Location))
-            .Select(a => a.Location)
-#pragma warning restore IL3000
-            .Distinct()
-            .ToArray();
-
-        var scriptOptions = ScriptOptions.Default
-            .WithImports("System", "System.Collections.Generic", "System.Linq", "System.ComponentModel")
-            .WithReferences(assemblyPaths)
-            .WithReferences(typeof(MarkdownHelper).Assembly);
-
         ScriptState<object> scriptState;
         try
         {
-            scriptState = await CSharpScript.RunAsync(scriptContent, scriptOptions, globals);
+            scriptState = await CSharpScript.RunAsync(scriptContent, ScriptOptions, globals);
         }
         catch (CompilationErrorException ex)
         {
             var errors = string.Join(Environment.NewLine, ex.Diagnostics.Select(d => d.ToString()));
-            throw new InvalidPipelineScriptException($"Pipeline script compile error:{Environment.NewLine}{errors}", ex);
+            throw new InvalidPipelineScriptException($"Pipeline script compile error:{Environment.NewLine}{errors}",
+                ex);
         }
 
         var missing = s_requiredConventions
@@ -69,6 +57,32 @@ public class ScriptLoader : IScriptLoader
             FormatDelegate = formatDelegate,
             ScriptGlobals = globals ?? new ScriptGlobals([], DateTime.Now)
         };
+    }
+
+    private static ScriptOptions ScriptOptions
+    {
+        get
+        {
+            if(field != null)
+            {
+                return field;
+            }
+
+            var assemblyPaths = AppDomain.CurrentDomain.GetAssemblies()
+#pragma warning disable IL3000
+                .Where(a => !a.IsDynamic && !string.IsNullOrEmpty(a.Location))
+                .Select(a => a.Location)
+#pragma warning restore IL3000
+                .Distinct()
+                .ToArray();
+
+            var scriptOptions = ScriptOptions.Default
+                .WithImports("System", "System.Collections.Generic", "System.Linq", "System.ComponentModel")
+                .WithReferences(assemblyPaths);
+            field = scriptOptions;
+
+            return field;
+        }
     }
 
     private static object? GetScriptVariable(ScriptState<object> state, string name)

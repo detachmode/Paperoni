@@ -5,22 +5,37 @@ Feature: Album Processing Smoke (Real AI)
 
 	Scenario: Single photo album is processed end-to-end with real AI
 		Given the system is configured for real AI integration testing
-		And the prompt template is:
+		And the pipeline script is:
 		"""
-Analyse the following document and extract the text.
-Extrakt the full visible content and return it as a markdown.
+using System.ComponentModel;
+using Paperoni.Ai;
 
-## Output format (Markdown)
+public record AlbumNote(
+    [property: Description("Title of the document")]
+    string Title,
 
----
-title: put here the heading you find in the document
----
+    [property: Description("Short summary")]
+    string Summary,
 
-# Summary
-Short summary of the document
+    [property: Description("Full content in markdown")]
+    string MarkdownBody
+);
 
-# Complete Text
-Extracted text from the document.
+var Schema = typeof(AlbumNote);
+
+var Prompt = "Analyse the following document and extract the text. Return a short summary and the complete visible text as markdown.";
+
+Func<AlbumNote, string> GetFilename = note =>
+{
+    var safe = MarkdownHelper.AutoFixDate(note.Title ?? "Unknown");
+    return MarkdownHelper.SanitizeFilename(safe);
+};
+
+Func<AlbumNote, string> Format = note =>
+{
+    var filename = GetFilename(note);
+    return "---\ntitle: " + filename + "\n---\n\n# " + note.Summary + "\n\n" + note.MarkdownBody;
+};
 		"""
 		And the real AI processing pipeline is built
 		When I enqueue a photo with caption "Test document"

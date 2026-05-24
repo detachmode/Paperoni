@@ -24,7 +24,7 @@ public class AlbumProcessingSmokeSteps
     private readonly ITestOutputHelper _output;
     private CancellationTokenSource? _cts;
     private string _outputDir = null!;
-    private string _promptFilePath = null!;
+    private string _scriptFilePath = null!;
     private AlbumQueue _queue = null!;
 
     private bool _servicesStarted;
@@ -44,7 +44,7 @@ public class AlbumProcessingSmokeSteps
         _tempBase = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
         _outputDir = Path.Combine(_tempBase, "test-output");
         Directory.CreateDirectory(_tempBase);
-        _promptFilePath = Path.Combine(_tempBase, "prompt.md");
+        _scriptFilePath = Path.Combine(_tempBase, "pipeline.csx");
 
         var msgDir = Path.Combine(_tempBase, TestMessageId.ToString());
         Directory.CreateDirectory(msgDir);
@@ -80,10 +80,10 @@ public class AlbumProcessingSmokeSteps
             .Build();
     }
 
-    [Given("the prompt template is:")]
-    public async Task GivenPromptTemplate(string prompt)
+    [Given("the pipeline script is:")]
+    public async Task GivenPipelineScript(string script)
     {
-        await File.WriteAllTextAsync(_promptFilePath, prompt);
+        await File.WriteAllTextAsync(_scriptFilePath, script);
     }
 
     [Given("the real AI processing pipeline is built")]
@@ -92,7 +92,7 @@ public class AlbumProcessingSmokeSteps
         var config = new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?>
             {
-                ["Ai:PromptFilePath"] = _promptFilePath,
+                ["AlbumProcessing:ScriptFilePath"] = _scriptFilePath,
                 ["AlbumProcessing:TestMode"] = "true",
                 ["AlbumProcessing:TestModeOutputPath"] = _outputDir,
                 ["AlbumProcessing:MarkdownOutputPath"] = _outputDir,
@@ -182,9 +182,9 @@ public class AlbumProcessingSmokeSteps
         var lines = File.ReadAllLines(traceLogPath);
         var joined = string.Join("\n", lines);
         Assert.Contains("AlbumProcessor.ExecuteAsync", joined);
-        Assert.Contains("AiService.CreateAiSummary", joined);
+        Assert.Contains("PipelineService.RunAsync", joined);
         Assert.Contains("PdfCreator.CreatePdf", joined);
-        Assert.Contains("FilePublisher.PublishFileAsync", joined);
+        Assert.Contains("FilePublisher.PublishStringAsync", joined);
     }
 
     [AfterScenario]

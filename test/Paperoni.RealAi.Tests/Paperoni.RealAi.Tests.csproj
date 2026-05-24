@@ -13,6 +13,7 @@
     <PackageReference Include="Microsoft.Extensions.Logging" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" />
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Scripting" />
     <PackageReference Include="OpenTelemetry" />
     <PackageReference Include="Reqnroll" />
     <PackageReference Include="Reqnroll.xUnit" />

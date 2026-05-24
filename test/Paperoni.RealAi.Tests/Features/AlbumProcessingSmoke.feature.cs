@@ -159,40 +159,55 @@ namespace Paperoni.RealAi.Tests.Features
   await testRunner.GivenAsync("the system is configured for real AI integration testing", ((string)(null)), ((global::Reqnroll.Table)(null)), "Given ");
 #line hidden
 #line 8
-  await testRunner.AndAsync("the prompt template is:", @"Analyse the following document and extract the text.
-Extrakt the full visible content and return it as a markdown.
+  await testRunner.AndAsync("the pipeline script is:", @"using System.ComponentModel;
+using Paperoni.Ai;
 
-## Output format (Markdown)
+public record AlbumNote(
+  [property: Description(""Title of the document"")]
+  string Title,
 
----
-title: put here the heading you find in the document
----
+  [property: Description(""Short summary"")]
+  string Summary,
 
-# Summary
-Short summary of the document
+  [property: Description(""Full content in markdown"")]
+  string MarkdownBody
+);
 
-# Complete Text
-Extracted text from the document.", ((global::Reqnroll.Table)(null)), "And ");
+var Schema = typeof(AlbumNote);
+
+var Prompt = ""Analyse the following document and extract the text. Return a short summary and the complete visible text as markdown."";
+
+Func<AlbumNote, string> GetFilename = note =>
+{
+  var safe = MarkdownHelper.AutoFixDate(note.Title ?? ""Unknown"");
+  return MarkdownHelper.SanitizeFilename(safe);
+};
+
+Func<AlbumNote, string> Format = note =>
+{
+  var filename = GetFilename(note);
+  return ""---\ntitle: "" + filename + ""\n---\n\n# "" + note.Summary + ""\n\n"" + note.MarkdownBody;
+};", ((global::Reqnroll.Table)(null)), "And ");
 #line hidden
-#line 25
+#line 40
   await testRunner.AndAsync("the real AI processing pipeline is built", ((string)(null)), ((global::Reqnroll.Table)(null)), "And ");
 #line hidden
-#line 26
+#line 41
   await testRunner.WhenAsync("I enqueue a photo with caption \"Test document\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "When ");
 #line hidden
-#line 27
+#line 42
   await testRunner.ThenAsync("the album is processed with real AI", ((string)(null)), ((global::Reqnroll.Table)(null)), "Then ");
 #line hidden
-#line 28
+#line 43
   await testRunner.AndAsync("a PDF is created", ((string)(null)), ((global::Reqnroll.Table)(null)), "And ");
 #line hidden
-#line 29
+#line 44
   await testRunner.AndAsync("the summary is published to Obsidian", ((string)(null)), ((global::Reqnroll.Table)(null)), "And ");
 #line hidden
-#line 30
+#line 45
   await testRunner.AndAsync("the PDF is published to the output directory", ((string)(null)), ((global::Reqnroll.Table)(null)), "And ");
 #line hidden
-#line 31
+#line 46
   await testRunner.AndAsync("the trace log contains expected traces", ((string)(null)), ((global::Reqnroll.Table)(null)), "And ");
 #line hidden
             }

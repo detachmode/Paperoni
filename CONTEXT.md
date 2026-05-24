@@ -19,8 +19,12 @@ _Avoid_: Image (prefer Photo when it comes from Telegram specifically; Image is 
 **Working Directory**:
 A per-message folder on disk (`{DownloadBasePath}/{messageId}/`) where downloaded photos, metadata JSON, AI response, and the generated PDF live during processing.
 
-**AI Summary**:
-The Markdown document produced by the LLM describing the contents of an album's photos. Written to `firstAiResponse.md` and the title is persisted as `AiResult.json`.
+**Pipeline Script**:
+A C# script (`.csx`) that defines the schema, prompt, filename logic, and output format for the pipeline. Loaded fresh on every album processing cycle. Must define four conventions: `Schema` (Type), `Prompt` (string), `GetFilename` (method), and `Format` (method). Compile errors are sent to the user via Telegram.
+_Avoid_: Config file, template, extension
+
+**Pipeline Result**:
+A JSON file (`PipelineResult.json`) persisted in the **Working Directory** containing the deserialized LLM record and the computed filename. Used for retry/delete operations without re-executing the pipeline script.
 
 **PDF**:
 The final A4 document combining all processed photos, one per page with 1cm margins. Generated via QuestPDF after the OpenCV correction pipeline.
@@ -33,7 +37,7 @@ A component that edits the bot's reply message with emoji-prefixed progress stat
 _Avoid_: Notifier, status updater
 
 **File Publisher**:
-A generic component that copies a file from the **Working Directory** to a configured output directory. Registered as two keyed singletons — one for Markdown (`PublisherTarget.Markdown`) and one for PDF (`PublisherTarget.Pdf`).
+A component that writes pipeline output to a configured destination. The Markdown publisher writes a string directly; the PDF publisher copies a file from the **Working Directory**. Registered as two keyed singletons — one for Markdown (`PublisherTarget.Markdown`) and one for PDF (`PublisherTarget.Pdf`).
 
 **ActivityScope**:
 A null-safe wrapper around `System.Diagnostics.Activity` that auto-tags `AlbumId` from the ambient **AlbumIdAccessor**,
@@ -50,16 +54,18 @@ _Avoid_: Passing `msgId` as a parameter to every trace call.
 
 - An **Album** is composed of one or more **Photos**
 - An **Album** has exactly one **Working Directory**
-- A **Working Directory** contains the raw **Photos**, the **AI Summary**, and the **PDF**
-- Processing an **Album** produces one **AI Summary** and one **PDF**
-- The **AI Summary** is published via the **File Publisher** (Markdown target)
+- A **Working Directory** contains the raw **Photos**, the LLM raw response, the **Pipeline Result**, and the **PDF**
+- Processing an **Album** produces one formatted output (Markdown) and one **PDF**
+- The **Pipeline Script** defines the LLM schema, prompt, filename, and output format
+- The **Pipeline Result** stores the LLM record and computed filename for retry/delete without re-running the script
+- The Markdown output is published via the **File Publisher** (Markdown target)
 - The **PDF** is published via the **File Publisher** (PDF target)
 - The **Telegram Replier** sends progress updates throughout the pipeline
 
 ## Example dialogue
 
-> **Dev:** "If an **Album** has no caption, does the **AI Summary** still get written?"
-> **User:** "Yes — the **AI Summary** just won't include 'User's instructions'. The base prompt still applies."
+> **Dev:** "If an **Album** has no caption, does the formatted output still get written?"
+> **User:** "Yes — the **Pipeline Script** determines how captions are included. The pipeline injects them as script globals regardless."
 
 > **Dev:** "What if OpenCV doesn't find a document in a **Photo**?"
 > **User:** "It skips the perspective warp and still applies grayscale + auto-levels. The **Processed Image** just isn't cropped."

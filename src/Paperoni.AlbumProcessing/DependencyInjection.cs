@@ -8,6 +8,11 @@ namespace Paperoni.AlbumProcessing;
 
 public static class DependencyInjection
 {
+    public static async Task ValidateAlbumProcessingSetup(this IServiceProvider services)
+    {
+        var processingSettings = services.GetRequiredService<AlbumProcessingSettings>();
+        await services.GetRequiredService<IScriptLoader>().LoadAsync(processingSettings.ScriptFilePath, new ScriptGlobals([], DateTime.Now));
+    }
     public static IServiceCollection AddAlbumProcessor(this IServiceCollection collection, IConfiguration configuration)
     {
         collection.AddOptions<AlbumProcessingSettings>()

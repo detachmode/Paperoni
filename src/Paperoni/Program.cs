@@ -63,4 +63,7 @@ builder.Services.AddOpenTelemetry()
             scheduledDelayMilliseconds: 5000)));
 
 var host = builder.Build();
+
+await host.Services.ValidateAlbumProcessingSetup();
+
 host.Run();

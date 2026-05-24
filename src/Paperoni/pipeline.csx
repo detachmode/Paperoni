@@ -53,7 +53,7 @@ für die private Verwaltung.
 - `DocumentDate`: Das auf dem Dokument stehende Datum
    Wichtig! NUR HINZUFÜGEN, WENN IM DOKUMENT EIN DATUM ZU SEHEN IST, SONST BITTE LEER LASSEN !
 - `Counterparty`: Vertragspartner / Aussteller / andere Partei (Firma oder Person)
-- `Area`: Eine der folgenden Areas: Auto, Motorrad, 🌱 Gesundheit, ,🧑‍🍳 Kochen, 🏠 Wohnung, Bosch (meine Arbeitgeber), Software development (Hobby Projekte), 💶 Finanzen, Other
+- `Area`: Eine der folgenden Areas: Auto, Motorrad, 🌱 Gesundheit, 🧑‍🍳 Kochen, 🏠 Wohnung, Bosch (meine Arbeitgeber), Software development (Hobby Projekte), 💶 Finanzen, 🧐 Other
 - `Tags`: Liste von relevanten Tags (3-6 Stück, z.B. rechnung, werkstatt, bezahlt, feder)
 
 ### Regeln für die Wichtigkeitsbewertung (importance)
@@ -67,20 +67,21 @@ für die private Verwaltung.
 - Fehlende Felder einfach leer lassen (z.B. `amount: `)
 - Vor jeder Markdowntabellen IMMER eine leere Zeile einfügen!
 
+### Andere Fakten
+Aktuelles Datum: {CurrentDate:yyyy-MM-dd HH:mm:ss}
+{(Captions.Count > 0 ? $"Zusätzliche Anweisungen vom Benutzer: {string.Join(" | ", Captions)}" : "")}
+
 ### MarkdownBody
 Der MarkdownBody soll folgendes Layout haben:
 
 # Zusammenfassung
-> Kurz und prägnante zusammenfassung des dokuments. Ca. 50 Wörter
+Kurz und prägnante zusammenfassung des dokuments. Ca. 50 Wörter
 
 # Wichtige Fakten
-> Extrahiere wichtige Fakten aus dem Dokumente.
-> Benutze Markdown Tabellen, wenn im Dokument Daten in Tabellen vorliegen, oder im Fall einer Rechnung,
-> dann die einzelnen Artikel als Tabelle
+Extrahiere wichtige Fakten aus dem Dokumente.
+Benutze Markdown Tabellen, wenn im Dokument Daten in Tabellen vorliegen, oder im Fall einer Rechnung,
+dann die einzelnen Artikel als Tabelle
 
-### Andere Fakten
-Aktuelles Datum: {CurrentDate:yyyy-MM-dd HH:mm:ss}
-{(Captions.Count > 0 ? $"Zusätzliche Anweisungen vom Benutzer: {string.Join(" | ", Captions)}" : "")}
 """;
 
 Func<AlbumNote, string> GetFilename = note =>
@@ -92,17 +93,23 @@ Func<AlbumNote, string> GetFilename = note =>
 Func<AlbumNote, string> Format = note =>
 {
     var filename = GetFilename(note);
-    var tagsStr = string.Join(", ", (note.Tags ?? []).Select(t => $"#{t.ToLower().Replace(" ", "-")}"));
-    var amountStr = note.Amount.HasValue ? note.Amount.Value.ToString("F2") : "";
+    var tagList = string.Join("\n",
+        (note.Tags ?? [])
+        .Select(t => t.ToLower().Replace(" ", "-"))
+        .Select(t => $"""  - "{t}" """)
+        );
+    var amountStr = note.Amount.HasValue ? $"amount: {note.Amount.Value:F2}" : "";
     return $"""
 ---
 pdf: "[[{filename}.pdf]]"
-title: {filename}
-tags: [{tagsStr}]
 counterparty: {note.Counterparty}
 document_type: {note.DocumentType}
 importance: {note.Importance}
-amount: {amountStr}
+{amountStr}
+parent:
+  - "[[{note.Area}]]"
+tags:
+{tagList}
 ---
 
 {note.MarkdownBody}

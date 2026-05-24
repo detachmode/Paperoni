@@ -40,10 +40,8 @@ public static class DependencyInjection
             Console.WriteLine($"├─ Endpoint: {settings.Endpoint}");
             Console.WriteLine($"├─ Model: {settings.Model}");
             Console.WriteLine($"├─ ApiKey: {(!string.IsNullOrEmpty(settings.ApiKey) ? "***" : "not set")}");
-            Console.WriteLine($"├─ ScriptFile: {settings.ScriptFilePath}");
             Console.WriteLine($"└─ Timeout: {settings.TimeoutSeconds} seconds");
 
-            // Model={settings.Model}, Endpoint={settings.Endpoint}, PromptFile={settings.PromptFilePath}, Timeout={settings.TimeoutSeconds}s");
             return settings;
         });
         collection.AddChatClient(sp =>

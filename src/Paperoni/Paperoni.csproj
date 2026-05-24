@@ -34,11 +34,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Update="Prompt.md">
+    <None Remove="defaultPipeline.csx" />
+    <Content Include="defaultPipeline.csx">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Update="defaultPipeline.csx">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
+    </Content>
   </ItemGroup>
 </Project>

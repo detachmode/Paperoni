@@ -45,8 +45,6 @@ internal sealed class PipelineService : IPipelineService
                 GetMediaType(f)
             )).ToList();
 
-            statusCallback?.Invoke(DebugOutputType.Reasoning, "AI thinking..");
-
             var prompt = script.Prompt;
             var chatOptions = new ChatOptions
             {

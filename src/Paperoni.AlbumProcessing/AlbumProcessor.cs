@@ -87,8 +87,8 @@ internal class AlbumProcessor(
             catch (InvalidPipelineScriptException ex)
             {
                 logger.AlbumProcessingError(ex, albumId);
-                await telegram.EditReply(albumId, "Script error: " + ex.Message);
-                await telegram.UpdateDashboard(albumId, $"❌ Script error", queue.PendingCount);
+                await telegram.EditReply(albumId, FormatError("Script error", ex));
+                await telegram.UpdateDashboard(albumId, "❌ Script error", queue.PendingCount);
                 return false;
             }
 
@@ -159,9 +159,33 @@ internal class AlbumProcessor(
         catch (Exception e)
         {
             logger.AlbumProcessingError(e, albumId);
-            await telegram.EditReply(albumId, "Failed to process: " + e.Message);
+            await telegram.EditReply(albumId, FormatError("Failed to process", e));
             await telegram.UpdateDashboard(albumId, $"❌ Failed: {e.Message}", queue.PendingCount);
             return false;
         }
+    }
+
+    private static string FormatError(string prefix, Exception ex)
+    {
+        var sb = new System.Text.StringBuilder();
+        sb.Append(prefix).Append(": ").Append(ex.Message);
+        if (ex.InnerException is not null)
+        {
+            sb.AppendLine().Append("→ ").Append(ex.InnerException.Message);
+        }
+
+        if (!string.IsNullOrWhiteSpace(ex.StackTrace))
+        {
+            sb.AppendLine().Append(ex.StackTrace);
+        }
+
+        const int maxLength = 3900;
+        if (sb.Length > maxLength)
+        {
+            sb.Length = maxLength;
+            sb.AppendLine().Append("...(truncated)");
+        }
+
+        return sb.ToString();
     }
 }

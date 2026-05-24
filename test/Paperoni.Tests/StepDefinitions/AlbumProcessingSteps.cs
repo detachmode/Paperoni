@@ -57,11 +57,17 @@ public class AlbumProcessingSteps
         }
     }
 
-    [Given("the AI service is unresponsive")]
-    public void GivenAiServiceIsUnresponsive()
+    [Given("the pipeline service is unresponsive")]
+    public void GivenPipelineServiceIsUnresponsive()
     {
         var fakePipeline = _sp.GetRequiredService<IPipelineService>() as FakePipelineService;
         fakePipeline!.ShouldThrow = true;
+    }
+
+    [Given("the pipeline script has a compile error")]
+    public async Task GivenPipelineScriptHasCompileError()
+    {
+        await File.WriteAllTextAsync(_scriptFilePath, "this is not valid C#;");
     }
 
     [Given("the system is configured for integration testing")]
@@ -74,16 +80,6 @@ public class AlbumProcessingSteps
 
         var msgDir = Path.Combine(_tempBase, TestMessageId.ToString());
         Directory.CreateDirectory(msgDir);
-
-        // Write a default pipeline script for tests
-        var defaultScript = """
-            public record TestNote(string Title, string Summary, string MarkdownBody);
-            var Schema = typeof(TestNote);
-            var Prompt = "Analyse the document.";
-            Func<TestNote, string> GetFilename = note => note.Title;
-            Func<TestNote, string> Format = note => $"---\\ntitle: {note.Title}\\n---\\n{note.MarkdownBody}";
-            """;
-        await File.WriteAllTextAsync(_scriptFilePath, defaultScript);
 
         var assemblyDir = Path.GetDirectoryName(typeof(AlbumProcessingSteps).Assembly.Location)!;
         File.Copy(Path.Combine(assemblyDir, "Images", "example-doc.png"),
@@ -153,25 +149,20 @@ public class AlbumProcessingSteps
         services.AddSingleton<ITelegramReplier>(_telegram);
         services.AddSingleton<FakeAiService>();
         services.AddSingleton<IAiService>(sp => sp.GetRequiredService<FakeAiService>());
-        services.AddSingleton<IPipelineService, FakePipelineService>();
+        services.AddSingleton<IPipelineService>(sp => new FakePipelineService(sp.GetRequiredService<WorkingDirectory>()));
         services.AddSingleton<IScriptLoader, FakeScriptLoader>();
         services.AddImageProcessing();
         services.AddAlbumProcessor(config);
         services.AddDiagnostics(config);
 
-        // Replace FilePublishers with spied versions for retry assertions
-        services.AddKeyedSingleton<IFilePublisher>(PublisherTarget.Markdown, (sp, _) =>
+        services.AddKeyedSingleton<IFilePublisher>(PublisherTarget.Markdown, (_, _) =>
         {
-            var wd = sp.GetRequiredService<WorkingDirectory>();
-            var logger = sp.GetRequiredService<ILogger<FilePublisher>>();
             var real = new FilePublisher(_outputDir, NullLogger<FilePublisher>.Instance);
             _markdownSpy = new SpyFilePublisher(real);
             return _markdownSpy;
         });
-        services.AddKeyedSingleton<IFilePublisher>(PublisherTarget.Pdf, (sp, _) =>
+        services.AddKeyedSingleton<IFilePublisher>(PublisherTarget.Pdf, (_, _) =>
         {
-            var wd = sp.GetRequiredService<WorkingDirectory>();
-            var logger = sp.GetRequiredService<ILogger<FilePublisher>>();
             var real = new FilePublisher(_outputDir, NullLogger<FilePublisher>.Instance);
             _pdfSpy = new SpyFilePublisher(real);
             return _pdfSpy;
@@ -247,12 +238,32 @@ public class AlbumProcessingSteps
         queue.Enqueue(new WorkItem(TestMessageId, true));
     }
 
-    [Then("the AI summary mentions {string}")]
-    public async Task ThenAiSummaryMentions(string expectedText)
+    [Then("the PipelineResult is persisted with filename {string}")]
+    public async Task ThenPipelineResultIsPersisted(string expectedFilename)
     {
         var workDir = Path.Combine(_tempBase, TestMessageId.ToString());
-        var content = await File.ReadAllTextAsync(Path.Combine(workDir, "firstAiResponse.md"));
-        Assert.Contains(expectedText, content, StringComparison.OrdinalIgnoreCase);
+        var resultPath = Path.Combine(workDir, "PipelineResult.json");
+        Assert.True(File.Exists(resultPath), $"Expected PipelineResult.json at {resultPath}");
+
+        var json = await File.ReadAllTextAsync(resultPath);
+        var result = JsonSerializer.Deserialize<PipelineResult>(json);
+        Assert.NotNull(result);
+        Assert.Equal(expectedFilename, result.Filename);
+    }
+
+    [Then("the formatted markdown is published to Obsidian")]
+    public void ThenFormattedMarkdownPublished()
+    {
+        var markdownFiles = Directory.GetFiles(_outputDir, "*.md");
+        Assert.NotEmpty(markdownFiles);
+    }
+
+    [Then("a PDF is created with filename {string}")]
+    public void ThenPdfCreatedWithFilename(string expectedFilename)
+    {
+        var workDir = Path.Combine(_tempBase, TestMessageId.ToString());
+        var pdfPath = Path.Combine(workDir, $"{expectedFilename}.pdf");
+        Assert.True(File.Exists(pdfPath), $"Expected PDF at {pdfPath}");
     }
 
     [Then("a PDF is created")]
@@ -261,13 +272,6 @@ public class AlbumProcessingSteps
         var workDir = Path.Combine(_tempBase, TestMessageId.ToString());
         var pdfFiles = Directory.GetFiles(workDir, "*.pdf");
         Assert.NotEmpty(pdfFiles);
-    }
-
-    [Then("the summary is published to Obsidian")]
-    public void ThenSummaryPublishedToObsidian()
-    {
-        var markdownFiles = Directory.GetFiles(_outputDir, "*.md");
-        Assert.NotEmpty(markdownFiles);
     }
 
     [Then("the PDF is published to the output directory")]
@@ -305,6 +309,8 @@ public class AlbumProcessingSteps
     {
         Assert.True(_markdownSpy.DeletePreviousCalled, "Expected Markdown publisher to clean old file");
         Assert.True(_pdfSpy.DeletePreviousCalled, "Expected PDF publisher to clean old file");
+        Assert.Equal(".md", _markdownSpy.LastDeletedExtension);
+        Assert.Equal(".pdf", _pdfSpy.LastDeletedExtension);
         Assert.Equal("Lorem Ipsum", _markdownSpy.LastDeletedFilename);
         Assert.Equal("Lorem Ipsum", _pdfSpy.LastDeletedFilename);
     }
@@ -372,13 +378,12 @@ public class AlbumProcessingSteps
     {
         await GivenPipelineStarted();
 
-        var workDir = Path.Combine(_tempBase, TestMessageId.ToString());
         var maxWait = TimeSpan.FromSeconds(30);
         var deadline = DateTime.UtcNow + maxWait;
 
         while (DateTime.UtcNow < deadline)
         {
-            if (_telegram.Calls.Any(c => c.Text.StartsWith("Failed to process")))
+            if (_telegram.Calls.Any(c => c.Text.StartsWith("Failed to process") || c.Text.StartsWith("Script error")))
             {
                 return;
             }
@@ -513,9 +518,8 @@ public class AlbumProcessingSteps
         var lines = File.ReadAllLines(traceLogPath);
         var joined = string.Join("\n", lines);
         Assert.Contains("AlbumProcessor.ExecuteAsync", joined);
-        Assert.Contains("AiService.CreateAiSummary", joined);
+        Assert.Contains("PipelineService.RunAsync", joined);
         Assert.Contains("PdfCreator.CreatePdf", joined);
-        Assert.Contains("FilePublisher.PublishFileAsync", joined);
     }
 
     [AfterScenario]

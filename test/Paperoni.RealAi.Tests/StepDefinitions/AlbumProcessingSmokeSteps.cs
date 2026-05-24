@@ -97,6 +97,8 @@ public class AlbumProcessingSmokeSteps
                 ["AlbumProcessing:TestModeOutputPath"] = _outputDir,
                 ["AlbumProcessing:MarkdownOutputPath"] = _outputDir,
                 ["AlbumProcessing:PdfOutputPath"] = _outputDir,
+                ["Ai:Endpoint"] = Environment.GetEnvironmentVariable("AI_ENDPOINT") ?? "http://localhost:2276",
+                ["Ai:Model"] = Environment.GetEnvironmentVariable("AI_MODEL") ?? "qwen-3.6-35b-a3b-q4",
             })
             .Build();
 

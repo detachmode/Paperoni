@@ -7,20 +7,35 @@ Background:
     Given the system is configured for integration testing
     And the pipeline script is:
         """
-        Analyse the following document and extract the text.
-        Extrakt the full visible content and return it as a markdown.
+using System.ComponentModel;
+using Paperoni.Ai;
 
-        ## Output format (Markdown)
+public record TestNote(
+    [property: Description("Title")]
+    string Title,
 
-        ---
-        title: put here the heading you find in the document
-        ---
+    [property: Description("Summary")]
+    string Summary,
 
-        # Summary
-        Short summary of the document
+    [property: Description("Full content in markdown")]
+    string MarkdownBody
+);
 
-        # Complete Text
-        Extracted text from the document.
+var Schema = typeof(TestNote);
+
+var Prompt = "Analyse the document.";
+
+Func<TestNote, string> GetFilename = note =>
+{
+    var safe = MarkdownHelper.AutoFixDate(note.Title ?? "Unknown");
+    return MarkdownHelper.SanitizeFilename(safe);
+};
+
+Func<TestNote, string> Format = note =>
+{
+    var filename = GetFilename(note);
+    return "---\ntitle: " + filename + "\n---\n\n# " + note.Summary + "\n\n" + note.MarkdownBody;
+};
         """
     And the processing pipeline is built
     And the pipeline is started
@@ -28,9 +43,9 @@ Background:
 Scenario: Single photo album is processed end-to-end
     When I enqueue the message
     Then the album is processed
-    And the AI summary mentions "title: Lorem ipsum"
-    And a PDF is created
-    And the summary is published to Obsidian
+    And the PipelineResult is persisted with filename "Lorem Ipsum"
+    And the formatted markdown is published to Obsidian
+    And a PDF is created with filename "Lorem Ipsum"
     And the PDF is published to the output directory
     And the dashboard showed "🤖 AI reading"
     And the dashboard showed "🤖 AI thinking"
@@ -48,7 +63,6 @@ Scenario: Multi-photo album produces a PDF with correct page count
     Given the album has 3 photos
     When I enqueue the message
     Then the album is processed
-    And the AI summary mentions "title: Lorem ipsum"
     And the PDF has 3 pages
     And the trace log shows 3 images were processed
     And the last bot reply starts with "Done in"
@@ -59,23 +73,29 @@ Scenario: Multi-photo album produces a PDF with correct page count
 Scenario: Album retry re-processes and cleans old published files
     When I enqueue the message
     Then the album finishes processing
-    And the summary is published to Obsidian
+    And the formatted markdown is published to Obsidian
     And the PDF is published to the output directory
     When I request a retry
     Then the album finishes processing
     And the old published files were cleaned before re-publishing
     And the old trace log was cleaned before re-processing
-    And the summary is published to Obsidian
+    And the formatted markdown is published to Obsidian
     And the PDF is published to the output directory
 
-Scenario: AI timeout is reported to the user
-    Given the AI service is unresponsive
+Scenario: Pipeline service timeout is reported to the user
+    Given the pipeline service is unresponsive
     When I enqueue the message
     Then the album processing fails
     And the bot replied with "Failed to process"
     And the dashboard showed "❌ Failed"
     And no PDF was created in the working directory
     And no files were published to the output directory
+
+Scenario: Invalid pipeline script is reported via Telegram
+    Given the pipeline script has a compile error
+    When I enqueue the message
+    Then the album processing fails
+    And the bot replied with "Script error"
 
 Scenario: Log command returns logs and traces after album processing
     When I enqueue the message

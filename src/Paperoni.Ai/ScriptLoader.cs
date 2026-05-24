@@ -24,9 +24,11 @@ public class ScriptLoader : IScriptLoader
         var scriptOptions = ScriptOptions.Default
             .WithImports("System", "System.Collections.Generic", "System.Linq", "System.ComponentModel")
             .WithReferences(
+#pragma warning disable IL3000
                 AppDomain.CurrentDomain.GetAssemblies()
                     .Where(a => !a.IsDynamic && !string.IsNullOrEmpty(a.Location))
                     .ToArray())
+#pragma warning restore IL3000
             .WithReferences(typeof(MarkdownHelper).Assembly);
 
         ScriptState<object> scriptState;

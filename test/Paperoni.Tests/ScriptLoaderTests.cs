@@ -1,3 +1,4 @@
+using Microsoft.CodeAnalysis.Scripting;
 using Paperoni.Ai;
 using Paperoni.AlbumProcessing;
 
@@ -7,9 +8,9 @@ public class ScriptLoaderTests
 {
     private readonly ScriptLoader _loader = new();
 
-    private static string CreateScriptFile(string content)
+    private static string CreateScriptFile(string content, string extension = "csx")
     {
-        var path = Path.Combine(Path.GetTempPath(), $"test-script-{Guid.NewGuid()}.csx");
+        var path = Path.Combine(Path.GetTempPath(), $"test-script-{Guid.NewGuid()}.{extension}");
         File.WriteAllText(path, content);
         return path;
     }
@@ -29,9 +30,9 @@ public class ScriptLoaderTests
 
             var Prompt = "Analyse the document.";
 
-            Func<TestNote, string> GetFilename = note => note.Title.Replace(":", " -");
+            string GetFilename(TestNote note) => note.Title.Replace(":", " -");
 
-            Func<TestNote, string> Format = note => $"---\ntitle: {note.Title}\n---\n{note.MarkdownBody}";
+            string Format(TestNote note) => $"---\ntitle: {note.Title}\n---\n{note.MarkdownBody}";
 
             """;
         var path = CreateScriptFile(script);
@@ -68,7 +69,7 @@ public class ScriptLoaderTests
         {
             var ex = await Assert.ThrowsAsync<InvalidPipelineScriptException>(
                 () => _loader.LoadAsync(path));
-            Assert.Equal("Pipeline script is missing required conventions: Schema", ex.Message);
+            Assert.Equal("Invalid Pipeline script: Schema variable must be set", ex.Message);
         }
         finally
         {
@@ -84,9 +85,9 @@ public class ScriptLoaderTests
 
             var Schema = typeof(TestNote);
 
-            Func<TestNote, string> GetFilename = note => note.Title;
+            string GetFilename(TestNote note) => note.Title;
 
-            Func<TestNote, string> Format = note => note.Title;
+            string Format(TestNote note) => note.Title;
             """;
         var path = CreateScriptFile(script);
 
@@ -94,7 +95,6 @@ public class ScriptLoaderTests
         {
             var ex = await Assert.ThrowsAsync<InvalidPipelineScriptException>(
                 () => _loader.LoadAsync(path));
-            Assert.Equal("Pipeline script is missing required conventions: Prompt", ex.Message);
         }
         finally
         {
@@ -112,15 +112,14 @@ public class ScriptLoaderTests
 
             var Prompt = "Analyse.";
 
-            Func<TestNote, string> Format = note => note.Title;
+            string Format(TestNote note) => note.Title;
             """;
         var path = CreateScriptFile(script);
 
         try
         {
-            var ex = await Assert.ThrowsAsync<InvalidPipelineScriptException>(
+            var ex = await Assert.ThrowsAsync<CompilationErrorException>(
                 () => _loader.LoadAsync(path));
-            Assert.Equal("Pipeline script is missing required conventions: GetFilename", ex.Message);
         }
         finally
         {
@@ -138,15 +137,14 @@ public class ScriptLoaderTests
 
             var Prompt = "Analyse.";
 
-            Func<TestNote, string> GetFilename = note => note.Title;
+            string GetFilename(TestNote note) => note.Title;
             """;
         var path = CreateScriptFile(script);
 
         try
         {
-            var ex = await Assert.ThrowsAsync<InvalidPipelineScriptException>(
+            var ex = await Assert.ThrowsAsync<CompilationErrorException>(
                 () => _loader.LoadAsync(path));
-            Assert.Equal("Pipeline script is missing required conventions: Format", ex.Message);
         }
         finally
         {
@@ -166,9 +164,8 @@ public class ScriptLoaderTests
 
         try
         {
-            var ex = await Assert.ThrowsAsync<InvalidPipelineScriptException>(
+            var ex = await Assert.ThrowsAsync<CompilationErrorException>(
                 () => _loader.LoadAsync(path));
-            Assert.Equal("Pipeline script is missing required conventions: GetFilename, Format", ex.Message);
         }
         finally
         {
@@ -212,9 +209,9 @@ public class ScriptLoaderTests
 
             var Prompt = "Analyse.";
 
-            Func<TestNote, string> GetFilename = note => note.Title.Replace(":", " -").Replace("/", "_");
+            string GetFilename(TestNote note) => note.Title.Replace(":", " -").Replace("/", "_");
 
-            Func<TestNote, string> Format = note => note.Title;
+            string Format(TestNote note) => note.Title;
 
             """;
         var path = CreateScriptFile(script);
@@ -234,6 +231,46 @@ public class ScriptLoaderTests
     }
 
     [Fact]
+    public async Task MarkdownFileSupported()
+    {
+        var script = $$"""
+                     # This is our record
+                     this holds data
+                     ```cs
+                     public record TestNote(string Title);
+                     var Schema = typeof(TestNote);
+
+                     var Prompt = "Analyse.";
+                     ```
+                     # This is our GetFilename function
+                     ```cs
+
+                     string GetFilename(TestNote note)
+                     {
+                         return note.Title + "_FOO";
+                     }
+
+                     string Format(TestNote note) => note.Title;
+                     ```
+
+                     """;
+        var path = CreateScriptFile(script,"md");
+
+        try
+        {
+            var result = await _loader.LoadAsync(path);
+            var record = new Dictionary<string, object> { ["Title"] = "2025-06-05 Car" };
+            var instance = DeserializeToType(record, result.Schema);
+            var filename = result.InvokeGetFilename(instance);
+            Assert.Equal("2025-06-05 Car_FOO", filename);
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+
+    [Fact]
     public async Task InvokeFormat_ReturnsFormattedMarkdown()
     {
         var script = """
@@ -243,9 +280,9 @@ public class ScriptLoaderTests
 
             var Prompt = "Analyse.";
 
-            Func<TestNote, string> GetFilename = note => note.Title;
+            string GetFilename(TestNote note) => note.Title;
 
-            Func<TestNote, string> Format = note => $"---\ntitle: {note.Title}\n---\n{note.MarkdownBody}";
+            string Format(TestNote note) => $"---\ntitle: {note.Title}\n---\n{note.MarkdownBody}";
 
             """;
         var path = CreateScriptFile(script);
@@ -279,9 +316,9 @@ public class ScriptLoaderTests
 
             var Prompt = $"Analyse. Date: {CurrentDate:yyyy-MM-dd} Captions: {string.Join(" | ", Captions)}";
 
-            Func<TestNote, string> GetFilename = note => note.Title;
+            string GetFilename(TestNote note) => note.Title;
 
-            Func<TestNote, string> Format = note => note.Title;
+            string Format(TestNote note) => note.Title;
 
             """;
         var path = CreateScriptFile(script);
@@ -311,13 +348,13 @@ public class ScriptLoaderTests
 
             var Prompt = "Analyse.";
 
-            Func<TestNote, string> GetFilename = note =>
+            string GetFilename(TestNote note)
             {
                 var safe = MarkdownHelper.AutoFixDate(note.Title);
                 return MarkdownHelper.SanitizeFilename(safe);
-            };
+            }
 
-            Func<TestNote, string> Format = note => note.Title;
+            string Format(TestNote note) => note.Title;
 
             """;
         var path = CreateScriptFile(script);

@@ -11,8 +11,6 @@ public interface IScriptLoader
 
 public class ScriptLoader : IScriptLoader
 {
-    private static readonly string[] s_requiredConventions = ["Schema", "Prompt", "GetFilename", "Format"];
-
     public async Task<PipelineScript> LoadAsync(string scriptPath, ScriptGlobals? globals = null)
     {
         if (!File.Exists(scriptPath))
@@ -21,6 +19,11 @@ public class ScriptLoader : IScriptLoader
         }
 
         var scriptContent = await File.ReadAllTextAsync(scriptPath);
+
+        if (Path.GetExtension(scriptPath).Equals(".md", StringComparison.OrdinalIgnoreCase))
+        {
+            scriptContent = ExtractScriptFromMarkdown(scriptContent);
+        }
 
         ScriptState<object> scriptState;
         try
@@ -34,29 +37,55 @@ public class ScriptLoader : IScriptLoader
                 ex);
         }
 
-        var missing = s_requiredConventions
-            .Where(name => GetScriptVariable(scriptState, name) is null)
-            .ToList();
-
-        if (missing.Count > 0)
-        {
-            throw new InvalidPipelineScriptException(
-                $"Pipeline script is missing required conventions: {string.Join(", ", missing)}");
-        }
-
         var schema = (Type)GetScriptVariable(scriptState, "Schema")!;
+        FailIfNull(schema, "Schema variable must be set");
+
         var prompt = (string)GetScriptVariable(scriptState, "Prompt")!;
-        var getFilenameDelegate = (Delegate)GetScriptVariable(scriptState, "GetFilename")!;
-        var formatDelegate = (Delegate)GetScriptVariable(scriptState, "Format")!;
+        FailIfNull(prompt, "Prompt variable must be set");
+
+        var getFileNameFunc = (await scriptState.ContinueWithAsync<Delegate>("GetFilename")).ReturnValue;
+        var formatFunc = (await scriptState.ContinueWithAsync<Delegate>("Format")).ReturnValue;
 
         return new PipelineScript
         {
             Schema = schema,
             Prompt = prompt,
-            GetFilenameDelegate = getFilenameDelegate,
-            FormatDelegate = formatDelegate,
+            GetFilenameDelegate = getFileNameFunc,
+            FormatDelegate = formatFunc,
             ScriptGlobals = globals ?? new ScriptGlobals([], DateTime.Now)
         };
+    }
+
+    private static string ExtractScriptFromMarkdown(string scriptContent)
+    {
+        var lines = scriptContent.Split(Environment.NewLine, StringSplitOptions.RemoveEmptyEntries).ToList();
+        var script = GetScriptLines();
+        var joined =  string.Join(Environment.NewLine, script);
+        return joined;
+
+        IEnumerable<string> GetScriptLines()
+        {
+            while (lines.Count > 0)
+            {
+
+                if (!lines[0].StartsWith("```cs"))
+                {
+                    lines.RemoveAt(0);
+                    continue;
+                }
+
+                lines.RemoveAt(0);
+
+                while (!lines[0].StartsWith("```"))
+                {
+                    yield return lines[0];
+                    lines.RemoveAt(0);
+                }
+                lines.RemoveAt(0);
+
+            }
+
+        }
     }
 
     private static ScriptOptions ScriptOptions
@@ -82,6 +111,14 @@ public class ScriptLoader : IScriptLoader
             field = scriptOptions;
 
             return field;
+        }
+    }
+
+    public static void FailIfNull(object o, string message)
+    {
+        if (o == null)
+        {
+            throw new InvalidPipelineScriptException("Invalid Pipeline script: "+message);
         }
     }
 

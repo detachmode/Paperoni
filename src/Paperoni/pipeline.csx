@@ -105,10 +105,6 @@ importance: {note.Importance}
 amount: {amountStr}
 ---
 
-# Zusammenfassung
-{note.Summary}
-
-
 {note.MarkdownBody}
 """;
 };

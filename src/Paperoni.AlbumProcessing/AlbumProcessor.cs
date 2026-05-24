@@ -169,14 +169,11 @@ internal class AlbumProcessor(
     {
         var sb = new System.Text.StringBuilder();
         sb.Append(prefix).Append(": ").Append(ex.Message);
-        if (ex.InnerException is not null)
+
+        if (ex.InnerException is not null
+            && !ex.Message.Contains(ex.InnerException.Message, StringComparison.Ordinal))
         {
             sb.AppendLine().Append("→ ").Append(ex.InnerException.Message);
-        }
-
-        if (!string.IsNullOrWhiteSpace(ex.StackTrace))
-        {
-            sb.AppendLine().Append(ex.StackTrace);
         }
 
         const int maxLength = 3900;

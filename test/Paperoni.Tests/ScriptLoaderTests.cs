@@ -67,7 +67,7 @@ public class ScriptLoaderTests
         {
             var ex = await Assert.ThrowsAsync<InvalidPipelineScriptException>(
                 () => _loader.LoadAsync(path));
-            Assert.Contains("Schema", ex.Message);
+            Assert.Equal("Pipeline script is missing required conventions: Schema", ex.Message);
         }
         finally
         {
@@ -93,7 +93,7 @@ public class ScriptLoaderTests
         {
             var ex = await Assert.ThrowsAsync<InvalidPipelineScriptException>(
                 () => _loader.LoadAsync(path));
-            Assert.Contains("Prompt", ex.Message);
+            Assert.Equal("Pipeline script is missing required conventions: Prompt", ex.Message);
         }
         finally
         {
@@ -119,7 +119,7 @@ public class ScriptLoaderTests
         {
             var ex = await Assert.ThrowsAsync<InvalidPipelineScriptException>(
                 () => _loader.LoadAsync(path));
-            Assert.Contains("GetFilename", ex.Message);
+            Assert.Equal("Pipeline script is missing required conventions: GetFilename", ex.Message);
         }
         finally
         {
@@ -145,7 +145,29 @@ public class ScriptLoaderTests
         {
             var ex = await Assert.ThrowsAsync<InvalidPipelineScriptException>(
                 () => _loader.LoadAsync(path));
-            Assert.Contains("Format", ex.Message);
+            Assert.Equal("Pipeline script is missing required conventions: Format", ex.Message);
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public async Task LoadAsync_MissingMultipleConventions_ReportsAllInMessage()
+    {
+        var script = """
+            var Schema = typeof(string);
+
+            var Prompt = "Analyse.";
+            """;
+        var path = CreateScriptFile(script);
+
+        try
+        {
+            var ex = await Assert.ThrowsAsync<InvalidPipelineScriptException>(
+                () => _loader.LoadAsync(path));
+            Assert.Equal("Pipeline script is missing required conventions: GetFilename, Format", ex.Message);
         }
         finally
         {

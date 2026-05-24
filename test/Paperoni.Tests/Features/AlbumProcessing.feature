@@ -64,6 +64,7 @@ Scenario: Invalid pipeline script is reported via Telegram
     When I enqueue the message
     Then the album processing fails
     And the bot replied with "Script error"
+    And the last bot reply contains "CS"
     And the dashboard showed "❌ Script error"
 
 Scenario: Log command returns logs and traces after album processing

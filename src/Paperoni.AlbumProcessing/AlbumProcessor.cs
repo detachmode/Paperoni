@@ -113,13 +113,11 @@ internal class AlbumProcessor(
             logger.AiSummaryStarting();
             await telegram.UpdateDashboard(albumId,
                 isRetry ? "🔄 Retrying.." : "🤖 AI reading..", queue.PendingCount);
+            await telegram.UpdateDashboard(albumId, "🤖 AI thinking..", queue.PendingCount);
             var result = await pipeline.RunAsync(script, albumId, (type, desc) =>
             {
                 switch (type)
                 {
-                    case DebugOutputType.Reasoning:
-                        _ = telegram.UpdateDashboard(albumId, "🤖 AI thinking..", queue.PendingCount);
-                        break;
                     case DebugOutputType.PartialOutput:
                         _ = telegram.UpdateDashboard(albumId, "🤖 AI is formulating the final output ..",
                             queue.PendingCount);

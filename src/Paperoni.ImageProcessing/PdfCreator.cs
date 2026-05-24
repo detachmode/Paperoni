@@ -25,18 +25,18 @@ internal sealed class PdfCreator(
             var sw = Stopwatch.StartNew();
 
             var downloadPath = workingDirectory.RequireWorkingDirectory(messageId);
-            var aiResult = await workingDirectory.GetData<AiResult>(messageId, stoppingToken);
+            var aiResult = await workingDirectory.GetData<PipelineResult>(messageId, stoppingToken);
             ArgumentNullException.ThrowIfNull(aiResult);
 
             var files = Directory.GetFiles(downloadPath);
             var originalImages = files.Where(FileHelpers.IsImageFile).OrderBy(Path.GetFileName).ToList();
             scope.SetTag("imageCount", originalImages.Count);
-            scope.SetTag("title", aiResult.Title);
+            scope.SetTag("title", aiResult.Filename);
 
             var processedData = await AutoCorrect(originalImages, stoppingToken);
 
             var pdfBytes = PdfMerger.MergeToPdf(processedData.Select(i => i.ImprovedImage));
-            var pdfPath = Path.Combine(downloadPath, $"{aiResult.Title}.pdf");
+            var pdfPath = Path.Combine(downloadPath, $"{aiResult.Filename}.pdf");
 
             await File.WriteAllBytesAsync(pdfPath, pdfBytes, stoppingToken);
             sw.Stop();

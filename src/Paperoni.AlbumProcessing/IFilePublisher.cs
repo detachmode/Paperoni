@@ -8,6 +8,7 @@ public enum PublisherTarget
 
 public interface IFilePublisher
 {
-    Task PublishFileAsync(int albumId, CancellationToken stoppingToken);
-    Task DeletePreviousAsync(string title, CancellationToken stoppingToken);
+    Task PublishStringAsync(string content, string filename, CancellationToken stoppingToken);
+    Task PublishFileAsync(string sourcePath, string filename, CancellationToken stoppingToken);
+    Task DeletePreviousAsync(string filename, string extension, CancellationToken stoppingToken);
 }

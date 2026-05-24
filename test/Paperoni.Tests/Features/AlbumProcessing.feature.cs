@@ -112,7 +112,7 @@ namespace Paperoni.Tests.Features
     await testRunner.GivenAsync("the system is configured for integration testing", ((string)(null)), ((global::Reqnroll.Table)(null)), "Given ");
 #line hidden
 #line 8
-    await testRunner.AndAsync("the prompt template is:", @"Analyse the following document and extract the text.
+    await testRunner.AndAsync("the pipeline script is:", @"Analyse the following document and extract the text.
 Extrakt the full visible content and return it as a markdown.
 
 ## Output format (Markdown)

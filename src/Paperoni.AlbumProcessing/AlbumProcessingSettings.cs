@@ -6,4 +6,5 @@ public class AlbumProcessingSettings
     public string? TestModeOutputPath { get; set; }
     public string? MarkdownOutputPath { get; set; }
     public string? PdfOutputPath { get; set; }
+    public string? ScriptFilePath { get; set; }
 }

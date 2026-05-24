@@ -159,10 +159,10 @@ public class TelegramReplier(
 
         var lines = new List<string> { $"📊 Album {albumId} — Diagnosis" };
 
-        var aiResult = await workingDirectory.GetData<AiResult>(albumId);
-        if (aiResult?.Title is not null)
+        var aiResult = await workingDirectory.GetData<PipelineResult>(albumId);
+        if (aiResult?.Filename is not null)
         {
-            lines.Add($"Title: \"{aiResult.Title}\"");
+            lines.Add($"Title: \"{aiResult.Filename}\"");
         }
 
         var duration = await GetTraceDuration(albumId);

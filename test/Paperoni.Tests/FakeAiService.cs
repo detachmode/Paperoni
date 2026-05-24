@@ -1,4 +1,3 @@
-using System.Text.Json;
 using Paperoni.Ai;
 using Paperoni.Contract;
 using Paperoni.Diagnostics;
@@ -49,10 +48,9 @@ internal sealed class FakeAiService(WorkingDirectory workingDirectory) : IAiServ
                           """;
             await File.WriteAllTextAsync(Path.Combine(workDir, "firstAiResponse.md"), content, stoppingToken);
 
-            var aiResult = new AiResult("Lorem Ipsum");
-            var json = JsonSerializer.Serialize(aiResult,
-                new JsonSerializerOptions { WriteIndented = true });
-            await File.WriteAllTextAsync(Path.Combine(workDir, "AiResult.json"), json, stoppingToken);
+            var pipelineResult = new PipelineResult("Lorem Ipsum",
+                new Dictionary<string, object> { ["Title"] = "Lorem Ipsum" });
+            await workingDirectory.WriteData(albumId, pipelineResult, stoppingToken);
         });
     }
 }

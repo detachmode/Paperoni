@@ -27,6 +27,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Scripting" />
     <ProjectReference Include="..\..\src\Paperoni.Ai\Paperoni.Ai.csproj" />
     <ProjectReference Include="..\..\src\Paperoni.AlbumProcessing\Paperoni.AlbumProcessing.csproj" />
     <ProjectReference Include="..\..\src\Paperoni.ImageProcessing\Paperoni.ImageProcessing.csproj" />

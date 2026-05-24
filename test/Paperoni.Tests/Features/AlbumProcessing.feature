@@ -5,7 +5,7 @@ So that I receive AI summaries and processed PDFs
 
 Background:
     Given the system is configured for integration testing
-    And the prompt template is:
+    And the pipeline script is:
         """
         Analyse the following document and extract the text.
         Extrakt the full visible content and return it as a markdown.

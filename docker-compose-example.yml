@@ -24,7 +24,7 @@ services:
       - paperoni_data:/data
       - ./output/markdown:/output/markdown
       - ./output/pdf:/output/pdf
-      - ./src/Paperoni/Prompt.md:/app/Prompt.md:ro
+      - ./src/Paperoni/pipeline.csx:/app/pipeline.csx:ro
 
 volumes:
   paperoni_data:

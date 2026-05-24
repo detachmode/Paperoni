@@ -24,8 +24,8 @@ namespace Paperoni.RealAi.Tests.Features
         
         private static string[] featureTags = ((string[])(null));
         
-        private static global::Reqnroll.FeatureInfo featureInfo = new global::Reqnroll.FeatureInfo(new global::System.Globalization.CultureInfo("en-US"), "Features", "AI Integration", "\tAs a user\n\tI want to ask questions to an AI model\n\tSo that I can get accurate an" +
-                "swers", global::Reqnroll.ProgrammingLanguage.CSharp, featureTags, InitializeCucumberMessages());
+        private static global::Reqnroll.FeatureInfo featureInfo = new global::Reqnroll.FeatureInfo(new global::System.Globalization.CultureInfo("en-US"), "Features", "AI Integration", "As a user\nI want to ask questions to an AI model\nSo that I can get accurate answe" +
+                "rs", global::Reqnroll.ProgrammingLanguage.CSharp, featureTags, InitializeCucumberMessages());
         
         private global::Xunit.Abstractions.ITestOutputHelper _testOutputHelper;
         
@@ -146,7 +146,7 @@ namespace Paperoni.RealAi.Tests.Features
             string[] tagsOfRule = ((string[])(null));
             global::Reqnroll.RuleInfo ruleInfo = null;
 #line 6
- this.ScenarioInitialize(scenarioInfo, ruleInfo);
+this.ScenarioInitialize(scenarioInfo, ruleInfo);
 #line hidden
             if ((global::Reqnroll.TagHelper.ContainsIgnoreTag(scenarioInfo.CombinedTags) || global::Reqnroll.TagHelper.ContainsIgnoreTag(featureTags)))
             {
@@ -156,10 +156,10 @@ namespace Paperoni.RealAi.Tests.Features
             {
                 await this.ScenarioStartAsync();
 #line 7
-  await testRunner.WhenAsync("I ask \"What is the capital of France?\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "When ");
+    await testRunner.WhenAsync("I ask \"What is the capital of France?\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "When ");
 #line hidden
 #line 8
-  await testRunner.ThenAsync("the answer should contain \"Paris\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "Then ");
+    await testRunner.ThenAsync("the answer should contain \"Paris\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "Then ");
 #line hidden
             }
             await this.ScenarioCleanupAsync();
@@ -178,7 +178,7 @@ namespace Paperoni.RealAi.Tests.Features
             string[] tagsOfRule = ((string[])(null));
             global::Reqnroll.RuleInfo ruleInfo = null;
 #line 11
- this.ScenarioInitialize(scenarioInfo, ruleInfo);
+this.ScenarioInitialize(scenarioInfo, ruleInfo);
 #line hidden
             if ((global::Reqnroll.TagHelper.ContainsIgnoreTag(scenarioInfo.CombinedTags) || global::Reqnroll.TagHelper.ContainsIgnoreTag(featureTags)))
             {
@@ -188,10 +188,10 @@ namespace Paperoni.RealAi.Tests.Features
             {
                 await this.ScenarioStartAsync();
 #line 12
-  await testRunner.WhenAsync("I ask \"Please write a 1000 words long shot story about dragons\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "When ");
+    await testRunner.WhenAsync("I ask \"Please write a 1000 words long shot story about dragons\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "When ");
 #line hidden
 #line 13
-  await testRunner.ThenAsync("the answer should contain \"dragon\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "Then ");
+    await testRunner.ThenAsync("the answer should contain \"dragon\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "Then ");
 #line hidden
             }
             await this.ScenarioCleanupAsync();
@@ -209,7 +209,7 @@ namespace Paperoni.RealAi.Tests.Features
             string[] tagsOfRule = ((string[])(null));
             global::Reqnroll.RuleInfo ruleInfo = null;
 #line 15
- this.ScenarioInitialize(scenarioInfo, ruleInfo);
+this.ScenarioInitialize(scenarioInfo, ruleInfo);
 #line hidden
             if ((global::Reqnroll.TagHelper.ContainsIgnoreTag(scenarioInfo.CombinedTags) || global::Reqnroll.TagHelper.ContainsIgnoreTag(featureTags)))
             {
@@ -219,34 +219,35 @@ namespace Paperoni.RealAi.Tests.Features
             {
                 await this.ScenarioStartAsync();
 #line 16
-  await testRunner.WhenAsync("I send two images: a red square and a blue circle", ((string)(null)), ((global::Reqnroll.Table)(null)), "When ");
+    await testRunner.WhenAsync("I send two images: a red square and a blue circle", ((string)(null)), ((global::Reqnroll.Table)(null)), "When ");
 #line hidden
 #line 17
-  await testRunner.AndAsync("I ask \"Describe both images and their colors\" with the images", ((string)(null)), ((global::Reqnroll.Table)(null)), "And ");
+    await testRunner.AndAsync("I ask \"Describe both images and their colors\" with the images", ((string)(null)), ((global::Reqnroll.Table)(null)), "And ");
 #line hidden
 #line 18
-  await testRunner.ThenAsync("the answer should contain \"red\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "Then ");
+    await testRunner.ThenAsync("the answer should contain \"red\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "Then ");
 #line hidden
 #line 19
-  await testRunner.AndAsync("the answer should contain \"blue\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "And ");
+    await testRunner.AndAsync("the answer should contain \"blue\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "And ");
 #line hidden
             }
             await this.ScenarioCleanupAsync();
         }
         
-        [global::Xunit.SkippableFactAttribute(DisplayName="AI uses tool calling to get current weather")]
+        [global::Xunit.SkippableFactAttribute(DisplayName="AI uses tool calling to get current weather", Skip="Ignored")]
         [global::Xunit.TraitAttribute("FeatureTitle", "AI Integration")]
         [global::Xunit.TraitAttribute("Description", "AI uses tool calling to get current weather")]
         public async global::System.Threading.Tasks.Task AIUsesToolCallingToGetCurrentWeather()
         {
-            string[] tagsOfScenario = ((string[])(null));
+            string[] tagsOfScenario = new string[] {
+                    "ignore"};
             global::System.Collections.Specialized.OrderedDictionary argumentsOfScenario = new global::System.Collections.Specialized.OrderedDictionary();
             string pickleIndex = "3";
             global::Reqnroll.ScenarioInfo scenarioInfo = new global::Reqnroll.ScenarioInfo("AI uses tool calling to get current weather", null, tagsOfScenario, argumentsOfScenario, featureTags, pickleIndex);
             string[] tagsOfRule = ((string[])(null));
             global::Reqnroll.RuleInfo ruleInfo = null;
-#line 21
- this.ScenarioInitialize(scenarioInfo, ruleInfo);
+#line 23
+this.ScenarioInitialize(scenarioInfo, ruleInfo);
 #line hidden
             if ((global::Reqnroll.TagHelper.ContainsIgnoreTag(scenarioInfo.CombinedTags) || global::Reqnroll.TagHelper.ContainsIgnoreTag(featureTags)))
             {
@@ -255,11 +256,11 @@ namespace Paperoni.RealAi.Tests.Features
             else
             {
                 await this.ScenarioStartAsync();
-#line 22
-  await testRunner.WhenAsync("I ask about the weather for a hike", ((string)(null)), ((global::Reqnroll.Table)(null)), "When ");
+#line 24
+    await testRunner.WhenAsync("I ask about the weather for a hike", ((string)(null)), ((global::Reqnroll.Table)(null)), "When ");
 #line hidden
-#line 23
-  await testRunner.ThenAsync("the answer should contain weather information", ((string)(null)), ((global::Reqnroll.Table)(null)), "Then ");
+#line 25
+    await testRunner.ThenAsync("the answer should contain weather information", ((string)(null)), ((global::Reqnroll.Table)(null)), "Then ");
 #line hidden
             }
             await this.ScenarioCleanupAsync();

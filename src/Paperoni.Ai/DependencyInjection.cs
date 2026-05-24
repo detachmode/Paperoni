@@ -40,7 +40,7 @@ public static class DependencyInjection
             Console.WriteLine($"├─ Endpoint: {settings.Endpoint}");
             Console.WriteLine($"├─ Model: {settings.Model}");
             Console.WriteLine($"├─ ApiKey: {(!string.IsNullOrEmpty(settings.ApiKey) ? "***" : "not set")}");
-            Console.WriteLine($"├─ PromptFile: {settings.PromptFilePath}");
+            Console.WriteLine($"├─ ScriptFile: {settings.ScriptFilePath}");
             Console.WriteLine($"└─ Timeout: {settings.TimeoutSeconds} seconds");
 
             // Model={settings.Model}, Endpoint={settings.Endpoint}, PromptFile={settings.PromptFilePath}, Timeout={settings.TimeoutSeconds}s");
@@ -66,7 +66,7 @@ public static class DependencyInjection
             })
             .UseFunctionInvocation();
 
-        collection.AddSingleton<IPromptProvider, FilePromptProvider>();
+        collection.AddSingleton<IPipelineService, PipelineService>();
         collection.AddSingleton<IAiService, AiService>();
         return collection;
     }

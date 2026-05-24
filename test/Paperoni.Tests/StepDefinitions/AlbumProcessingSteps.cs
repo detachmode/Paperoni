@@ -29,7 +29,7 @@ public class AlbumProcessingSteps
     private SpyFilePublisher _markdownSpy = null!;
     private string _outputDir = null!;
     private SpyFilePublisher _pdfSpy = null!;
-    private string _promptFilePath = null!;
+    private string _scriptFilePath = null!;
     private AlbumQueue _queue = null!;
 
     private bool _servicesStarted;
@@ -60,8 +60,8 @@ public class AlbumProcessingSteps
     [Given("the AI service is unresponsive")]
     public void GivenAiServiceIsUnresponsive()
     {
-        var fakeAi = _sp.GetRequiredService<FakeAiService>();
-        fakeAi.ShouldThrowOnCreateAiSummary = true;
+        var fakePipeline = _sp.GetRequiredService<IPipelineService>() as FakePipelineService;
+        fakePipeline!.ShouldThrow = true;
     }
 
     [Given("the system is configured for integration testing")]
@@ -70,10 +70,20 @@ public class AlbumProcessingSteps
         _tempBase = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
         _outputDir = Path.Combine(_tempBase, "test-output");
         Directory.CreateDirectory(_tempBase);
-        _promptFilePath = Path.Combine(_tempBase, "prompt.md");
+        _scriptFilePath = Path.Combine(_tempBase, "pipeline.csx");
 
         var msgDir = Path.Combine(_tempBase, TestMessageId.ToString());
         Directory.CreateDirectory(msgDir);
+
+        // Write a default pipeline script for tests
+        var defaultScript = """
+            public record TestNote(string Title, string Summary, string MarkdownBody);
+            var Schema = typeof(TestNote);
+            var Prompt = "Analyse the document.";
+            Func<TestNote, string> GetFilename = note => note.Title;
+            Func<TestNote, string> Format = note => $"---\\ntitle: {note.Title}\\n---\\n{note.MarkdownBody}";
+            """;
+        await File.WriteAllTextAsync(_scriptFilePath, defaultScript);
 
         var assemblyDir = Path.GetDirectoryName(typeof(AlbumProcessingSteps).Assembly.Location)!;
         File.Copy(Path.Combine(assemblyDir, "Images", "example-doc.png"),
@@ -104,10 +114,10 @@ public class AlbumProcessingSteps
             .Build();
     }
 
-    [Given("the prompt template is:")]
-    public async Task GivenPromptTemplate(string prompt)
+    [Given("the pipeline script is:")]
+    public async Task GivenPipelineScript(string script)
     {
-        await File.WriteAllTextAsync(_promptFilePath, prompt);
+        await File.WriteAllTextAsync(_scriptFilePath, script);
     }
 
     [Given("the processing pipeline is built")]
@@ -116,7 +126,7 @@ public class AlbumProcessingSteps
         var config = new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?>
             {
-                ["Ai:PromptFilePath"] = _promptFilePath,
+                ["AlbumProcessing:ScriptFilePath"] = _scriptFilePath,
                 ["AlbumProcessing:TestMode"] = "true",
                 ["AlbumProcessing:TestModeOutputPath"] = _outputDir,
                 ["AlbumProcessing:MarkdownOutputPath"] = _outputDir,
@@ -143,6 +153,8 @@ public class AlbumProcessingSteps
         services.AddSingleton<ITelegramReplier>(_telegram);
         services.AddSingleton<FakeAiService>();
         services.AddSingleton<IAiService>(sp => sp.GetRequiredService<FakeAiService>());
+        services.AddSingleton<IPipelineService, FakePipelineService>();
+        services.AddSingleton<IScriptLoader, FakeScriptLoader>();
         services.AddImageProcessing();
         services.AddAlbumProcessor(config);
         services.AddDiagnostics(config);
@@ -152,7 +164,7 @@ public class AlbumProcessingSteps
         {
             var wd = sp.GetRequiredService<WorkingDirectory>();
             var logger = sp.GetRequiredService<ILogger<FilePublisher>>();
-            var real = new FilePublisher(wd, _outputDir, "*.md", logger);
+            var real = new FilePublisher(_outputDir, NullLogger<FilePublisher>.Instance);
             _markdownSpy = new SpyFilePublisher(real);
             return _markdownSpy;
         });
@@ -160,7 +172,7 @@ public class AlbumProcessingSteps
         {
             var wd = sp.GetRequiredService<WorkingDirectory>();
             var logger = sp.GetRequiredService<ILogger<FilePublisher>>();
-            var real = new FilePublisher(wd, _outputDir, "*.pdf", logger);
+            var real = new FilePublisher(_outputDir, NullLogger<FilePublisher>.Instance);
             _pdfSpy = new SpyFilePublisher(real);
             return _pdfSpy;
         });
@@ -293,8 +305,8 @@ public class AlbumProcessingSteps
     {
         Assert.True(_markdownSpy.DeletePreviousCalled, "Expected Markdown publisher to clean old file");
         Assert.True(_pdfSpy.DeletePreviousCalled, "Expected PDF publisher to clean old file");
-        Assert.Equal("Lorem Ipsum", _markdownSpy.LastDeletedTitle);
-        Assert.Equal("Lorem Ipsum", _pdfSpy.LastDeletedTitle);
+        Assert.Equal("Lorem Ipsum", _markdownSpy.LastDeletedFilename);
+        Assert.Equal("Lorem Ipsum", _pdfSpy.LastDeletedFilename);
     }
 
     [Then("the old trace log was cleaned before re-processing")]

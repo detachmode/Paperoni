@@ -14,7 +14,8 @@ namespace Paperoni.AlbumProcessing;
 
 internal class AlbumProcessor(
     AlbumQueue queue,
-    IAiService ai,
+    IScriptLoader scriptLoader,
+    IPipelineService pipeline,
     [FromKeyedServices(PublisherTarget.Markdown)]
     IFilePublisher markdownPublisher,
     [FromKeyedServices(PublisherTarget.Pdf)]
@@ -73,6 +74,24 @@ internal class AlbumProcessor(
 
         try
         {
+            PipelineScript script;
+            try
+            {
+                var metaData = await workingDirectory.GetData<MetaData>(albumId, stoppingToken);
+                var globals = new ScriptGlobals(
+                    metaData?.Caption.Where(c => c is not null).Cast<string>().ToList() ?? [],
+                    DateTime.Now);
+
+                script = await scriptLoader.LoadAsync(settings.ScriptFilePath!, globals);
+            }
+            catch (InvalidPipelineScriptException ex)
+            {
+                logger.AlbumProcessingError(ex, albumId);
+                await telegram.EditReply(albumId, "Script error: " + ex.Message);
+                await telegram.UpdateDashboard(albumId, $"❌ Script error", queue.PendingCount);
+                return false;
+            }
+
             if (isRetry)
             {
                 var traceDir = workingDirectory.RequireWorkingDirectory(albumId);
@@ -82,19 +101,19 @@ internal class AlbumProcessor(
                     File.Delete(tracePath);
                 }
 
-                var oldAiResult = await workingDirectory.GetData<AiResult>(albumId, stoppingToken);
-                if (oldAiResult?.Title is not null)
+                var oldResult = await workingDirectory.GetData<PipelineResult>(albumId, stoppingToken);
+                if (oldResult?.Filename is not null)
                 {
-                    logger.CleaningOldFiles(oldAiResult.Title);
-                    await markdownPublisher.DeletePreviousAsync(oldAiResult.Title, stoppingToken);
-                    await pdfPublisher.DeletePreviousAsync(oldAiResult.Title, stoppingToken);
+                    logger.CleaningOldFiles(oldResult.Filename);
+                    await markdownPublisher.DeletePreviousAsync(oldResult.Filename, ".md", stoppingToken);
+                    await pdfPublisher.DeletePreviousAsync(oldResult.Filename, ".pdf", stoppingToken);
                 }
             }
 
             logger.AiSummaryStarting();
             await telegram.UpdateDashboard(albumId,
                 isRetry ? "🔄 Retrying.." : "🤖 AI reading..", queue.PendingCount);
-            await ai.CreateAiSummary(albumId, (type, desc) =>
+            var result = await pipeline.RunAsync(script, albumId, (type, desc) =>
             {
                 switch (type)
                 {
@@ -116,9 +135,12 @@ internal class AlbumProcessor(
 
             logger.PublishingMarkdown();
             await telegram.UpdateDashboard(albumId, "📤 Publishing..", queue.PendingCount);
-            await markdownPublisher.PublishFileAsync(albumId, stoppingToken);
+            await markdownPublisher.PublishStringAsync(result.FormattedContent, result.Filename, stoppingToken);
             logger.PublishingPdf();
-            await pdfPublisher.PublishFileAsync(albumId, stoppingToken);
+
+            var workingDir = workingDirectory.RequireWorkingDirectory(albumId);
+            var pdfPath = Path.Combine(workingDir, $"{result.Filename}.pdf");
+            await pdfPublisher.PublishFileAsync(pdfPath, result.Filename, stoppingToken);
 
             await telegram.SetReaction(albumId, "👏");
 

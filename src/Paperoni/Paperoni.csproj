@@ -35,7 +35,7 @@
       <None Update="Prompt.md">
         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       </None>
-      <None Update="pipeline.csx">
+      <None Update="defaultPipeline.csx">
         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       </None>
     </ItemGroup>

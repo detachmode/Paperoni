@@ -18,8 +18,12 @@ public static class DependencyInjection
                 "AlbumProcessing:MarkdownOutputPath is required")
             .Validate(settings => !string.IsNullOrWhiteSpace(settings.PdfOutputPath),
                 "AlbumProcessing:PdfOutputPath is required")
-            .Validate(settings => File.Exists(settings.ScriptFilePath),
-                "AlbumProcessing:ScriptFilePath not found")
+            .Validate(settings =>
+            {
+                ArgumentException.ThrowIfNullOrWhiteSpace(settings.ScriptFilePath);
+                File.ReadAllBytes(settings.ScriptFilePath);
+                return true;
+            })
             .ValidateOnStart();
 
         collection.AddHostedService<AlbumProcessor>();

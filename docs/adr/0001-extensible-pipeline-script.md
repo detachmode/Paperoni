@@ -93,7 +93,7 @@ pdf: "[[{filename}.pdf]]"
 |---|---|
 | Raw photos | Input from Telegram |
 | Processed images | OpenCV output |
-| `firstAiResponse.md` | Debug: raw LLM output |
+| `firstAiResponse.json` | Debug: raw LLM output |
 | `PipelineResult.json` | Full deserialized record + computed filename |
 | `{filename}.pdf` | Generated PDF |
 
@@ -111,7 +111,7 @@ pdf: "[[{filename}.pdf]]"
 5. Call GetFilename(record) → filename
 6. Call Format(record) → markdown string
 7. Persist PipelineResult.json (record + filename)
-8. Persist firstAiResponse.md (debug)
+8. Persist firstAiResponse.json (debug)
 9. Create PDF with filename
 10. Publish markdown string (FilePublisher, Markdown target)
 11. Publish PDF file (FilePublisher, PDF target)

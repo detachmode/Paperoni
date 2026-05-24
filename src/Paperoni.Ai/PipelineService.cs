@@ -84,7 +84,7 @@ internal sealed class PipelineService : IPipelineService
             sw.Stop();
 
             await File.WriteAllTextAsync(
-                Path.Combine(workingDir, "firstAiResponse.md"), aiResponse, stoppingToken);
+                Path.Combine(workingDir, "firstAiResponse.json"), aiResponse, stoppingToken);
 
             var record = DeserializeToType(aiResponse, script.Schema);
             var filename = script.InvokeGetFilename(record);

@@ -143,7 +143,7 @@ public class AlbumProcessingSmokeSteps
         await _telegram.WaitForCompletionAsync(_cts!.Token);
 
         var workDir = Path.Combine(_tempBase, TestMessageId.ToString());
-        var content = await File.ReadAllTextAsync(Path.Combine(workDir, "firstAiResponse.md"));
+        var content = await File.ReadAllTextAsync(Path.Combine(workDir, "firstAiResponse.json"));
         _output.WriteLine($"AI Summary:\n{content}");
     }
 

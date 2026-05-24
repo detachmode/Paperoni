@@ -86,16 +86,17 @@ Func<AlbumNote, string> Format = note =>
     var amountStr = note.Amount.HasValue ? note.Amount.Value.ToString("F2") : "";
     return $"""
 ---
+pdf: "[[{filename}.pdf]]"
 title: {filename}
 tags: [{tagsStr}]
 counterparty: {note.Counterparty}
 document_type: {note.DocumentType}
 importance: {note.Importance}
 amount: {amountStr}
-pdf: "[[{filename}.pdf]]"
 ---
 
-# {note.Summary}
+# Summary
+{note.Summary}
 
 {note.MarkdownBody}
 """;

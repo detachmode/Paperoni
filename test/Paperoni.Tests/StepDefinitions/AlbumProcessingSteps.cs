@@ -4,6 +4,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.AI;
 using OpenTelemetry;
 using OpenTelemetry.Trace;
 using Paperoni.Ai;
@@ -31,6 +32,7 @@ public class AlbumProcessingSteps
     private SpyFilePublisher _pdfSpy = null!;
     private string _scriptFilePath = null!;
     private AlbumQueue _queue = null!;
+    private FakeChatClient _fakeChatClient = null!;
 
     private bool _servicesStarted;
     private ServiceProvider _sp = null!;
@@ -60,8 +62,7 @@ public class AlbumProcessingSteps
     [Given("the pipeline service is unresponsive")]
     public void GivenPipelineServiceIsUnresponsive()
     {
-        var fakePipeline = _sp.GetRequiredService<IPipelineService>() as FakePipelineService;
-        fakePipeline!.ShouldThrow = true;
+        _fakeChatClient.ShouldThrow = true;
     }
 
     [Given("the pipeline script has a compile error")]
@@ -127,6 +128,8 @@ public class AlbumProcessingSteps
                 ["AlbumProcessing:TestModeOutputPath"] = _outputDir,
                 ["AlbumProcessing:MarkdownOutputPath"] = _outputDir,
                 ["AlbumProcessing:PdfOutputPath"] = _outputDir,
+                ["Ai:Endpoint"] = "http://localhost:2276",
+                ["Ai:Model"] = "fake-model",
             })
             .Build();
 
@@ -143,14 +146,15 @@ public class AlbumProcessingSteps
                 shared: true)
             .CreateLogger();
 
+        _fakeChatClient = new FakeChatClient();
+
         var services = new ServiceCollection();
         services.AddSingleton(_queue);
         services.AddSingleton<WorkingDirectory>(_ => new WorkingDirectory { PaperoniWorkingDirectory = _tempBase });
+        services.AddSingleton<AlbumIdAccessor>();
         services.AddSingleton<ITelegramReplier>(_telegram);
-        services.AddSingleton<FakeAiService>();
-        services.AddSingleton<IAiService>(sp => sp.GetRequiredService<FakeAiService>());
-        services.AddSingleton<IPipelineService>(sp => new FakePipelineService(sp.GetRequiredService<WorkingDirectory>()));
-        services.AddSingleton<IScriptLoader, FakeScriptLoader>();
+        services.AddAiService(config);
+        services.AddSingleton<IChatClient>(_fakeChatClient);
         services.AddImageProcessing();
         services.AddAlbumProcessor(config);
         services.AddDiagnostics(config);
@@ -208,8 +212,8 @@ public class AlbumProcessingSteps
         await _telegram.WaitForCompletionAsync(_cts!.Token);
 
         var workDir = Path.Combine(_tempBase, TestMessageId.ToString());
-        var content = await File.ReadAllTextAsync(Path.Combine(workDir, "firstAiResponse.md"));
-        _output.WriteLine($"AI Summary:\n{content}");
+        var content = await File.ReadAllTextAsync(Path.Combine(workDir, "firstAiResponse.json"));
+        _output.WriteLine($"AI Response:\n{content}");
     }
 
     [Then("the album finishes processing")]
@@ -220,7 +224,7 @@ public class AlbumProcessingSteps
         _tracerProvider?.ForceFlush();
 
         var workDir = Path.Combine(_tempBase, TestMessageId.ToString());
-        var content = await File.ReadAllTextAsync(Path.Combine(workDir, "firstAiResponse.md"));
+        var content = await File.ReadAllTextAsync(Path.Combine(workDir, "firstAiResponse.json"));
         _output.WriteLine($"AI Summary:\n{content}");
         _telegram.Reset();
     }

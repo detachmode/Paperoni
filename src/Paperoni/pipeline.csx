@@ -15,16 +15,19 @@ public record AlbumNote(
     [property: Description("Counterparty - company or person")]
     string Counterparty,
 
-    [property: JsonPropertyName("document_date")]
+    [property: Description("Das auf dem Dokument stehende Datum, wenn vorhanden")]
     string? DocumentDate,
 
     [property: Description("Importance: high, medium, or low")]
     string Importance,
 
-    [property: Description("Amount if present (gross/total), null if not applicable")]
+    [property: Description("Die 'Area' (größere Kategory / Lebensbereich) die dem Dokument zuzuordnen ist")]
+    string Area,
+
+    [property: Description("Falls ein Geldbetrag genannt wird (der **Endbetrag (Brutto)**), wenn nicht leer lassen)")]
     decimal? Amount,
 
-    [property: Description("Full note content formatted in markdown")]
+    [property: Description("Markdown Body mit der Struktur wie angegeben in den Regeln")]
     string MarkdownBody
 );
 
@@ -50,10 +53,7 @@ für die private Verwaltung.
 - `DocumentDate`: Das auf dem Dokument stehende Datum
    Wichtig! NUR HINZUFÜGEN, WENN IM DOKUMENT EIN DATUM ZU SEHEN IST, SONST BITTE LEER LASSEN !
 - `Counterparty`: Vertragspartner / Aussteller / andere Partei (Firma oder Person)
-- `DocumentType`: Art des Dokuments (z.B. "Rechnung", "Quittung", "Vertrag", "Brief", "Garantie", "Mahnung")
-- `Amount`: Falls ein Geldbetrag genannt wird – der **Endbetrag (Brutto)** als Zahl (sonst leer lassen)
-- `Importance`: "high", "medium" oder "low"
-- `Category`: Eine der folgenden Kategorien – "[[Auto]]", "[[Motorrad]]", "[[🌱 Gesundheit]]", "[[🧑‍🍳 Kochen]]", "[[🏠 Wohnung]]", "[[Bosch]]", "[[Software development]]", "[[💶 Finanzen]]", "[[Other]]"
+- `Area`: Eine der folgenden Areas: Auto, Motorrad, 🌱 Gesundheit, ,🧑‍🍳 Kochen, 🏠 Wohnung, Bosch (meine Arbeitgeber), Software development (Hobby Projekte), 💶 Finanzen, Other
 - `Tags`: Liste von relevanten Tags (3-6 Stück, z.B. rechnung, werkstatt, bezahlt, feder)
 
 ### Regeln für die Wichtigkeitsbewertung (importance)
@@ -77,12 +77,6 @@ Der MarkdownBody soll folgendes Layout haben:
 > Extrahiere wichtige Fakten aus dem Dokumente.
 > Benutze Markdown Tabellen, wenn im Dokument Daten in Tabellen vorliegen, oder im Fall einer Rechnung,
 > dann die einzelnen Artikel als Tabelle
-
-
-
-
-
-
 
 ### Andere Fakten
 Aktuelles Datum: {CurrentDate:yyyy-MM-dd HH:mm:ss}

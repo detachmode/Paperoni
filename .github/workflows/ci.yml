@@ -115,11 +115,39 @@ jobs:
           echo "tags<<EOF" >> $GITHUB_OUTPUT
           echo "$TAGS" >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
-      - uses: docker/build-push-action@v6
+      - name: Build Docker image for smoke test
+        uses: docker/build-push-action@v6
+        with:
+          platforms: linux/amd64
+          tags: paperoni:smoke
+          load: true
+          push: false
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          build-args: |
+            VERSION=${{ needs.version.outputs.version }}
+            GIT_SHA=${{ needs.version.outputs.short_sha }}
+
+      - name: Smoke test Docker container
+        run: |
+          docker run --rm \
+            -e Telegram__BotToken=fake-token \
+            -e AlbumProcessing__MarkdownOutputPath=/tmp/markdown \
+            -e AlbumProcessing__PdfOutputPath=/tmp/pdf \
+            paperoni:smoke --version 2>&1 | tee smoke-test.log
+          if grep -Eiq "error|exception|failed" smoke-test.log; then
+            echo "Smoke test failed: found error output"
+            exit 1
+          fi
+
+      - name: Publish multi-arch Docker image
+        uses: docker/build-push-action@v6
         with:
           platforms: linux/amd64,linux/arm64
           tags: ${{ steps.docker_tags.outputs.tags }}
           push: true
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
           build-args: |
             VERSION=${{ needs.version.outputs.version }}
             GIT_SHA=${{ needs.version.outputs.short_sha }}

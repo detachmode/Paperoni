@@ -156,7 +156,10 @@ internal class AlbumProcessor(
             var duration = sw.Elapsed.TotalSeconds;
             var testMode = settings.TestMode;
             await telegram.EditReply(albumId,
-                $"Done in {duration:F1}s — Paperoni v{VersionInfo.Version}{(testMode ? " 🧪" : "")}");
+                $"""
+                 ✅ Done in {duration:F1}s — Paperoni v{VersionInfo.Version}{(testMode ? " 🧪" : "")}
+                 Filename:  {result.Filename}
+                 """ );
             logger.AlbumComplete();
             return true;
         }

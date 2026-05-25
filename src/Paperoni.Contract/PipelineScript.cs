@@ -1,8 +1,6 @@
 using System.Diagnostics;
 using System.Reflection;
 
-namespace Paperoni.Ai;
-
 public record ScriptGlobals(List<string> Captions, DateTime CurrentDate);
 
 public sealed class PipelineScript

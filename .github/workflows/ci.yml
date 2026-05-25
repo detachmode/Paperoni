@@ -131,6 +131,7 @@ jobs:
       - name: Smoke test Docker container
         run: |
           docker run --rm \
+            -e SmokeTestInPipeline=true \
             -e Telegram__BotToken=fake-token \
             -e AlbumProcessing__MarkdownOutputPath=/tmp/markdown \
             -e AlbumProcessing__PdfOutputPath=/tmp/pdf \

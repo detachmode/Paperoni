@@ -8,6 +8,7 @@ using Paperoni.Contract;
 using Paperoni.Diagnostics;
 using Paperoni.ImageProcessing;
 using Paperoni.Telegram;
+using Paperoni.Telegram.Album;
 using Serilog;
 
 Console.WriteLine($"Paperoni starting...");
@@ -29,12 +30,23 @@ SplashScreen.Render();
 using var _ = lockFile;
 
 var builder = Host.CreateApplicationBuilder(args);
+var smokeTestInPipeline = builder.Configuration.GetValue<bool>("SmokeTestInPipeline");
 
 builder.Services.AddDiagnostics(builder.Configuration);
-builder.Services.AddTelegramPhotoAlbumCollector(builder.Configuration);
 builder.Services.AddAiService(builder.Configuration);
 builder.Services.AddAlbumProcessor(builder.Configuration);
 builder.Services.AddImageProcessing();
+
+if (!smokeTestInPipeline)
+{
+    builder.Services.AddTelegramPhotoAlbumCollector(builder.Configuration);
+}
+else
+{
+    builder.Services.AddSingleton<AlbumQueue>();
+    builder.Services.AddSingleton<ITelegramReplier, NoOpTelegramReplier>();
+    Console.WriteLine("SmokeTestInPipeline enabled: skipping Telegram bot registration.");
+}
 
 var workingDir = builder.Services.AddPaperoniWorkingDirectory(builder.Configuration);
 

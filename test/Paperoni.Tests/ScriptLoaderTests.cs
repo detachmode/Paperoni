@@ -1,4 +1,3 @@
-using Paperoni.Ai;
 using Paperoni.AlbumProcessing;
 
 namespace Paperoni.Tests;

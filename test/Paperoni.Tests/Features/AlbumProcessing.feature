@@ -20,7 +20,7 @@ Scenario: Single photo album is processed end-to-end
     And the dashboard showed "🤖 AI is formulating the final output"
     And the dashboard showed "📄 Creating PDF"
     And the dashboard showed "📤 Publishing"
-    And the last bot reply starts with "Done in"
+    And the last bot reply starts with "✅ Done in"
     And the last bot reply contains "Paperoni v"
     And the bot reacted with "👏"
     And the trace log contains expected traces
@@ -33,7 +33,7 @@ Scenario: Multi-photo album produces a PDF with correct page count
     Then the album is processed
     And the PDF has 3 pages
     And the trace log shows 3 images were processed
-    And the last bot reply starts with "Done in"
+    And the last bot reply starts with "✅ Done in"
     And the last bot reply contains "Paperoni v"
     And the bot reacted with "👏"
     And the trace log contains expected traces

@@ -26,9 +26,9 @@ public sealed class TraceLogExporter(
             foreach (var item in activities)
             {
                 var line = FormatSpan(item);
-                var albumId = item.GetTagItem("AlbumId");
+                var albumId = ResolveAlbumId(item);
 
-                if (albumId is int id)
+                if (albumId is { } id)
                 {
                     if (!byAlbumId.TryGetValue(id, out var lines))
                     {
@@ -72,5 +72,29 @@ public sealed class TraceLogExporter(
         var dur = activity.Duration.TotalMilliseconds;
 
         return $"{ts}  {statusEmoji} {activity.DisplayName} {dur:F0}ms";
+    }
+
+    private static int? ResolveAlbumId(Activity activity)
+    {
+        for (var current = activity; current is not null; current = current.Parent)
+        {
+            var value = current.GetTagItem("AlbumId");
+            if (value is int id)
+            {
+                return id;
+            }
+
+            if (value is long longId && longId >= int.MinValue && longId <= int.MaxValue)
+            {
+                return (int)longId;
+            }
+
+            if (value is string text && int.TryParse(text, out var parsed))
+            {
+                return parsed;
+            }
+        }
+
+        return null;
     }
 }

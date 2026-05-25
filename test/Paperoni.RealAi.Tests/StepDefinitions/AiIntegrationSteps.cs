@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Paperoni.Ai;
+using Paperoni.AlbumProcessing;
 using Paperoni.Contract;
 using Paperoni.Telegram;
 using Reqnroll;
@@ -11,8 +12,11 @@ namespace Paperoni.RealAi.Tests.StepDefinitions;
 [Binding]
 public class AiIntegrationSteps
 {
-    private readonly IAiService _aiService;
-    private readonly List<FileContent> _files = new();
+    private readonly IPipelineService _pipelineService;
+    private readonly IScriptLoader _scriptLoader;
+    private readonly string _tempDir;
+    private readonly string _scriptPath;
+    private readonly int _albumId = 1;
     private readonly ITestOutputHelper _output;
     private string? _answer;
     private string? _functionCallingAnswer;
@@ -20,16 +24,15 @@ public class AiIntegrationSteps
     public AiIntegrationSteps(ITestOutputHelper output)
     {
         _output = output;
-        var tempDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
-        Directory.CreateDirectory(tempDir);
+        _tempDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+        Directory.CreateDirectory(_tempDir);
+        Directory.CreateDirectory(Path.Combine(_tempDir, _albumId.ToString()));
 
-        var promptFile = Path.Combine(tempDir, "prompt.md");
-        File.WriteAllText(promptFile, "Answer the question.");
+        _scriptPath = Path.Combine(_tempDir, "pipeline.csx");
 
         var config = new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?>
             {
-                ["Ai:PromptFilePath"] = promptFile,
                 ["Ai:Endpoint"] = Environment.GetEnvironmentVariable("AI_ENDPOINT") ?? "http://localhost:2276",
                 ["Ai:Model"] = Environment.GetEnvironmentVariable("AI_MODEL") ?? "qwen-3.6-35b-a3b-q4",
             })
@@ -37,24 +40,32 @@ public class AiIntegrationSteps
 
         IServiceCollection serviceCollection = new ServiceCollection();
         serviceCollection.AddLogging();
-        serviceCollection.AddSingleton(new WorkingDirectory { PaperoniWorkingDirectory = tempDir });
+        serviceCollection.AddSingleton(new WorkingDirectory { PaperoniWorkingDirectory = _tempDir });
         serviceCollection.AddSingleton<ITelegramReplier>(new StubTelegramReplier());
         serviceCollection.AddSingleton<IConfiguration>(config);
         serviceCollection.AddAiService(config);
+        serviceCollection.AddSingleton<IScriptLoader, ScriptLoader>();
         var sp = serviceCollection.BuildServiceProvider();
-        _aiService = sp.GetRequiredService<IAiService>();
+        _pipelineService = sp.GetRequiredService<IPipelineService>();
+        _scriptLoader = sp.GetRequiredService<IScriptLoader>();
     }
 
     [When("I ask {string}")]
     public async Task WhenIAsk(string question)
     {
-        _answer = await _aiService.AskWithFilesAsync([], question, (type, msg) => _output.WriteLine($"[{type}]{msg}"));
+        await WriteScript(question);
+        var script = await _scriptLoader.LoadAsync(_scriptPath, new ScriptGlobals([], DateTime.Now));
+        var result = await _pipelineService.RunAsync(script, _albumId, (type, msg) => _output.WriteLine($"[{type}]{msg}"));
+        _answer = result.FormattedContent;
     }
 
     [When("I ask about the weather for a hike")]
     public async Task WhenIAskAboutTheWeatherForAHike()
     {
-        _functionCallingAnswer = await _aiService.TryFunctionCalling();
+        await WriteScript("What is the current weather for a moderate hike in Montreal?");
+        var script = await _scriptLoader.LoadAsync(_scriptPath, new ScriptGlobals([], DateTime.Now));
+        var result = await _pipelineService.RunAsync(script, _albumId, (type, msg) => _output.WriteLine($"[{type}]{msg}"));
+        _functionCallingAnswer = result.FormattedContent;
         _output.WriteLine($"Function calling response: {_functionCallingAnswer}");
     }
 
@@ -73,15 +84,18 @@ public class AiIntegrationSteps
         var redImage = File.ReadAllBytes("Images/red.png");
         var blueImage = File.ReadAllBytes("Images/blue.png");
 
-        _files.Add(new FileContent(redImage, "image/png"));
-        _files.Add(new FileContent(blueImage, "image/png"));
+        var albumDir = Path.Combine(_tempDir, _albumId.ToString());
+        File.WriteAllBytes(Path.Combine(albumDir, "1.png"), redImage);
+        File.WriteAllBytes(Path.Combine(albumDir, "2.png"), blueImage);
     }
 
     [When("I ask {string} with the images")]
     public async Task WhenIAskWithImages(string question)
     {
-        _answer = await _aiService.AskWithFilesAsync(_files, question,
-            (type, msg) => _output.WriteLine($"[{type}]{msg}"));
+        await WriteScript(question);
+        var script = await _scriptLoader.LoadAsync(_scriptPath, new ScriptGlobals([], DateTime.Now));
+        var result = await _pipelineService.RunAsync(script, _albumId, (type, msg) => _output.WriteLine($"[{type}]{msg}"));
+        _answer = result.FormattedContent;
     }
 
     [Then("the answer should contain {string}")]
@@ -104,5 +118,19 @@ public class AiIntegrationSteps
         public Task UpdateDashboard(int albumId, string stage, int queueDepth) => Task.CompletedTask;
         public Task DeleteDashboard() => Task.CompletedTask;
         public Task ShowDiagnostic(int albumId) => Task.CompletedTask;
+    }
+
+    private async Task WriteScript(string question)
+    {
+        var escapedQuestion = question.Replace("\"", "\\\"");
+        await File.WriteAllTextAsync(_scriptPath,
+            $$"""
+            using System.ComponentModel;
+            public record AiAnswer([property: Description("Final answer text")] string Answer);
+            var Schema = typeof(AiAnswer);
+            var Prompt = "{{escapedQuestion}}";
+            Func<AiAnswer, string> GetFilename = _ => "real-ai-test";
+            Func<AiAnswer, string> Format = a => a.Answer;
+            """);
     }
 }

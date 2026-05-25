@@ -66,7 +66,7 @@ internal sealed class TelegramPhotoAlbumCollector(
         {
             if (query.Message is { } message)
             {
-                await botClient.EditMessageText(message.Chat.Id, message.MessageId, "🔄 Retrying ...");
+                await botClient.EditMessageText(message.Chat.Id, message.MessageId, $"🔄 Retrying album {message.MessageId} ..");
                 await EnsureRetryMetadata(retryId, message);
             }
 
@@ -244,7 +244,7 @@ internal sealed class TelegramPhotoAlbumCollector(
         ]);
 
         var botReply = await botClient.SendMessage(chatId,
-            $"✅ Downloaded {album.Photos.Count} files — queued for processing",
+            $"Downloaded album ({msgId}) with {album.Photos.Count} files — queued for processing ⏳️",
             replyParameters: msgId,
             replyMarkup: markup);
 

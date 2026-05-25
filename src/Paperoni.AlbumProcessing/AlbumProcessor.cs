@@ -142,7 +142,7 @@ internal class AlbumProcessor(
             logger.PdfCreationDone();
 
             logger.PublishingMarkdown();
-            await telegram.UpdateDashboard(albumId, "📤 Publishing..", queue.PendingCount);
+            await telegram.UpdateDashboard(albumId, $"📤 Publishing..", queue.PendingCount);
             await markdownPublisher.PublishStringAsync(result.FormattedContent, result.Filename, stoppingToken);
             logger.PublishingPdf();
 
@@ -158,7 +158,7 @@ internal class AlbumProcessor(
             await telegram.EditReply(albumId,
                 $"""
                  ✅ Done in {duration:F1}s — Paperoni v{VersionInfo.Version}{(testMode ? " 🧪" : "")}
-                 Filename:  {result.Filename}
+                 Filename ({albumId}):  {result.Filename}
                  """ );
             logger.AlbumComplete();
             return true;

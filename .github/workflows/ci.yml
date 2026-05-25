@@ -131,13 +131,15 @@ jobs:
       - name: Smoke test Docker container
         run: |
           set -o pipefail
-          timeout 30s docker run --rm \
+          set +e
+          timeout 10s docker run --rm \
             -e SmokeTestInPipeline=true \
             -e Telegram__BotToken=fake-token \
             -e AlbumProcessing__MarkdownOutputPath=/tmp/markdown \
             -e AlbumProcessing__PdfOutputPath=/tmp/pdf \
             paperoni:smoke --version 2>&1 | tee smoke-test.log
           DOCKER_EXIT=${PIPESTATUS[0]}
+          set -e
 
           if grep -Eiq "error|exception|failed" smoke-test.log; then
             echo "Smoke test failed: found error output"

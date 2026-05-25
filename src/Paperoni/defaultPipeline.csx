@@ -84,13 +84,13 @@ dann die einzelnen Artikel als Tabelle
 
 """;
 
-Func<AlbumNote, string> GetFilename = note =>
+string GetFilename(AlbumNote note)
 {
     var safeTitle = MarkdownHelper.AutoFixDate(note.Title ?? "Unknown");
     return MarkdownHelper.SanitizeFilename(safeTitle);
-};
+}
 
-Func<AlbumNote, string> Format = note =>
+string Format(AlbumNote note)
 {
     var filename = GetFilename(note);
     var tagList = string.Join("\n",
@@ -114,4 +114,4 @@ tags:
 
 {note.MarkdownBody}
 """;
-};
+}

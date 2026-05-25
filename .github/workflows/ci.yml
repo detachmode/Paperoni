@@ -130,14 +130,27 @@ jobs:
 
       - name: Smoke test Docker container
         run: |
-          docker run --rm \
+          set -o pipefail
+          timeout 30s docker run --rm \
+            -e SmokeTestInPipeline=true \
             -e Telegram__BotToken=fake-token \
             -e AlbumProcessing__MarkdownOutputPath=/tmp/markdown \
             -e AlbumProcessing__PdfOutputPath=/tmp/pdf \
             paperoni:smoke --version 2>&1 | tee smoke-test.log
+          DOCKER_EXIT=${PIPESTATUS[0]}
+
           if grep -Eiq "error|exception|failed" smoke-test.log; then
             echo "Smoke test failed: found error output"
             exit 1
+          fi
+
+          if [ "$DOCKER_EXIT" -ne 0 ] && [ "$DOCKER_EXIT" -ne 124 ]; then
+            echo "Smoke test failed: docker run exited with code $DOCKER_EXIT"
+            exit "$DOCKER_EXIT"
+          fi
+
+          if [ "$DOCKER_EXIT" -eq 124 ]; then
+            echo "Smoke test reached 30s timeout without errors (expected)."
           fi
 
       - name: Publish multi-arch Docker image

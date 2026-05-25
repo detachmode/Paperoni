@@ -91,3 +91,11 @@ Scenario: Unknown retry AlbumId is reported to Telegram
     Then the album processing fails
     And the bot replied with "Unknown AlbumId 999 for retry."
     And the dashboard showed "❌ Failed: Unknown AlbumId 999 for retry."
+
+Scenario: LLM self-corrects after invalid JSON response
+    Given the LLM will return invalid JSON on the first attempt
+    When I enqueue the message
+    Then the album is processed
+    And the LLM was called 2 times
+    And the dashboard showed "🤖 AI retry 1/2"
+    And the PipelineResult is persisted with filename "Lorem Ipsum"

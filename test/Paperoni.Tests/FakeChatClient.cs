@@ -5,7 +5,20 @@ namespace Paperoni.Tests;
 internal sealed class FakeChatClient : IChatClient
 {
     public bool ShouldThrow { get; set; }
+    public List<string> Responses { get; set; } = [];
+    public int InvocationCount { get; private set; }
     public ChatClientMetadata Metadata { get; } = new("FakeChatClient", new Uri("http://localhost"), "fake-model");
+
+    private string GetResponseJson()
+    {
+        if (Responses.Count > 0)
+        {
+            var index = Math.Min(InvocationCount, Responses.Count - 1);
+            return Responses[index];
+        }
+
+        return """{"Title":"Lorem Ipsum","Summary":"Fake summary for testing","MarkdownBody":"Fake AI summary for testing."}""";
+    }
 
     public Task<ChatResponse> GetResponseAsync(IEnumerable<ChatMessage> chatMessages, ChatOptions? options = null,
         CancellationToken cancellationToken = default)
@@ -15,8 +28,7 @@ internal sealed class FakeChatClient : IChatClient
             throw new TimeoutException("AI summary timed out.");
         }
 
-        var json = """{"Title":"Lorem Ipsum","Summary":"Fake summary for testing","MarkdownBody":"Fake AI summary for testing."}""";
-        return Task.FromResult(new ChatResponse(new ChatMessage(ChatRole.Assistant, json)));
+        return Task.FromResult(new ChatResponse(new ChatMessage(ChatRole.Assistant, GetResponseJson())));
     }
 
     public async IAsyncEnumerable<ChatResponseUpdate> GetStreamingResponseAsync(
@@ -29,13 +41,15 @@ internal sealed class FakeChatClient : IChatClient
             throw new TimeoutException("AI summary timed out.");
         }
 
+        var responseJson = GetResponseJson();
+        InvocationCount++;
+
         yield return new ChatResponseUpdate(ChatRole.Assistant, new List<AIContent>
         {
             new TextReasoningContent("some fake thoughts")
         });
 
-        var json = """{"Title":"Lorem Ipsum","Summary":"Fake summary for testing","MarkdownBody":"Fake AI summary for testing."}""";
-        yield return new ChatResponseUpdate(ChatRole.Assistant, json);
+        yield return new ChatResponseUpdate(ChatRole.Assistant, responseJson);
         await Task.CompletedTask;
     }
 

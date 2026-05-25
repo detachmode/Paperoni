@@ -40,7 +40,8 @@ public static class DependencyInjection
             Console.WriteLine($"├─ Endpoint: {settings.Endpoint}");
             Console.WriteLine($"├─ Model: {settings.Model}");
             Console.WriteLine($"├─ ApiKey: {(!string.IsNullOrEmpty(settings.ApiKey) ? "***" : "not set")}");
-            Console.WriteLine($"└─ Timeout: {settings.TimeoutSeconds} seconds");
+            Console.WriteLine($"├─ Timeout: {settings.TimeoutSeconds} seconds");
+            Console.WriteLine($"└─ MaxRetries: {settings.MaxRetries}");
 
             return settings;
         });

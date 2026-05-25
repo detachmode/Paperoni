@@ -73,6 +73,16 @@ public class AlbumProcessingSteps
         await File.WriteAllTextAsync(_scriptFilePath, "this is not valid C#;");
     }
 
+    [Given("the LLM will return invalid JSON on the first attempt")]
+    public void GivenLlmReturnsInvalidJsonOnFirstAttempt()
+    {
+        _fakeChatClient.Responses =
+        [
+            """{"Title": 123, "Summary": null, "MarkdownBody": true}""",
+            """{"Title":"Lorem Ipsum","Summary":"Fake summary for testing","MarkdownBody":"Fake AI summary for testing."}"""
+        ];
+    }
+
     [Given("the system is configured for integration testing")]
     public async Task GivenSystemIsConfigured()
     {
@@ -447,6 +457,12 @@ public class AlbumProcessingSteps
     public void ThenDiagnosticWasShown(int count)
     {
         Assert.Equal(count, _telegram.DiagnosticAlbumIds.Count);
+    }
+
+    [Then("the LLM was called (.*) times")]
+    public void ThenLlmWasCalledTimes(int expectedCount)
+    {
+        Assert.Equal(expectedCount, _fakeChatClient.InvocationCount);
     }
 
     [Then("the last bot reply starts with {string}")]

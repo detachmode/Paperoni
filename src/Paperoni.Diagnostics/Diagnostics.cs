@@ -82,4 +82,11 @@ public static partial class Diagnostics
     [LoggerMessage(Level = LogLevel.Information,
         Message = "🧹 Working directory cleanup: deleted {Count} directories older than {RetentionDays} days")]
     public static partial void WorkingDirectoryCleanupComplete(this ILogger logger, int count, int retentionDays);
+
+    [LoggerMessage(Level = LogLevel.Warning,
+        Message = "🤖 AI response deserialization failed (attempt {Attempt}/{MaxRetries}): {Error}")]
+    public static partial void AiRetryDeserialization(this ILogger logger, int attempt, int maxRetries, string error);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "🤖 AI retry {Attempt}/{MaxRetries} — fixing response")]
+    public static partial void AiRetryAttempt(this ILogger logger, int attempt, int maxRetries);
 }

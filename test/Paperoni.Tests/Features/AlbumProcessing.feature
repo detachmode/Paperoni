@@ -53,8 +53,8 @@ Scenario: Pipeline service timeout is reported to the user
     Given the pipeline service is unresponsive
     When I enqueue the message
     Then the album processing fails
-    And the bot replied with "Failed to process"
-    And the dashboard showed "❌ Failed"
+    And the bot replied with an error message
+    And the dashboard showed "❌ Failed:"
     And no PDF was created in the working directory
     And no files were published to the output directory
 
@@ -62,9 +62,9 @@ Scenario: Invalid pipeline script is reported via Telegram
     Given the pipeline script has a compile error
     When I enqueue the message
     Then the album processing fails
-    And the bot replied with "Script error"
+    And the bot replied with an error message
     And the last bot reply contains "CS"
-    And the dashboard showed "❌ Script error"
+    And the dashboard showed "❌ Failed:"
 
 Scenario: Log command returns logs and traces after album processing
     When I enqueue the message
@@ -84,3 +84,9 @@ Scenario: Diagnostic shows correct album and counts multiple requests
     Then the diagnostic was shown for album 42
     When I request diagnostics for the message
     Then the diagnostic was shown 2 times
+
+Scenario: Unknown retry AlbumId is reported to Telegram
+    When I request a retry for an unknown album id
+    Then the album processing fails
+    And the bot replied with "Unknown AlbumId 999 for retry."
+    And the dashboard showed "❌ Failed: Unknown AlbumId 999 for retry."

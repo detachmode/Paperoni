@@ -34,6 +34,8 @@ public class FakeTelegramReplier : ITelegramReplier
         return Task.CompletedTask;
     }
 
+    public Task ReplyError(int albumId, string errorMessage) => EditReply(albumId, errorMessage);
+
     public Task UpdateDashboard(int albumId, string stage, int queueDepth)
     {
         lock (_lock)

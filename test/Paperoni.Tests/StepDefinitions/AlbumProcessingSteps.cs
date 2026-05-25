@@ -25,6 +25,7 @@ namespace Paperoni.Tests.StepDefinitions;
 public class AlbumProcessingSteps
 {
     private const int TestMessageId = 42;
+    private const int UnknownMessageId = 999;
     private readonly ITestOutputHelper _output;
     private CancellationTokenSource? _cts;
     private SpyFilePublisher _markdownSpy = null!;
@@ -39,6 +40,7 @@ public class AlbumProcessingSteps
     private FakeTelegramReplier _telegram = null!;
     private string _tempBase = null!;
     private TracerProvider? _tracerProvider;
+    private int _activeMessageId = TestMessageId;
 
     public AlbumProcessingSteps(ITestOutputHelper output)
     {
@@ -189,6 +191,7 @@ public class AlbumProcessingSteps
     [When("I enqueue the message")]
     public void WhenEnqueueTheMessage()
     {
+        _activeMessageId = TestMessageId;
         _queue.Enqueue(new WorkItem(TestMessageId, false));
     }
 
@@ -243,8 +246,18 @@ public class AlbumProcessingSteps
     [When("I request a retry")]
     public void WhenRequestRetry()
     {
+        _activeMessageId = TestMessageId;
         var queue = _sp.GetRequiredService<AlbumQueue>();
         queue.Enqueue(new WorkItem(TestMessageId, true));
+    }
+
+    [When("I request a retry for an unknown album id")]
+    public async Task WhenIRequestARetryForAnUnknownAlbumId()
+    {
+        await GivenPipelineStarted();
+        _activeMessageId = UnknownMessageId;
+        var queue = _sp.GetRequiredService<AlbumQueue>();
+        queue.Enqueue(new WorkItem(UnknownMessageId, true));
     }
 
     [Then("the PipelineResult is persisted with filename {string}")]
@@ -392,7 +405,8 @@ public class AlbumProcessingSteps
 
         while (DateTime.UtcNow < deadline)
         {
-            if (_telegram.Calls.Any(c => c.Text.StartsWith("Failed to process") || c.Text.StartsWith("Script error")))
+            if (_telegram.DashboardCalls.Any(c =>
+                    c.AlbumId == _activeMessageId && c.Stage.StartsWith("❌", StringComparison.Ordinal)))
             {
                 return;
             }
@@ -409,11 +423,18 @@ public class AlbumProcessingSteps
         Assert.Contains(_telegram.Calls, c => c.Text.StartsWith(expectedStartsWith));
     }
 
+    [Then("the bot replied with an error message")]
+    public void ThenBotRepliedWithAnErrorMessage()
+    {
+        Assert.Contains(_telegram.Calls,
+            c => !string.IsNullOrWhiteSpace(c.Text) && !c.Text.StartsWith("Done ", StringComparison.Ordinal));
+    }
+
     [Then("the dashboard showed {string}")]
     public void ThenDashboardShowed(string expectedStartsWith)
     {
         Assert.Contains(_telegram.DashboardCalls,
-            c => c.Stage.StartsWith(expectedStartsWith) && c.AlbumId == TestMessageId);
+            c => c.Stage.StartsWith(expectedStartsWith) && c.AlbumId == _activeMessageId);
     }
 
     [Then("the diagnostic was shown for album {int}")]

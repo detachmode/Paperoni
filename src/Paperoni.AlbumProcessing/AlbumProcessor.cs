@@ -87,13 +87,22 @@ internal class AlbumProcessor(
             catch (InvalidPipelineScriptException ex)
             {
                 logger.AlbumProcessingError(ex, albumId);
-                await telegram.EditReply(albumId, FormatError("Script error", ex));
-                await telegram.UpdateDashboard(albumId, "❌ Script error", queue.PendingCount);
+                await telegram.ReplyError(albumId, ex.Message);
+                await telegram.UpdateDashboard(albumId, $"❌ Failed: {ex.Message}", queue.PendingCount);
                 return false;
             }
 
             if (isRetry)
             {
+                var retryMetaData = await workingDirectory.GetData<MetaData>(albumId, stoppingToken);
+                if (retryMetaData is null)
+                {
+                    var errorMessage = $"Unknown AlbumId {albumId} for retry.";
+                    await telegram.ReplyError(albumId, errorMessage);
+                    await telegram.UpdateDashboard(albumId, $"❌ Failed: {errorMessage}", queue.PendingCount);
+                    return false;
+                }
+
                 var traceDir = workingDirectory.RequireWorkingDirectory(albumId);
                 var tracePath = Path.Combine(traceDir, "traces.log");
                 if (File.Exists(tracePath))
@@ -159,30 +168,9 @@ internal class AlbumProcessor(
         catch (Exception e)
         {
             logger.AlbumProcessingError(e, albumId);
-            await telegram.EditReply(albumId, FormatError("Failed to process", e));
+            await telegram.ReplyError(albumId, e.Message);
             await telegram.UpdateDashboard(albumId, $"❌ Failed: {e.Message}", queue.PendingCount);
             return false;
         }
-    }
-
-    private static string FormatError(string prefix, Exception ex)
-    {
-        var sb = new System.Text.StringBuilder();
-        sb.Append(prefix).Append(": ").Append(ex.Message);
-
-        if (ex.InnerException is not null
-            && !ex.Message.Contains(ex.InnerException.Message, StringComparison.Ordinal))
-        {
-            sb.AppendLine().Append("→ ").Append(ex.InnerException.Message);
-        }
-
-        const int maxLength = 3900;
-        if (sb.Length > maxLength)
-        {
-            sb.Length = maxLength;
-            sb.AppendLine().Append("...(truncated)");
-        }
-
-        return sb.ToString();
     }
 }

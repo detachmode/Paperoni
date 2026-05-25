@@ -13,6 +13,7 @@ namespace Paperoni.Telegram;
 public interface ITelegramReplier
 {
     Task EditReply(int msgId, string text);
+    Task ReplyError(int albumId, string errorMessage);
     Task SetReaction(int albumMsgId, string emoji);
     Task UpdateDashboard(int albumId, string stage, int queueDepth);
     Task DeleteDashboard();
@@ -51,6 +52,43 @@ public class TelegramReplier(
         ]);
 
         await bot.EditMessageText(chatId, replyMessageId.Value, text, replyMarkup: markup);
+    }
+
+    public async Task ReplyError(int albumId, string errorMessage)
+    {
+        try
+        {
+            await EditReply(albumId, errorMessage);
+            return;
+        }
+        catch
+        {
+        }
+
+        long chatId = 0;
+        try
+        {
+            var metadata = await workingDirectory.RequireData<MetaData>(albumId);
+            chatId = metadata.ChatId;
+        }
+        catch
+        {
+            await _lock.WaitAsync();
+            try
+            {
+                var dashboard = await GetOrCreateMetadata();
+                chatId = dashboard.ChatId;
+            }
+            finally
+            {
+                _lock.Release();
+            }
+        }
+
+        if (chatId != 0)
+        {
+            await bot.SendMessage(chatId, errorMessage);
+        }
     }
 
     public async Task SetReaction(int albumMsgId, string emoji)

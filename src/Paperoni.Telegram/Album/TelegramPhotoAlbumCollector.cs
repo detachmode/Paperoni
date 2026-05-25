@@ -67,6 +67,7 @@ internal sealed class TelegramPhotoAlbumCollector(
             if (query.Message is { } message)
             {
                 await botClient.EditMessageText(message.Chat.Id, message.MessageId, "🔄 Retrying ...");
+                await EnsureRetryMetadata(retryId, message);
             }
 
             queue.Enqueue(new WorkItem(retryId, true));
@@ -96,6 +97,31 @@ internal sealed class TelegramPhotoAlbumCollector(
         {
             logger.LogWarning("Unknown callback data: {Data}", data);
         }
+    }
+
+    private async Task EnsureRetryMetadata(int albumId, Message replyMessage)
+    {
+        var metadata = await workingDirectory.GetData<MetaData>(albumId) ?? new MetaData
+        {
+            MessageId = albumId,
+            Date = replyMessage.Date,
+            AlbumMessageIds = [albumId]
+        };
+
+        metadata.ChatId = replyMessage.Chat.Id;
+        metadata.ReplyMessageId = replyMessage.MessageId;
+
+        if (metadata.MessageId == 0)
+        {
+            metadata.MessageId = albumId;
+        }
+
+        if (metadata.AlbumMessageIds.Count == 0)
+        {
+            metadata.AlbumMessageIds.Add(albumId);
+        }
+
+        await workingDirectory.WriteData(albumId, metadata);
     }
 
     private async Task HandleCommand(Message message, string text)

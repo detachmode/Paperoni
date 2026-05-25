@@ -7,4 +7,5 @@ public class AlbumProcessingSettings
     public string? MarkdownOutputPath { get; set; }
     public string? PdfOutputPath { get; set; }
     public required string ScriptFilePath { get; set; }
+    public int WorkingDirectoryRetentionDays { get; set; }
 }

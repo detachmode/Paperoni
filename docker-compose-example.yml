@@ -17,6 +17,7 @@ services:
       AlbumProcessing__MarkdownOutputPath: /output/markdown
       AlbumProcessing__PdfOutputPath: /output/pdf
       AlbumProcessing__TestModeOutputPath: /data/test-output
+      AlbumProcessing__WorkingDirectoryRetentionDays: "7"
       PaperoniWorkingDirectory: /data
     extra_hosts:
       - host.docker.internal:host-gateway

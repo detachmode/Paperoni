@@ -75,4 +75,11 @@ public static partial class Diagnostics
 
     [LoggerMessage(Level = LogLevel.Error, Message = "❌ Download failed")]
     public static partial void DownloadError(this ILogger logger, Exception ex);
+
+    [LoggerMessage(Level = LogLevel.Debug, Message = "🧹 Deleted working directory for album {AlbumId}")]
+    public static partial void WorkingDirectoryDeleted(this ILogger logger, int albumId);
+
+    [LoggerMessage(Level = LogLevel.Information,
+        Message = "🧹 Working directory cleanup: deleted {Count} directories older than {RetentionDays} days")]
+    public static partial void WorkingDirectoryCleanupComplete(this ILogger logger, int count, int retentionDays);
 }

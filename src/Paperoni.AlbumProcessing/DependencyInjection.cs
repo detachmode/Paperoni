@@ -32,6 +32,8 @@ public static class DependencyInjection
 
         collection.AddHostedService<AlbumProcessor>();
 
+        collection.AddHostedService<WorkingDirectoryCleanup>();
+
         collection.AddSingleton<AlbumProcessingSettings>(sp =>
         {
             var options = sp.GetRequiredService<IOptions<AlbumProcessingSettings>>();
@@ -40,6 +42,7 @@ public static class DependencyInjection
             Console.WriteLine($"├─ MarkdownOutputPath: {settings.MarkdownOutputPath}");
             Console.WriteLine($"├─ PdfOutputPath: {settings.PdfOutputPath}");
             Console.WriteLine($"├─ ScriptFilePath: {settings.ScriptFilePath}");
+            Console.WriteLine($"├─ WorkingDirectoryRetentionDays: {settings.WorkingDirectoryRetentionDays}");
             Console.WriteLine($"└─ TestMode: {settings.TestMode}");
             if (settings.TestMode)
             {

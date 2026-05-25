@@ -62,4 +62,13 @@ public class WorkingDirectory
             _semaphore.Release();
         }
     }
+
+    public void DeleteAlbumDirectory(int messageId)
+    {
+        var path = Path.Combine(BasePath, messageId.ToString());
+        if (Directory.Exists(path))
+        {
+            Directory.Delete(path, recursive: true);
+        }
+    }
 }

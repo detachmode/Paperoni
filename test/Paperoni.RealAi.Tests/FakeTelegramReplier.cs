@@ -17,7 +17,12 @@ public class FakeTelegramReplier(IReqnrollOutputHelper outputHelper) : ITelegram
             _calls.Add((msgId, text));
         }
 
-        if (text.StartsWith("✅ Done "))
+        if (text.StartsWith("❌"))
+        {
+            _done.SetCanceled();
+        }
+
+        if (text.StartsWith("✅"))
         {
             _done.TrySetResult();
         }

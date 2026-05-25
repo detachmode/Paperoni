@@ -135,7 +135,6 @@ internal sealed class PipelineService : IPipelineService
         var sawFirstChunk = false;
         var st = System.Diagnostics.Stopwatch.StartNew();
         var fullResponse = "";
-        var reasoningLine = "";
         var sentPartialOutput = false;
         var chunkCount = 0;
 
@@ -155,11 +154,9 @@ internal sealed class PipelineService : IPipelineService
             }
 
             var reasoning = update.Contents.FirstOrDefault() as TextReasoningContent;
-            reasoningLine += reasoning?.Text ?? "";
-            if (reasoning?.Text == Environment.NewLine)
+            if (!string.IsNullOrWhiteSpace(reasoning?.Text))
             {
-                debugOutput?.Invoke(DebugOutputType.Reasoning, reasoningLine.Replace(Environment.NewLine, ""));
-                reasoningLine = "";
+                debugOutput?.Invoke(DebugOutputType.Reasoning, reasoning.Text);
             }
 
             if (!sawFirstChunk)

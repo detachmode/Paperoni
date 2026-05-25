@@ -15,7 +15,8 @@ Scenario: Single photo album is processed end-to-end
     And the formatted markdown is published to Obsidian
     And a PDF is created with filename "Lorem Ipsum"
     And the PDF is published to the output directory
-    And the dashboard showed "🤖 AI reading"
+    And the dashboard showed "🤖 AI is reading .."
+    And the dashboard showed "🤖 AI is thinking .."
     And the dashboard showed "🤖 AI is formulating the final output"
     And the dashboard showed "📄 Creating PDF"
     And the dashboard showed "📤 Publishing"

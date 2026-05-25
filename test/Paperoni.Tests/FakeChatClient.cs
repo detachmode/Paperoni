@@ -29,6 +29,11 @@ internal sealed class FakeChatClient : IChatClient
             throw new TimeoutException("AI summary timed out.");
         }
 
+        yield return new ChatResponseUpdate(ChatRole.Assistant, new List<AIContent>
+        {
+            new TextReasoningContent("some fake thoughts")
+        });
+
         var json = """{"Title":"Lorem Ipsum","Summary":"Fake summary for testing","MarkdownBody":"Fake AI summary for testing."}""";
         yield return new ChatResponseUpdate(ChatRole.Assistant, json);
         await Task.CompletedTask;

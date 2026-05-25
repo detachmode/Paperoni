@@ -18,21 +18,26 @@ public class ScriptLoader : IScriptLoader
             throw new FileNotFoundException("Pipeline script not found", scriptPath);
         }
 
-        var scriptContent = await File.ReadAllTextAsync(scriptPath);
+        var originalContent = await File.ReadAllTextAsync(scriptPath);
+        var originalLines = SplitLines(originalContent);
+        var scriptContent = originalContent;
+        var scriptLineToSourceLine = Enumerable.Range(1, originalLines.Count).ToArray();
 
         if (Path.GetExtension(scriptPath).Equals(".md", StringComparison.OrdinalIgnoreCase))
         {
-            scriptContent = ExtractScriptFromMarkdown(scriptContent);
+            var extraction = ExtractScriptFromMarkdown(originalContent);
+            scriptContent = extraction.ScriptContent;
+            scriptLineToSourceLine = extraction.ScriptLineToSourceLine;
         }
 
         ScriptState<object> scriptState;
         try
         {
-            scriptState = await CSharpScript.RunAsync(scriptContent, ScriptOptions, globals);
+            scriptState = await CSharpScript.RunAsync(scriptContent, ScriptOptions.WithFilePath(scriptPath), globals);
         }
         catch (CompilationErrorException ex)
         {
-            var errors = string.Join(Environment.NewLine, ex.Diagnostics.Select(d => d.ToString()));
+            var errors = FormatDiagnostics(ex.Diagnostics, originalLines, scriptLineToSourceLine);
             throw new InvalidPipelineScriptException($"Pipeline script compile error:{Environment.NewLine}{errors}",
                 ex);
         }
@@ -43,8 +48,18 @@ public class ScriptLoader : IScriptLoader
         var prompt = (string)GetScriptVariable(scriptState, "Prompt")!;
         FailIfNull(prompt, "Prompt variable must be set");
 
-        var getFileNameFunc = (await scriptState.ContinueWithAsync<Delegate>("GetFilename")).ReturnValue;
-        var formatFunc = (await scriptState.ContinueWithAsync<Delegate>("Format")).ReturnValue;
+        Delegate getFileNameFunc;
+        Delegate formatFunc;
+        try
+        {
+            getFileNameFunc = (await scriptState.ContinueWithAsync<Delegate>("GetFilename")).ReturnValue;
+            formatFunc = (await scriptState.ContinueWithAsync<Delegate>("Format")).ReturnValue;
+        }
+        catch (CompilationErrorException ex)
+        {
+            var errors = FormatDiagnostics(ex.Diagnostics, originalLines, scriptLineToSourceLine);
+            throw new InvalidPipelineScriptException($"Pipeline script compile error:{Environment.NewLine}{errors}", ex);
+        }
 
         return new PipelineScript
         {
@@ -52,41 +67,86 @@ public class ScriptLoader : IScriptLoader
             Prompt = prompt,
             GetFilenameDelegate = getFileNameFunc,
             FormatDelegate = formatFunc,
-            ScriptGlobals = globals ?? new ScriptGlobals([], DateTime.Now)
+            ScriptGlobals = globals ?? new ScriptGlobals([], DateTime.Now),
+            ScriptPath = scriptPath,
+            SourceLines = originalLines,
+            MapLineNumber = line => MapLineNumber(line, scriptLineToSourceLine)
         };
     }
 
-    private static string ExtractScriptFromMarkdown(string scriptContent)
+    private static MarkdownExtractionResult ExtractScriptFromMarkdown(string scriptContent)
     {
-        var lines = scriptContent.Split(Environment.NewLine, StringSplitOptions.RemoveEmptyEntries).ToList();
-        var script = GetScriptLines();
-        var joined =  string.Join(Environment.NewLine, script);
-        return joined;
+        var lines = SplitLines(scriptContent);
+        var scriptLines = new List<string>();
+        var map = new List<int>();
 
-        IEnumerable<string> GetScriptLines()
+        for (var i = 0; i < lines.Count; i++)
         {
-            while (lines.Count > 0)
+            if (!lines[i].StartsWith("```cs"))
             {
-
-                if (!lines[0].StartsWith("```cs"))
-                {
-                    lines.RemoveAt(0);
-                    continue;
-                }
-
-                lines.RemoveAt(0);
-
-                while (!lines[0].StartsWith("```"))
-                {
-                    yield return lines[0];
-                    lines.RemoveAt(0);
-                }
-                lines.RemoveAt(0);
-
+                continue;
             }
 
+            for (var j = i + 1; j < lines.Count; j++)
+            {
+                if (lines[j].StartsWith("```"))
+                {
+                    i = j;
+                    break;
+                }
+
+                scriptLines.Add(lines[j]);
+                map.Add(j + 1);
+            }
         }
+
+        return new MarkdownExtractionResult(string.Join(Environment.NewLine, scriptLines), map.ToArray());
     }
+
+    private static string FormatDiagnostics(
+        IEnumerable<Microsoft.CodeAnalysis.Diagnostic> diagnostics,
+        IReadOnlyList<string> sourceLines,
+        IReadOnlyList<int> scriptLineToSourceLine)
+    {
+        return string.Join(Environment.NewLine, diagnostics.Select(d =>
+        {
+            var span = d.Location.GetLineSpan();
+            if (!span.IsValid)
+            {
+                return d.ToString();
+            }
+
+            var scriptLine = span.StartLinePosition.Line + 1;
+            var sourceLine = MapLineNumber(scriptLine, scriptLineToSourceLine);
+            var col = span.StartLinePosition.Character + 1;
+            var lineText = sourceLine > 0 && sourceLine <= sourceLines.Count
+                ? sourceLines[sourceLine - 1]
+                : "<source line unavailable>";
+
+            return $"{d.Id}: {d.GetMessage()} (line {sourceLine}, col {col}){Environment.NewLine}> {lineText}";
+        }));
+    }
+
+    private static int MapLineNumber(int scriptLine, IReadOnlyList<int> scriptLineToSourceLine)
+    {
+        if (scriptLine <= 0 || scriptLine > scriptLineToSourceLine.Count)
+        {
+            return scriptLine;
+        }
+
+        return scriptLineToSourceLine[scriptLine - 1];
+    }
+
+    private static List<string> SplitLines(string content)
+    {
+        return content
+            .Replace("\r\n", "\n")
+            .Replace("\r", "\n")
+            .Split('\n')
+            .ToList();
+    }
+
+    private sealed record MarkdownExtractionResult(string ScriptContent, int[] ScriptLineToSourceLine);
 
     private static ScriptOptions ScriptOptions
     {

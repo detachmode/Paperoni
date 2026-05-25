@@ -1,4 +1,3 @@
-using Microsoft.CodeAnalysis.Scripting;
 using Paperoni.Ai;
 using Paperoni.AlbumProcessing;
 
@@ -118,8 +117,9 @@ public class ScriptLoaderTests
 
         try
         {
-            var ex = await Assert.ThrowsAsync<CompilationErrorException>(
+            var ex = await Assert.ThrowsAsync<InvalidPipelineScriptException>(
                 () => _loader.LoadAsync(path));
+            Assert.Contains("compile error", ex.Message, StringComparison.OrdinalIgnoreCase);
         }
         finally
         {
@@ -143,8 +143,9 @@ public class ScriptLoaderTests
 
         try
         {
-            var ex = await Assert.ThrowsAsync<CompilationErrorException>(
+            var ex = await Assert.ThrowsAsync<InvalidPipelineScriptException>(
                 () => _loader.LoadAsync(path));
+            Assert.Contains("compile error", ex.Message, StringComparison.OrdinalIgnoreCase);
         }
         finally
         {
@@ -164,8 +165,9 @@ public class ScriptLoaderTests
 
         try
         {
-            var ex = await Assert.ThrowsAsync<CompilationErrorException>(
+            var ex = await Assert.ThrowsAsync<InvalidPipelineScriptException>(
                 () => _loader.LoadAsync(path));
+            Assert.Contains("GetFilename", ex.Message);
         }
         finally
         {
@@ -185,6 +187,8 @@ public class ScriptLoaderTests
                 () => _loader.LoadAsync(path));
             Assert.NotEmpty(ex.Message);
             Assert.Contains("CS", ex.Message);
+            Assert.Contains("line 1", ex.Message);
+            Assert.Contains("this is not valid C#;", ex.Message);
         }
         finally
         {
@@ -263,6 +267,67 @@ public class ScriptLoaderTests
             var instance = DeserializeToType(record, result.Schema);
             var filename = result.InvokeGetFilename(instance);
             Assert.Equal("2025-06-05 Car_FOO", filename);
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public async Task LoadAsync_MarkdownCompileError_ReportsOriginalMarkdownLine()
+    {
+        var script = """
+            # Intro
+            ```cs
+            public record TestNote(string Title);
+            var Schema = typeof(TestNote)
+            var Prompt = "Analyse.";
+            string GetFilename(TestNote note) => note.Title;
+            string Format(TestNote note) => note.Title;
+            ```
+            """;
+        var path = CreateScriptFile(script, "md");
+
+        try
+        {
+            var ex = await Assert.ThrowsAsync<InvalidPipelineScriptException>(() => _loader.LoadAsync(path));
+            Assert.Contains("line 4", ex.Message);
+            Assert.Contains("var Schema = typeof(TestNote)", ex.Message);
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public async Task InvokeGetFilename_WhenScriptThrows_ReportsLineAndSource()
+    {
+        var script = """
+            public record TestNote(string Title);
+
+            var Schema = typeof(TestNote);
+            var Prompt = "Analyse.";
+
+            string GetFilename(TestNote note)
+            {
+                throw new InvalidOperationException("boom");
+            }
+
+            string Format(TestNote note) => note.Title;
+            """;
+        var path = CreateScriptFile(script);
+
+        try
+        {
+            var result = await _loader.LoadAsync(path);
+            var record = new Dictionary<string, object> { ["Title"] = "x" };
+            var instance = DeserializeToType(record, result.Schema);
+
+            var ex = Assert.Throws<InvalidPipelineScriptException>(() => result.InvokeGetFilename(instance));
+            Assert.Contains("execution error in GetFilename", ex.Message);
+            Assert.Contains("boom", ex.Message);
         }
         finally
         {

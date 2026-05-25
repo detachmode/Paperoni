@@ -98,7 +98,7 @@ internal sealed class PipelineService : IPipelineService
                     throw new TimeoutException($"AI summary timed out after {_timeoutSeconds} seconds.");
                 }
 
-                var responseFileName = attempt == 0 ? "firstAiResponse.json" : $"aiResponse_attempt{attempt + 1}.json";
+                var responseFileName = attempt == 0 ? "aiResponse.json" : $"aiResponse_attempt{attempt + 1}.json";
                 await File.WriteAllTextAsync(
                     Path.Combine(workingDir, responseFileName), aiResponse, stoppingToken);
 
@@ -129,8 +129,8 @@ internal sealed class PipelineService : IPipelineService
 
                     return new PipelineRunResult(filename, formatted);
                 }
-                catch (Exception ex) when (ex is JsonException or InvalidOperationException
-                                               && !ex.Message.StartsWith("GetFilename returned empty"))
+                catch (Exception ex) when (
+                    ex is JsonException or InvalidPipelineScriptException or InvalidOperationException)
                 {
                     lastError = ex;
                     _logger.AiRetryDeserialization(attempt + 1, _maxRetries + 1, ex.Message);

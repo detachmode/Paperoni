@@ -1,12 +1,14 @@
 using Paperoni.Telegram;
+using Reqnroll;
 
 namespace Paperoni.RealAi.Tests;
 
-public class FakeTelegramReplier : ITelegramReplier
+public class FakeTelegramReplier(IReqnrollOutputHelper outputHelper) : ITelegramReplier
 {
     private TaskCompletionSource _done = new();
     private readonly List<(int MsgId, string Text)> _calls = [];
     private readonly object _lock = new();
+    public readonly List<string> DashboardUpdates = [];
 
     public Task EditReply(int msgId, string text)
     {
@@ -14,10 +16,12 @@ public class FakeTelegramReplier : ITelegramReplier
         {
             _calls.Add((msgId, text));
         }
-        if (text.StartsWith("Done "))
+
+        if (text.StartsWith("✅ Done "))
         {
             _done.TrySetResult();
         }
+
         return Task.CompletedTask;
     }
 
@@ -27,7 +31,18 @@ public class FakeTelegramReplier : ITelegramReplier
     }
 
     public Task SetReaction(int albumMsgId, string emoji) => Task.CompletedTask;
-    public Task UpdateDashboard(int albumId, string stage, int queueDepth) => Task.CompletedTask;
+
+    public Task UpdateDashboard(int albumId, string stage, int queueDepth)
+    {
+        lock (_lock)
+        {
+            outputHelper.WriteLine("Dashboard update:" +stage);
+            DashboardUpdates.Add(stage);
+        }
+
+        return Task.CompletedTask;
+    }
+
     public Task DeleteDashboard() => Task.CompletedTask;
     public Task ShowDiagnostic(int albumId) => Task.CompletedTask;
 
@@ -36,11 +51,17 @@ public class FakeTelegramReplier : ITelegramReplier
         _done = new TaskCompletionSource();
     }
 
-    public Task WaitForCompletionAsync(CancellationToken ct = default) =>
-        _done.Task.WaitAsync(ct);
+    public Task WaitForCompletionAsync(CancellationToken ct = default, int timeoutSeconds = 60) =>
+        _done.Task.WaitAsync(TimeSpan.FromSeconds(timeoutSeconds), ct).WaitAsync(ct);
 
     public IReadOnlyList<(int MsgId, string Text)> Calls
     {
-        get { lock (_lock) { return _calls.ToList(); } }
+        get
+        {
+            lock (_lock)
+            {
+                return _calls.ToList();
+            }
+        }
     }
 }

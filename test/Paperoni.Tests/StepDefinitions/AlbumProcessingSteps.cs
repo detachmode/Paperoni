@@ -83,6 +83,16 @@ public class AlbumProcessingSteps
         ];
     }
 
+    [Given("the LLM will return empty title on the first attempt")]
+    public void GivenLlmReturnsEmptyTitleOnFirstAttempt()
+    {
+        _fakeChatClient.Responses =
+        [
+            """{"Title":"","Summary":"Fake summary","MarkdownBody":"Fake body."}""",
+            """{"Title":"Lorem Ipsum","Summary":"Fake summary for testing","MarkdownBody":"Fake AI summary for testing."}"""
+        ];
+    }
+
     [Given("the system is configured for integration testing")]
     public async Task GivenSystemIsConfigured()
     {

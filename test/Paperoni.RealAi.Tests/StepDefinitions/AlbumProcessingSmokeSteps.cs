@@ -18,10 +18,10 @@ using Xunit.Abstractions;
 namespace Paperoni.RealAi.Tests.StepDefinitions;
 
 [Binding]
-public class AlbumProcessingSmokeSteps
+public class AlbumProcessingSmokeSteps(ITestOutputHelper output, IReqnrollOutputHelper reqnrollOutput)
 {
     private const int TestMessageId = 42;
-    private readonly ITestOutputHelper _output;
+    private readonly ITestOutputHelper _output = output;
     private CancellationTokenSource? _cts;
     private string _outputDir = null!;
     private string _scriptFilePath = null!;
@@ -32,11 +32,6 @@ public class AlbumProcessingSmokeSteps
     private FakeTelegramReplier _telegram = null!;
     private string _tempBase = null!;
     private TracerProvider? _tracerProvider;
-
-    public AlbumProcessingSmokeSteps(ITestOutputHelper output)
-    {
-        _output = output;
-    }
 
     [Given("the system is configured for real AI integration testing")]
     public async Task GivenSystemIsConfigured()
@@ -66,7 +61,7 @@ public class AlbumProcessingSmokeSteps
             Path.Combine(msgDir, "MetaData.json"),
             JsonSerializer.Serialize(meta));
 
-        _telegram = new FakeTelegramReplier();
+        _telegram = new FakeTelegramReplier(reqnrollOutput);
         _queue = new AlbumQueue(NullLogger<AlbumQueue>.Instance);
 
         _tracerProvider = Sdk.CreateTracerProviderBuilder()
@@ -80,10 +75,11 @@ public class AlbumProcessingSmokeSteps
             .Build();
     }
 
-    [Given("the pipeline script is:")]
+    [Given("the pipeline script is {string}")]
     public async Task GivenPipelineScript(string script)
     {
-        await File.WriteAllTextAsync(_scriptFilePath, script);
+        var scriptFromFile = await File.ReadAllTextAsync(script);
+        await File.WriteAllTextAsync(_scriptFilePath, scriptFromFile);
     }
 
     [Given("the real AI processing pipeline is built")]
@@ -98,7 +94,7 @@ public class AlbumProcessingSmokeSteps
                 ["AlbumProcessing:MarkdownOutputPath"] = _outputDir,
                 ["AlbumProcessing:PdfOutputPath"] = _outputDir,
                 ["Ai:Endpoint"] = Environment.GetEnvironmentVariable("AI_ENDPOINT") ?? "http://localhost:2276",
-                ["Ai:Model"] = Environment.GetEnvironmentVariable("AI_MODEL") ?? "qwen-3.6-35b-a3b-q4",
+                ["Ai:Model"] = Environment.GetEnvironmentVariable("AI_MODEL") ?? "gemma-4-e4b",
             })
             .Build();
 
@@ -143,8 +139,8 @@ public class AlbumProcessingSmokeSteps
         await _telegram.WaitForCompletionAsync(_cts!.Token);
 
         var workDir = Path.Combine(_tempBase, TestMessageId.ToString());
-        var content = await File.ReadAllTextAsync(Path.Combine(workDir, "firstAiResponse.json"));
-        _output.WriteLine($"AI Summary:\n{content}");
+        var content = await File.ReadAllTextAsync(Path.Combine(workDir, "aiResponse.json"));
+        _output.WriteLine($"First AI Response:\n{content}");
     }
 
     [Then("a PDF is created")]
@@ -182,7 +178,14 @@ public class AlbumProcessingSmokeSteps
             $"Unexpected fallback trace log at {fallbackPath} — some spans are missing AlbumId tag");
 
         var lines = File.ReadAllLines(traceLogPath);
+
+        foreach (var line in lines)
+        {
+            _output.WriteLine(line);
+        }
+
         var joined = string.Join("\n", lines);
+
         Assert.Contains("AlbumProcessor.ExecuteAsync", joined);
         Assert.Contains("PipelineService.RunAsync", joined);
         Assert.Contains("PdfCreator.CreatePdf", joined);

@@ -99,3 +99,11 @@ Scenario: LLM self-corrects after invalid JSON response
     And the LLM was called 2 times
     And the dashboard showed "🤖 AI retry 1/2"
     And the PipelineResult is persisted with filename "Lorem Ipsum"
+
+Scenario: LLM self-corrects after empty title
+    Given the LLM will return empty title on the first attempt
+    When I enqueue the message
+    Then the album is processed
+    And the LLM was called 2 times
+    And the dashboard showed "🤖 AI retry 1/2"
+    And the PipelineResult is persisted with filename "Lorem Ipsum"

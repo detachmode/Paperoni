@@ -37,6 +37,10 @@
     <None Include="..\Paperoni.Ai.Tests\Images\*.png" Link="Images\%(Filename)%(Extension)">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
+    <None Update="testPipeline.csx">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
+
 
 </Project>

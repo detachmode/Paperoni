@@ -16,7 +16,15 @@ var Schema = typeof(TestNote);
 
 var Prompt = "Analyse the document.";
 
-Func<TestNote, string> GetFilename = note => note.Title;
+Func<TestNote, string> GetFilename = note =>
+{
+    if (string.IsNullOrWhiteSpace(note.Title))
+    {
+        throw new InvalidOperationException("Title is empty");
+    }
+
+    return note.Title;
+};
 
 Func<TestNote, string> Format = note =>
 {

@@ -70,8 +70,8 @@ public class FakeTelegramReplier : ITelegramReplier
         _deleteDashboardCount = 0;
     }
 
-    public Task WaitForCompletionAsync(CancellationToken ct = default) =>
-        _done.Task.WaitAsync(ct);
+    public Task WaitForCompletionAsync(CancellationToken ct = default, int timeoutSeconds = 30) =>
+        _done.Task.WaitAsync(TimeSpan.FromSeconds(timeoutSeconds)).WaitAsync(ct);
 
     public IReadOnlyList<(int MsgId, string Text)> Calls
     {

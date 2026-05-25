@@ -65,7 +65,6 @@ public static class DependencyInjection
             .UseFunctionInvocation();
 
         collection.AddSingleton<IPipelineService, PipelineService>();
-        collection.AddSingleton<IAiService, AiService>();
         return collection;
     }
 }

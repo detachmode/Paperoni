@@ -136,7 +136,7 @@ internal sealed class PipelineService : IPipelineService
         var st = System.Diagnostics.Stopwatch.StartNew();
         var fullResponse = "";
         var reasoningLine = "";
-        var partialUpdateLine = "";
+        var sentPartialOutput = false;
         var chunkCount = 0;
 
         await foreach (var update in _chatClient.GetStreamingResponseAsync(message,
@@ -148,11 +148,10 @@ internal sealed class PipelineService : IPipelineService
                 chunkCount++;
             }
 
-            partialUpdateLine += update.Text;
-            if (update.Text.Contains(Environment.NewLine))
+            if (!sentPartialOutput && !string.IsNullOrWhiteSpace(update.Text))
             {
-                debugOutput?.Invoke(DebugOutputType.PartialOutput, partialUpdateLine.Replace(Environment.NewLine, ""));
-                partialUpdateLine = "";
+                debugOutput?.Invoke(DebugOutputType.PartialOutput, update.Text);
+                sentPartialOutput = true;
             }
 
             var reasoning = update.Contents.FirstOrDefault() as TextReasoningContent;

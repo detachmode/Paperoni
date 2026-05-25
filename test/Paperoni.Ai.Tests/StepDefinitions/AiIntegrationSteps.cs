@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Paperoni.AlbumProcessing;
 using Paperoni.Contract;
 using Paperoni.Telegram;
 using Reqnroll;
@@ -25,6 +26,7 @@ public class AiIntegrationSteps
     private sealed class StubTelegramReplier : ITelegramReplier
     {
         public Task EditReply(int msgId, string text) => Task.CompletedTask;
+        public Task ReplyError(int albumId, string errorMessage) => Task.CompletedTask;
         public Task SetReaction(int albumMsgId, string emoji) => Task.CompletedTask;
         public Task UpdateDashboard(int albumId, string stage, int queueDepth) => Task.CompletedTask;
         public Task DeleteDashboard() => Task.CompletedTask;
@@ -60,6 +62,7 @@ public class AiIntegrationSteps
         serviceCollection.AddSingleton<ITelegramReplier>(new StubTelegramReplier());
         serviceCollection.AddSingleton<IConfiguration>(config);
         serviceCollection.AddAiService(config);
+        serviceCollection.AddSingleton<IScriptLoader, ScriptLoader>();
         var sp = serviceCollection.BuildServiceProvider();
         var pipelineService = sp.GetRequiredService<IPipelineService>();
         var scriptLoader = sp.GetRequiredService<IScriptLoader>();

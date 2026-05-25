@@ -144,18 +144,53 @@ internal sealed class TelegramPhotoAlbumCollector(
             return;
         }
 
-        if (message.Photo is not { Length: > 0 } photoSizes)
+        string? fileId = null;
+        string? fileUniqueId = null;
+
+        if (message.Photo is { Length: > 0 } photoSizes)
+        {
+            var bestPhoto = photoSizes[^1];
+            fileId = bestPhoto.FileId;
+            fileUniqueId = bestPhoto.FileUniqueId;
+        }
+        else if (message.Document is { } document)
+        {
+            var isImage = false;
+            if (document.MimeType is { } mimeType && mimeType.StartsWith("image/", StringComparison.OrdinalIgnoreCase))
+            {
+                isImage = true;
+            }
+            else if (document.FileName is { } fileName)
+            {
+                var ext = Path.GetExtension(fileName);
+                if (ext.Equals(".jpg", StringComparison.OrdinalIgnoreCase) ||
+                    ext.Equals(".jpeg", StringComparison.OrdinalIgnoreCase) ||
+                    ext.Equals(".png", StringComparison.OrdinalIgnoreCase) ||
+                    ext.Equals(".webp", StringComparison.OrdinalIgnoreCase) ||
+                    ext.Equals(".tiff", StringComparison.OrdinalIgnoreCase) ||
+                    ext.Equals(".heic", StringComparison.OrdinalIgnoreCase))
+                {
+                    isImage = true;
+                }
+            }
+
+            if (isImage)
+            {
+                fileId = document.FileId;
+                fileUniqueId = document.FileUniqueId;
+            }
+        }
+
+        if (fileId == null || fileUniqueId == null)
         {
             return;
         }
 
-        var bestPhoto = photoSizes[^1];
-
         var file = new TelegramPhotoFile(
             ChatId: message.Chat.Id,
             MessageId: message.MessageId,
-            FileId: bestPhoto.FileId,
-            FileUniqueId: bestPhoto.FileUniqueId,
+            FileId: fileId,
+            FileUniqueId: fileUniqueId,
             Caption: message.Caption,
             Date: message.Date
         );

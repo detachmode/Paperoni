@@ -39,7 +39,7 @@ public class WorkingDirectory
 
     public async Task<T> RequireData<T>(int messageId, CancellationToken stoppingToken = default) where T : class =>
         await GetData<T>(messageId, stoppingToken) ??
-        throw new ArgumentException("Didn't find json for data of " + nameof(T));
+        throw new ArgumentException("Didn't find json for data of " + typeof(T));
 
     public async Task<T?> GetData<T>(int messageId, CancellationToken stoppingToken = default) where T : class
     {

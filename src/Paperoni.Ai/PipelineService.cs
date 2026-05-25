@@ -73,9 +73,14 @@ internal sealed class PipelineService : IPipelineService
                         }
 
                         lastDebugType = t;
-                        if (t == DebugOutputType.Timing)
+                        switch (t)
                         {
-                            statusCallback?.Invoke(DebugOutputType.PartialOutput, "AI is formulating the final output ..");
+                            case DebugOutputType.Reasoning:
+                                statusCallback?.Invoke(DebugOutputType.Reasoning, "AI is thinking ..");
+                                break;
+                            case DebugOutputType.PartialOutput:
+                                statusCallback?.Invoke(DebugOutputType.PartialOutput, "AI is formulating the final output ..");
+                                break;
                         }
                     }, timeoutCts.Token);
             }
@@ -130,6 +135,8 @@ internal sealed class PipelineService : IPipelineService
         var sawFirstChunk = false;
         var st = System.Diagnostics.Stopwatch.StartNew();
         var fullResponse = "";
+        var reasoningLine = "";
+        var partialUpdateLine = "";
         var chunkCount = 0;
 
         await foreach (var update in _chatClient.GetStreamingResponseAsync(message,
@@ -139,6 +146,21 @@ internal sealed class PipelineService : IPipelineService
             if (!string.IsNullOrEmpty(update.Text))
             {
                 chunkCount++;
+            }
+
+            partialUpdateLine += update.Text;
+            if (update.Text.Contains(Environment.NewLine))
+            {
+                debugOutput?.Invoke(DebugOutputType.PartialOutput, partialUpdateLine.Replace(Environment.NewLine, ""));
+                partialUpdateLine = "";
+            }
+
+            var reasoning = update.Contents.FirstOrDefault() as TextReasoningContent;
+            reasoningLine += reasoning?.Text ?? "";
+            if (reasoning?.Text == Environment.NewLine)
+            {
+                debugOutput?.Invoke(DebugOutputType.Reasoning, reasoningLine.Replace(Environment.NewLine, ""));
+                reasoningLine = "";
             }
 
             if (!sawFirstChunk)

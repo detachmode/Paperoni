@@ -21,6 +21,11 @@ public class FakeTelegramReplier : ITelegramReplier
         return Task.CompletedTask;
     }
 
+    public Task ReplyError(int albumId, string errorMessage)
+    {
+        return Task.CompletedTask;
+    }
+
     public Task SetReaction(int albumMsgId, string emoji) => Task.CompletedTask;
     public Task UpdateDashboard(int albumId, string stage, int queueDepth) => Task.CompletedTask;
     public Task DeleteDashboard() => Task.CompletedTask;

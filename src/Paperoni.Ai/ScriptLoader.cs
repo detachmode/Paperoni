@@ -1,5 +1,7 @@
+using System.Text.Json;
 using Microsoft.CodeAnalysis.CSharp.Scripting;
 using Microsoft.CodeAnalysis.Scripting;
+using Microsoft.Extensions.Logging;
 
 namespace Paperoni.Ai;
 
@@ -8,10 +10,15 @@ public interface IScriptLoader
     Task<PipelineScript> LoadAsync(string scriptPath, ScriptGlobals? globals = null);
 }
 
-public class ScriptLoader : IScriptLoader
+public class ScriptLoader(ILoggerFactory loggerFactory) : IScriptLoader
 {
     public async Task<PipelineScript> LoadAsync(string scriptPath, ScriptGlobals? globals = null)
     {
+        globals ??= new ScriptGlobals([], DateTime.Now);
+        var scriptLogger = loggerFactory.CreateLogger("PipelineScript.Local");
+        globals.Logger = scriptLogger;
+        globals.Log = LogFromScript;
+
         if (!File.Exists(scriptPath))
         {
             throw new FileNotFoundException("Pipeline script not found", scriptPath);
@@ -57,7 +64,8 @@ public class ScriptLoader : IScriptLoader
         catch (CompilationErrorException ex)
         {
             var errors = FormatDiagnostics(ex.Diagnostics, originalLines, scriptLineToSourceLine);
-            throw new InvalidPipelineScriptException($"Pipeline script compile error:{Environment.NewLine}{errors}", ex);
+            throw new InvalidPipelineScriptException($"Pipeline script compile error:{Environment.NewLine}{errors}",
+                ex);
         }
 
         return new PipelineScript
@@ -71,6 +79,20 @@ public class ScriptLoader : IScriptLoader
             SourceLines = originalLines,
             MapLineNumber = line => MapLineNumber(line, scriptLineToSourceLine)
         };
+
+        void LogFromScript(object log)
+        {
+            var type = log.GetType();
+            if (type.IsPrimitive || type == typeof(string))
+            {
+                scriptLogger.LogInformation(log.ToString());
+            }
+            else
+            {
+                var json = JsonSerializer.Serialize(log, new JsonSerializerOptions { WriteIndented = true, });
+                scriptLogger.LogInformation(json);
+            }
+        }
     }
 
     private static MarkdownExtractionResult ExtractScriptFromMarkdown(string scriptContent)
@@ -151,7 +173,7 @@ public class ScriptLoader : IScriptLoader
     {
         get
         {
-            if(field != null)
+            if (field != null)
             {
                 return field;
             }
@@ -165,7 +187,8 @@ public class ScriptLoader : IScriptLoader
                 .ToArray();
 
             var scriptOptions = ScriptOptions.Default
-                .WithImports("System", "System.Collections.Generic", "System.Linq", "System.ComponentModel")
+                .WithImports("System", "System.Collections.Generic", "System.Linq", "System.ComponentModel",
+                    "Microsoft.Extensions.Logging")
                 .WithReferences(assemblyPaths);
             field = scriptOptions;
 
@@ -177,7 +200,7 @@ public class ScriptLoader : IScriptLoader
     {
         if (o == null)
         {
-            throw new InvalidPipelineScriptException("Invalid Pipeline script: "+message);
+            throw new InvalidPipelineScriptException("Invalid Pipeline script: " + message);
         }
     }
 

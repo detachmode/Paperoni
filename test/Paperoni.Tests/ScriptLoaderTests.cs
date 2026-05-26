@@ -1,10 +1,44 @@
+using Microsoft.Extensions.Logging;
 using Paperoni.Ai;
+using Xunit.Abstractions;
 
 namespace Paperoni.Tests;
 
-public class ScriptLoaderTests
+public class TestLogger(ITestOutputHelper outputHelper) : ILogger
 {
-    private readonly ScriptLoader _loader = new();
+    public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception, Func<TState, Exception?, string> formatter)
+    {
+        outputHelper.WriteLine(formatter(state, exception));
+    }
+
+    public bool IsEnabled(LogLevel logLevel) => true;
+
+    public IDisposable? BeginScope<TState>(TState state) where TState : notnull
+    {
+        throw new NotImplementedException();
+    }
+}
+public class TestLogFactory(ITestOutputHelper testOutputHelper) : ILoggerFactory
+{
+    public void Dispose()
+    {
+    }
+
+    public ILogger CreateLogger(string categoryName)
+    {
+        return new TestLogger(testOutputHelper);
+    }
+
+    public void AddProvider(ILoggerProvider provider)
+    {
+
+    }
+}
+
+public class ScriptLoaderTests(ITestOutputHelper testOutputHelper)
+{
+
+    private readonly ScriptLoader _loader = new(new TestLogFactory(testOutputHelper));
 
     private static string CreateScriptFile(string content, string extension = "csx")
     {

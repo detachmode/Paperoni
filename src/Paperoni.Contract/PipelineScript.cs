@@ -1,7 +1,12 @@
 using System.Diagnostics;
 using System.Reflection;
+using Microsoft.Extensions.Logging;
 
-public record ScriptGlobals(List<string> Captions, DateTime CurrentDate);
+public record ScriptGlobals(List<string> Captions, DateTime CurrentDate)
+{
+    public ILogger Logger { get; set; } = null!;
+    public Action<object> Log { get; set; } = null!;
+};
 
 public sealed class PipelineScript
 {

@@ -64,35 +64,35 @@ jobs:
           AI_ENDPOINT: https://models.github.ai/inference
           AI_MODEL: gpt-4o-mini
 
-  publish-binaries:
-    needs: [ test, version ]
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        rid: [ win-x64, linux-x64, linux-arm64, osx-arm64 ]
-    steps:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-dotnet@v5
-        with:
-          dotnet-version: '10.0.x'
-      - name: Publish
-        run: |
-          dotnet publish src/Paperoni/Paperoni.csproj \
-            -c Release \
-            -r ${{ matrix.rid }} \
-            -o publish/${{ matrix.rid }} \
-            --self-contained false \
-            -p:PublishSingleFile=true \
-            -p:Version=${{ needs.version.outputs.version }} \
-            -p:GitSha=${{ needs.version.outputs.short_sha }}
-      - name: Package
-        run: |
-          cd publish/${{ matrix.rid }}
-          zip -r ../../Paperoni-${{ needs.version.outputs.version }}-${{ matrix.rid }}.zip .
-      - uses: actions/upload-artifact@v5
-        with:
-          name: Paperoni-${{ matrix.rid }}
-          path: Paperoni-${{ needs.version.outputs.version }}-${{ matrix.rid }}.zip
+#  publish-binaries: # will be needed later gain!
+#    needs: [ test, version ]
+#    runs-on: ubuntu-latest
+#    strategy:
+#      matrix:
+#        rid: [ win-x64, linux-x64, linux-arm64, osx-arm64 ]
+#    steps:
+#      - uses: actions/checkout@v5
+#      - uses: actions/setup-dotnet@v5
+#        with:
+#          dotnet-version: '10.0.x'
+#      - name: Publish
+#        run: |
+#          dotnet publish src/Paperoni/Paperoni.csproj \
+#            -c Release \
+#            -r ${{ matrix.rid }} \
+#            -o publish/${{ matrix.rid }} \
+#            --self-contained false \
+#            -p:PublishSingleFile=true \
+#            -p:Version=${{ needs.version.outputs.version }} \
+#            -p:GitSha=${{ needs.version.outputs.short_sha }}
+#      - name: Package
+#        run: |
+#          cd publish/${{ matrix.rid }}
+#          zip -r ../../Paperoni-${{ needs.version.outputs.version }}-${{ matrix.rid }}.zip .
+#      - uses: actions/upload-artifact@v5
+#        with:
+#          name: Paperoni-${{ matrix.rid }}
+#          path: Paperoni-${{ needs.version.outputs.version }}-${{ matrix.rid }}.zip
 
   docker:
     needs: [ test, version ]
@@ -169,7 +169,10 @@ jobs:
             GIT_SHA=${{ needs.version.outputs.short_sha }}
 
   release:
-    needs: [ test, version, publish-binaries ]
+    needs:
+      - test
+      - version
+#      - publish-binaries # will be needed later again
     if: needs.version.outputs.is_release == 'true'
     runs-on: ubuntu-latest
     steps:

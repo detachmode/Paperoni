@@ -240,7 +240,7 @@ public class AlbumProcessingSteps
         await _telegram.WaitForCompletionAsync(_cts!.Token);
 
         var workDir = Path.Combine(_tempBase, TestMessageId.ToString());
-        var content = await File.ReadAllTextAsync(Path.Combine(workDir, "firstAiResponse.json"));
+        var content = await File.ReadAllTextAsync(Path.Combine(workDir, "aiResponse.json"));
         _output.WriteLine($"AI Response:\n{content}");
     }
 
@@ -252,7 +252,7 @@ public class AlbumProcessingSteps
         _tracerProvider?.ForceFlush();
 
         var workDir = Path.Combine(_tempBase, TestMessageId.ToString());
-        var content = await File.ReadAllTextAsync(Path.Combine(workDir, "firstAiResponse.json"));
+        var content = await File.ReadAllTextAsync(Path.Combine(workDir, "aiResponse.json"));
         _output.WriteLine($"AI Summary:\n{content}");
         _telegram.Reset();
     }

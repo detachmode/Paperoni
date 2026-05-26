@@ -168,25 +168,25 @@ jobs:
             VERSION=${{ needs.version.outputs.version }}
             GIT_SHA=${{ needs.version.outputs.short_sha }}
 
-  release:
-    needs:
-      - test
-      - version
-#      - publish-binaries # will be needed later again
-    if: needs.version.outputs.is_release == 'true'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/download-artifact@v5
-        with:
-          pattern: Paperoni-*
-      - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: v${{ needs.version.outputs.version }}
-          name: v${{ needs.version.outputs.version }}
-          generate_release_notes: true
-          files: |
-            Paperoni-win-x64/Paperoni-${{ needs.version.outputs.version }}-win-x64.zip
-            Paperoni-linux-x64/Paperoni-${{ needs.version.outputs.version }}-linux-x64.zip
-            Paperoni-linux-arm64/Paperoni-${{ needs.version.outputs.version }}-linux-arm64.zip
-            Paperoni-osx-arm64/Paperoni-${{ needs.version.outputs.version }}-osx-arm64.zip
+#  release:
+#    needs:
+#      - test
+#      - version
+#      - publish-binaries
+#    if: needs.version.outputs.is_release == 'true'
+#    runs-on: ubuntu-latest
+#    steps:
+#      - uses: actions/download-artifact@v5
+#        with:
+#          pattern: Paperoni-*
+#      - name: Create GitHub Release
+#        uses: softprops/action-gh-release@v2
+#        with:
+#          tag_name: v${{ needs.version.outputs.version }}
+#          name: v${{ needs.version.outputs.version }}
+#          generate_release_notes: true
+#          files: |
+#            Paperoni-win-x64/Paperoni-${{ needs.version.outputs.version }}-win-x64.zip
+#            Paperoni-linux-x64/Paperoni-${{ needs.version.outputs.version }}-linux-x64.zip
+#            Paperoni-linux-arm64/Paperoni-${{ needs.version.outputs.version }}-linux-arm64.zip
+#            Paperoni-osx-arm64/Paperoni-${{ needs.version.outputs.version }}-osx-arm64.zip

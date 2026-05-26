@@ -65,7 +65,7 @@ internal sealed class TelegramPhotoAlbumCollector(
         {
             if (query.Message is { } message)
             {
-                await botClient.EditMessageText(message.Chat.Id, message.MessageId, $"🔄 Retrying album {message.MessageId} ..");
+                await botClient.EditMessageText(message.Chat.Id, message.MessageId, $"🔄 Retrying album {retryId} ..");
                 await EnsureRetryMetadata(retryId, message);
             }
 

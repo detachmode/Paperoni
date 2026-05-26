@@ -1,7 +1,7 @@
 using Microsoft.CodeAnalysis.CSharp.Scripting;
 using Microsoft.CodeAnalysis.Scripting;
 
-namespace Paperoni.AlbumProcessing;
+namespace Paperoni.Ai;
 
 public interface IScriptLoader
 {

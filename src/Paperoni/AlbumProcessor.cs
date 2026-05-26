@@ -1,15 +1,13 @@
 using System.Diagnostics;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
 using Paperoni.Ai;
 using Paperoni.Contract;
+using Paperoni.Diagnostics;
 using Paperoni.ImageProcessing;
 using Paperoni.Telegram;
 
-namespace Paperoni.AlbumProcessing;
+namespace Paperoni;
 
-internal class AlbumProcessor(
+internal sealed class AlbumProcessor(
     AlbumQueue queue,
     IScriptLoader scriptLoader,
     IPipelineService pipeline,
@@ -118,9 +116,9 @@ internal class AlbumProcessor(
 
             logger.AiSummaryStarting();
             await telegram.UpdateDashboard(albumId, "🤖 AI is reading ..", queue.PendingCount);
-            var result = await pipeline.RunAsync(script, albumId, (type, desc) =>
+            var result = await pipeline.RunAsync(script, albumId, (_, desc) =>
             {
-                _ = telegram.UpdateDashboard(albumId, desc, queue.PendingCount);
+                telegram.UpdateDashboard(albumId, desc, queue.PendingCount).ConfigureAwait(false);
             }, stoppingToken);
             logger.AiSummaryDone();
 

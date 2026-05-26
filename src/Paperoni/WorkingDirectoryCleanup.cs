@@ -1,10 +1,8 @@
-using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
 using Paperoni.Contract;
 
-namespace Paperoni.AlbumProcessing;
+namespace Paperoni;
 
-internal sealed class WorkingDirectoryCleanup(
+public sealed class WorkingDirectoryCleanup(
     WorkingDirectory workingDirectory,
     ILogger<WorkingDirectoryCleanup> logger,
     AlbumProcessingSettings settings) : BackgroundService
@@ -30,7 +28,7 @@ internal sealed class WorkingDirectoryCleanup(
         }
     }
 
-    internal Task RunCleanup()
+    public Task RunCleanup()
     {
         var retentionDays = settings.WorkingDirectoryRetentionDays;
         if (retentionDays <= 0)

@@ -2,7 +2,7 @@ using System.Diagnostics;
 using Microsoft.Extensions.Logging;
 using OpenCvSharp;
 using Paperoni.Contract;
-using static Paperoni.Contract.ActivityExtensions;
+using static Paperoni.Diagnostics.ActivityExtensions;
 
 namespace Paperoni.ImageProcessing;
 

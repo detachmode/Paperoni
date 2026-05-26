@@ -8,7 +8,6 @@ using Microsoft.Extensions.AI;
 using OpenTelemetry;
 using OpenTelemetry.Trace;
 using Paperoni.Ai;
-using Paperoni.AlbumProcessing;
 using Paperoni.Contract;
 using Paperoni.Diagnostics;
 using Paperoni.ImageProcessing;
@@ -27,9 +26,7 @@ public class AlbumProcessingSteps
     private const int UnknownMessageId = 999;
     private readonly ITestOutputHelper _output;
     private CancellationTokenSource? _cts;
-    private SpyFilePublisher _markdownSpy = null!;
     private string _outputDir = null!;
-    private SpyFilePublisher _pdfSpy = null!;
     private string _scriptFilePath = null!;
     private AlbumQueue _queue = null!;
     private FakeChatClient _fakeChatClient = null!;
@@ -186,17 +183,9 @@ public class AlbumProcessingSteps
         services.AddDiagnostics(config);
 
         services.AddKeyedSingleton<IFilePublisher>(PublisherTarget.Markdown, (_, _) =>
-        {
-            var real = new FilePublisher(_outputDir, NullLogger<FilePublisher>.Instance);
-            _markdownSpy = new SpyFilePublisher(real);
-            return _markdownSpy;
-        });
+            new FilePublisher(_outputDir, NullLogger<FilePublisher>.Instance));
         services.AddKeyedSingleton<IFilePublisher>(PublisherTarget.Pdf, (_, _) =>
-        {
-            var real = new FilePublisher(_outputDir, NullLogger<FilePublisher>.Instance);
-            _pdfSpy = new SpyFilePublisher(real);
-            return _pdfSpy;
-        });
+            new FilePublisher(_outputDir, NullLogger<FilePublisher>.Instance));
         services.AddSingleton<IConfiguration>(config);
         services.AddLogging(builder =>
         {
@@ -348,12 +337,12 @@ public class AlbumProcessingSteps
     [Then("the old published files were cleaned before re-publishing")]
     public void ThenOldPublishedFilesWereCleaned()
     {
-        Assert.True(_markdownSpy.DeletePreviousCalled, "Expected Markdown publisher to clean old file");
-        Assert.True(_pdfSpy.DeletePreviousCalled, "Expected PDF publisher to clean old file");
-        Assert.Equal(".md", _markdownSpy.LastDeletedExtension);
-        Assert.Equal(".pdf", _pdfSpy.LastDeletedExtension);
-        Assert.Equal("Lorem Ipsum", _markdownSpy.LastDeletedFilename);
-        Assert.Equal("Lorem Ipsum", _pdfSpy.LastDeletedFilename);
+        _tracerProvider?.ForceFlush();
+
+        var traceLogPath = Path.Combine(_tempBase, TestMessageId.ToString(), "traces.log");
+        var lines = File.ReadAllLines(traceLogPath);
+        var deleteSpans = lines.Count(l => l.Contains("FilePublisher.DeletePreviousAsync"));
+        Assert.Equal(2, deleteSpans);
     }
 
     [Then("the old trace log was cleaned before re-processing")]

@@ -1,10 +1,8 @@
-using Microsoft.Extensions.Logging;
-using Paperoni.Contract;
-using static Paperoni.Contract.ActivityExtensions;
+using static Paperoni.Diagnostics.ActivityExtensions;
 
-namespace Paperoni.AlbumProcessing;
+namespace Paperoni;
 
-internal sealed class FilePublisher(
+public sealed class FilePublisher(
     string outputPath,
     ILogger<FilePublisher> logger) : IFilePublisher
 {

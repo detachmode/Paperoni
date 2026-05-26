@@ -6,7 +6,6 @@ using Microsoft.Extensions.Logging.Abstractions;
 using OpenTelemetry;
 using OpenTelemetry.Trace;
 using Paperoni.Ai;
-using Paperoni.AlbumProcessing;
 using Paperoni.Contract;
 using Paperoni.Diagnostics;
 using Paperoni.ImageProcessing;

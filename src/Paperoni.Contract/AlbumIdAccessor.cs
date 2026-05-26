@@ -10,5 +10,5 @@ public sealed class AlbumIdAccessor
         set => s_current.Value = value;
     }
 
-    internal static int? GetCurrentId() => s_current.Value;
+    public static int? GetCurrentId() => s_current.Value;
 }

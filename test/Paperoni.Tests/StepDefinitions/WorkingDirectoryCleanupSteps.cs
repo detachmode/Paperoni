@@ -1,5 +1,4 @@
 using Microsoft.Extensions.Logging.Abstractions;
-using Paperoni.AlbumProcessing;
 using Paperoni.Contract;
 using Reqnroll;
 

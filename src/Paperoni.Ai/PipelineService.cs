@@ -2,6 +2,7 @@ using System.Text.Json;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Logging;
 using Paperoni.Contract;
+using Paperoni.Diagnostics;
 
 namespace Paperoni.Ai;
 

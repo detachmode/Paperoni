@@ -1,7 +1,6 @@
 <Solution>
   <Folder Name="/src/">
     <Project Path="src/Paperoni.Ai/Paperoni.Ai.csproj" />
-    <Project Path="src/Paperoni.AlbumProcessing/Paperoni.AlbumProcessing.csproj" />
     <Project Path="src/Paperoni.Contract/Paperoni.Contract.csproj" />
     <Project Path="src/Paperoni.Diagnostics/Paperoni.Diagnostics.csproj" />
     <Project Path="src/Paperoni.ImageProcessing/Paperoni.ImageProcessing.csproj" />

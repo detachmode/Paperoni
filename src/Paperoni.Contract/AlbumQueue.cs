@@ -27,7 +27,7 @@ public class AlbumQueue
             Interlocked.Decrement(ref _pendingCount);
             throw new InvalidOperationException($"Failed to enqueue album {item.MessageId}");
         }
-        _logger.AlbumEnqueued(item.MessageId, item.IsRetry, depth);
+        _logger.LogInformation("📥 Enqueued album {AlbumId} (retry: {IsRetry}), depth: {Depth}", item.MessageId, item.IsRetry, depth);
         return depth;
     }
 
@@ -35,7 +35,7 @@ public class AlbumQueue
     {
         var item = await _channel.Reader.ReadAsync(ct);
         var depth = Interlocked.Decrement(ref _pendingCount);
-        _logger.AlbumDequeued(item.MessageId, depth);
+        _logger.LogInformation("📥 Dequeued album {AlbumId}, depth: {Depth}", item.MessageId, depth);
         return item;
     }
 

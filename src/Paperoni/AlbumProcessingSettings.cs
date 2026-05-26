@@ -1,4 +1,4 @@
-namespace Paperoni.AlbumProcessing;
+namespace Paperoni;
 
 public class AlbumProcessingSettings
 {

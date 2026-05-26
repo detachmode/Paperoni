@@ -19,7 +19,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <InternalsVisibleTo Include="Paperoni.Tests" />
+    <ProjectReference Include="..\Paperoni.Contract\Paperoni.Contract.csproj" />
+    <ProjectReference Include="..\Paperoni.Diagnostics\Paperoni.Diagnostics.csproj" />
   </ItemGroup>
 
 </Project>

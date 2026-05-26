@@ -3,13 +3,12 @@ using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
 using Paperoni;
 using Paperoni.Ai;
-using Paperoni.AlbumProcessing;
 using Paperoni.Contract;
 using Paperoni.Diagnostics;
 using Paperoni.ImageProcessing;
 using Paperoni.Telegram;
 using Serilog;
-using ActivityExtensions = Paperoni.Contract.ActivityExtensions;
+using ActivityExtensions = Paperoni.Diagnostics.ActivityExtensions;
 
 Console.WriteLine($"Paperoni starting...");
 

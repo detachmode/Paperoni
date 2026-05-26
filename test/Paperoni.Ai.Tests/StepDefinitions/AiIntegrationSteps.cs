@@ -1,6 +1,5 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Paperoni.AlbumProcessing;
 using Paperoni.Contract;
 using Paperoni.Telegram;
 using Reqnroll;

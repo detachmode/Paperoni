@@ -30,7 +30,6 @@
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Scripting" />
     <PackageReference Include="Microsoft.Extensions.AI" />
     <ProjectReference Include="..\..\src\Paperoni.Ai\Paperoni.Ai.csproj" />
-    <ProjectReference Include="..\..\src\Paperoni.AlbumProcessing\Paperoni.AlbumProcessing.csproj" />
     <ProjectReference Include="..\..\src\Paperoni.ImageProcessing\Paperoni.ImageProcessing.csproj" />
     <ProjectReference Include="..\..\src\Paperoni.Telegram\Paperoni.Telegram.csproj" />
     <ProjectReference Include="..\..\src\Paperoni\Paperoni.csproj" />

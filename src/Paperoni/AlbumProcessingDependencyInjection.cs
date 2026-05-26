@@ -1,10 +1,7 @@
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Paperoni.Ai;
 
-namespace Paperoni.AlbumProcessing;
+namespace Paperoni;
 
 public static class DependencyInjection
 {

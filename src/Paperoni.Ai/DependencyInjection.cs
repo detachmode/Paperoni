@@ -20,21 +20,21 @@ public static class DependencyInjection
     {
         collection.AddOptions<AiSettings>()
             .Bind(configuration.GetSection("Ai"))
-            .Validate(settings => !string.IsNullOrWhiteSpace(settings.Endpoint),
+            .Validate(aiSettings => !string.IsNullOrWhiteSpace(aiSettings.Endpoint),
                 "Ai:Endpoint is required")
-            .Validate(settings => !string.IsNullOrWhiteSpace(settings.Model),
+            .Validate(aiSettings => !string.IsNullOrWhiteSpace(aiSettings.Model),
                 "Ai:Model is required")
-            .Validate(settings => Uri.TryCreate(settings.Endpoint, UriKind.Absolute, out _),
+            .Validate(aiSettings => Uri.TryCreate(aiSettings.Endpoint, UriKind.Absolute, out _),
                 "Ai:Endpoint is not a valid URI")
-            .Validate(settings =>
+            .Validate(aiSettings =>
             {
-                ArgumentException.ThrowIfNullOrWhiteSpace(settings.ScriptFilePath);
-                File.ReadAllBytes(settings.ScriptFilePath);
+                ArgumentException.ThrowIfNullOrWhiteSpace(aiSettings.ScriptFilePath);
+                File.ReadAllBytes(aiSettings.ScriptFilePath);
                 return true;
             })
-            .Validate(settings =>
+            .Validate(aiSettings =>
                 {
-                    if (!Uri.TryCreate(settings.Endpoint, UriKind.Absolute, out var endpoint))
+                    if (!Uri.TryCreate(aiSettings.Endpoint, UriKind.Absolute, out var endpoint))
                     {
                         return true;
                     }
@@ -43,7 +43,7 @@ public static class DependencyInjection
                                   string.Equals(endpoint.Host, "0.0.0.0", StringComparison.OrdinalIgnoreCase) ||
                                   string.Equals(endpoint.Host, "host.docker.internal",
                                       StringComparison.OrdinalIgnoreCase);
-                    return isLocal || !string.IsNullOrWhiteSpace(settings.ApiKey);
+                    return isLocal || !string.IsNullOrWhiteSpace(aiSettings.ApiKey);
                 },
                 "Ai:ApiKey is required when using a remote endpoint")
             .ValidateOnStart();

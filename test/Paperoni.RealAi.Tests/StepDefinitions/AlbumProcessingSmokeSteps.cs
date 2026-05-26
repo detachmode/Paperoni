@@ -86,11 +86,11 @@ public class AlbumProcessingSmokeSteps(ITestOutputHelper output, IReqnrollOutput
         var config = new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?>
             {
-                ["AlbumProcessing:ScriptFilePath"] = _scriptFilePath,
                 ["AlbumProcessing:TestMode"] = "true",
                 ["AlbumProcessing:TestModeOutputPath"] = _outputDir,
                 ["AlbumProcessing:MarkdownOutputPath"] = _outputDir,
                 ["AlbumProcessing:PdfOutputPath"] = _outputDir,
+                ["Ai:ScriptFilePath"] = _scriptFilePath,
                 ["Ai:Endpoint"] = Environment.GetEnvironmentVariable("AI_ENDPOINT") ?? "http://localhost:2276",
                 ["Ai:Model"] = Environment.GetEnvironmentVariable("AI_MODEL") ?? "gemma-4-e4b",
             })

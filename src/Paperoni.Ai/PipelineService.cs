@@ -6,36 +6,40 @@ using Paperoni.Diagnostics;
 
 namespace Paperoni.Ai;
 
-internal sealed class PipelineService : IPipelineService
+internal sealed class PipelineService(
+    WorkingDirectory workingDirectory,
+    ILogger<PipelineService> logger,
+    AiSettings aiSettings,
+    IScriptLoader scriptLoader,
+    IChatClient chatClient)
+    : IPipelineService
 {
-    private readonly IChatClient _chatClient;
-    private readonly ILogger<PipelineService> _logger;
-    private readonly WorkingDirectory _workingDirectory;
-    private readonly int _timeoutSeconds;
-    private readonly int _maxRetries;
-
-    public PipelineService(
-        WorkingDirectory workingDirectory,
-        ILogger<PipelineService> logger,
-        AiSettings aiSettings,
-        IChatClient chatClient)
-    {
-        _workingDirectory = workingDirectory;
-        _logger = logger;
-        _chatClient = chatClient;
-        _timeoutSeconds = aiSettings.TimeoutSeconds;
-        _maxRetries = aiSettings.MaxRetries;
-    }
+    private readonly int _timeoutSeconds = aiSettings.TimeoutSeconds;
+    private readonly int _maxRetries = aiSettings.MaxRetries;
 
     public async Task<PipelineRunResult> RunAsync(
-        PipelineScript script,
         int albumId,
         Action<DebugOutputType, string>? statusCallback = null,
         CancellationToken stoppingToken = default)
     {
         return await ActivityExtensions.Tracer.TraceAsync<PipelineService, PipelineRunResult>(async scope =>
         {
-            var workingDir = _workingDirectory.RequireWorkingDirectory(albumId);
+            PipelineScript script;
+            try
+            {
+                var metaData = await workingDirectory.GetData<MetaData>(albumId, stoppingToken);
+                var globals = new ScriptGlobals(
+                    metaData?.Caption.Where(c => c is not null).Cast<string>().ToList() ?? [],
+                    DateTime.Now);
+
+                script = await scriptLoader.LoadAsync(aiSettings.ScriptFilePath!, globals);
+            }
+            catch (InvalidPipelineScriptException ex)
+            {
+                logger.AlbumProcessingError(ex, albumId);
+                throw;
+            }
+            var workingDir = workingDirectory.RequireWorkingDirectory(albumId);
             var files = Directory.GetFiles(workingDir)
                 .Where(FileHelpers.IsImageFile)
                 .ToList();
@@ -116,7 +120,7 @@ internal sealed class PipelineService : IPipelineService
                         JsonSerializer.Deserialize<Dictionary<string, object>>(aiResponse,
                             JsonSerializerOptions.Web) ?? []);
 
-                    await _workingDirectory.WriteData(albumId, pipelineResult, stoppingToken);
+                    await workingDirectory.WriteData(albumId, pipelineResult, stoppingToken);
 
                     sw.Stop();
                     scope.SetTag("title", filename);
@@ -124,7 +128,7 @@ internal sealed class PipelineService : IPipelineService
                     scope.SetTag("latencySec", sw.Elapsed.TotalSeconds);
                     scope.SetTag("attempts", attempt + 1);
 
-                    _logger.AiSummaryCompleted(aiResponse.Length, sw.Elapsed.TotalSeconds, filename);
+                    logger.AiSummaryCompleted(aiResponse.Length, sw.Elapsed.TotalSeconds, filename);
 
                     return new PipelineRunResult(filename, formatted);
                 }
@@ -132,11 +136,11 @@ internal sealed class PipelineService : IPipelineService
                     ex is JsonException or InvalidPipelineScriptException or InvalidOperationException)
                 {
                     lastError = ex;
-                    _logger.AiRetryDeserialization(attempt + 1, _maxRetries + 1, ex.Message);
+                    logger.AiRetryDeserialization(attempt + 1, _maxRetries + 1, ex.Message);
 
                     if (attempt < _maxRetries)
                     {
-                        _logger.AiRetryAttempt(attempt + 1, _maxRetries);
+                        logger.AiRetryAttempt(attempt + 1, _maxRetries);
                         statusCallback?.Invoke(DebugOutputType.PartialOutput,
                             $"🤖 AI retry {attempt + 1}/{_maxRetries} — fixing response ..");
 
@@ -188,7 +192,7 @@ internal sealed class PipelineService : IPipelineService
         var sentPartialOutput = false;
         var chunkCount = 0;
 
-        await foreach (var update in _chatClient.GetStreamingResponseAsync(conversation,
+        await foreach (var update in chatClient.GetStreamingResponseAsync(conversation,
                            chatOptions, cancellationToken))
         {
             fullResponse += update.Text;
@@ -213,13 +217,13 @@ internal sealed class PipelineService : IPipelineService
             {
                 sawFirstChunk = true;
                 var ttf = st.ElapsedMilliseconds;
-                _logger.TimeToFirstChunk(ttf);
+                logger.TimeToFirstChunk(ttf);
                 debugOutput?.Invoke(DebugOutputType.Timing,
                     $"[Debug]time to first chunk: {ttf} ms" + Environment.NewLine);
             }
         }
 
-        _logger.AiStreamingDone(chunkCount, st.Elapsed.TotalSeconds);
+        logger.AiStreamingDone(chunkCount, st.Elapsed.TotalSeconds);
         return fullResponse;
     }
 

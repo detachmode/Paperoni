@@ -96,6 +96,7 @@ public class AlbumProcessingSteps
         _outputDir = Path.Combine(_tempBase, "test-output");
         Directory.CreateDirectory(_tempBase);
         _scriptFilePath = Path.Combine(_tempBase, "pipeline.csx");
+        await File.WriteAllTextAsync(_scriptFilePath, "will be filled later");
 
         var msgDir = Path.Combine(_tempBase, TestMessageId.ToString());
         Directory.CreateDirectory(msgDir);
@@ -146,7 +147,7 @@ public class AlbumProcessingSteps
         var config = new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?>
             {
-                ["AlbumProcessing:ScriptFilePath"] = _scriptFilePath,
+                ["Ai:ScriptFilePath"] = _scriptFilePath,
                 ["AlbumProcessing:TestMode"] = "true",
                 ["AlbumProcessing:TestModeOutputPath"] = _outputDir,
                 ["AlbumProcessing:MarkdownOutputPath"] = _outputDir,

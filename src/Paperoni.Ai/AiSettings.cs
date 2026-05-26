@@ -7,4 +7,5 @@ public class AiSettings
     public string? ApiKey { get; set; }
     public int TimeoutSeconds { get; set; } = 600;
     public int MaxRetries { get; set; } = 2;
+    public required string ScriptFilePath { get; set; }
 }

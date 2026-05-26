@@ -4,6 +4,9 @@ namespace Paperoni.Ai;
 
 public static partial class Logs
 {
+    [LoggerMessage(Level = LogLevel.Error, Message = "❌ Processing failed for album {AlbumId}")]
+    public static partial void AlbumProcessingError(this ILogger logger, Exception ex, int? albumId);
+
     [LoggerMessage(Level = LogLevel.Information, Message = "🤖 First chunk: {Ttf}ms")]
     public static partial void TimeToFirstChunk(this ILogger logger, long ttf);
 

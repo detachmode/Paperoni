@@ -5,11 +5,7 @@ namespace Paperoni;
 
 public static class DependencyInjection
 {
-    public static async Task ValidateAlbumProcessingSetup(this IServiceProvider services)
-    {
-        var processingSettings = services.GetRequiredService<AlbumProcessingSettings>();
-        await services.GetRequiredService<IScriptLoader>().LoadAsync(processingSettings.ScriptFilePath, new ScriptGlobals([], DateTime.Now));
-    }
+
     public static IServiceCollection AddAlbumProcessor(this IServiceCollection collection, IConfiguration configuration)
     {
 
@@ -21,12 +17,6 @@ public static class DependencyInjection
                 "AlbumProcessing:MarkdownOutputPath is required")
             .Validate(settings => !string.IsNullOrWhiteSpace(settings.PdfOutputPath),
                 "AlbumProcessing:PdfOutputPath is required")
-            .Validate(settings =>
-            {
-                ArgumentException.ThrowIfNullOrWhiteSpace(settings.ScriptFilePath);
-                File.ReadAllBytes(settings.ScriptFilePath);
-                return true;
-            })
             .ValidateOnStart();
 
         collection.AddHostedService<AlbumProcessor>();
@@ -40,7 +30,6 @@ public static class DependencyInjection
             Console.WriteLine("AlbumProcessing:");
             Console.WriteLine($"├─ MarkdownOutputPath: {settings.MarkdownOutputPath}");
             Console.WriteLine($"├─ PdfOutputPath: {settings.PdfOutputPath}");
-            Console.WriteLine($"├─ ScriptFilePath: {settings.ScriptFilePath}");
             Console.WriteLine($"├─ WorkingDirectoryRetentionDays: {settings.WorkingDirectoryRetentionDays}");
             Console.WriteLine($"└─ TestMode: {settings.TestMode}");
             if (settings.TestMode)

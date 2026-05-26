@@ -29,9 +29,6 @@ public static partial class Logs
     [LoggerMessage(Level = LogLevel.Information, Message = "✅ Processing complete")]
     public static partial void AlbumComplete(this ILogger logger);
 
-    [LoggerMessage(Level = LogLevel.Error, Message = "❌ Processing failed for album {AlbumId}")]
-    public static partial void AlbumProcessingError(this ILogger logger, Exception ex, int? albumId);
-
     [LoggerMessage(Level = LogLevel.Information, Message = "📤 Published {Type}: {Source} -> {Dest} ({Size}KB)")]
     public static partial void FilePublished(this ILogger logger, string type, string source, string dest, long size);
 

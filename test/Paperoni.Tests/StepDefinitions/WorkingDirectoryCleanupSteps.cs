@@ -43,7 +43,6 @@ public class WorkingDirectoryCleanupSteps
     {
         _settings = new AlbumProcessingSettings
         {
-            ScriptFilePath = "dummy.csx",
             WorkingDirectoryRetentionDays = days,
             MarkdownOutputPath = "/tmp",
             PdfOutputPath = "/tmp",

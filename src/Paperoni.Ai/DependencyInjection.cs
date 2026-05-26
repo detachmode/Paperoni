@@ -9,6 +9,13 @@ namespace Paperoni.Ai;
 
 public static class DependencyInjection
 {
+    public static async Task ValidatePipelineScript(this IServiceProvider services)
+    {
+        var processingSettings = services.GetRequiredService<AiSettings>();
+        await services.GetRequiredService<IScriptLoader>()
+            .LoadAsync(processingSettings.ScriptFilePath, new ScriptGlobals([], DateTime.Now));
+    }
+
     public static IServiceCollection AddAiService(this IServiceCollection collection, IConfiguration configuration)
     {
         collection.AddOptions<AiSettings>()
@@ -20,6 +27,12 @@ public static class DependencyInjection
             .Validate(settings => Uri.TryCreate(settings.Endpoint, UriKind.Absolute, out _),
                 "Ai:Endpoint is not a valid URI")
             .Validate(settings =>
+            {
+                ArgumentException.ThrowIfNullOrWhiteSpace(settings.ScriptFilePath);
+                File.ReadAllBytes(settings.ScriptFilePath);
+                return true;
+            })
+            .Validate(settings =>
                 {
                     if (!Uri.TryCreate(settings.Endpoint, UriKind.Absolute, out var endpoint))
                     {
@@ -28,11 +41,13 @@ public static class DependencyInjection
 
                     var isLocal = endpoint.IsLoopback ||
                                   string.Equals(endpoint.Host, "0.0.0.0", StringComparison.OrdinalIgnoreCase) ||
-                                  string.Equals(endpoint.Host, "host.docker.internal", StringComparison.OrdinalIgnoreCase);
+                                  string.Equals(endpoint.Host, "host.docker.internal",
+                                      StringComparison.OrdinalIgnoreCase);
                     return isLocal || !string.IsNullOrWhiteSpace(settings.ApiKey);
                 },
                 "Ai:ApiKey is required when using a remote endpoint")
             .ValidateOnStart();
+
         collection.AddSingleton<AiSettings>(sp =>
         {
             var settings = sp.GetRequiredService<IOptions<AiSettings>>().Value;
@@ -41,6 +56,7 @@ public static class DependencyInjection
             Console.WriteLine($"├─ Model: {settings.Model}");
             Console.WriteLine($"├─ ApiKey: {(!string.IsNullOrEmpty(settings.ApiKey) ? "***" : "not set")}");
             Console.WriteLine($"├─ Timeout: {settings.TimeoutSeconds} seconds");
+            Console.WriteLine($"├─ ScriptFilePath: {settings.ScriptFilePath}");
             Console.WriteLine($"└─ MaxRetries: {settings.MaxRetries}");
 
             return settings;

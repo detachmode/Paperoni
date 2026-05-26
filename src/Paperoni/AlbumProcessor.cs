@@ -9,7 +9,6 @@ namespace Paperoni;
 
 internal sealed class AlbumProcessor(
     AlbumQueue queue,
-    IScriptLoader scriptLoader,
     IPipelineService pipeline,
     [FromKeyedServices(PublisherTarget.Markdown)]
     IFilePublisher markdownPublisher,
@@ -69,24 +68,6 @@ internal sealed class AlbumProcessor(
 
         try
         {
-            PipelineScript script;
-            try
-            {
-                var metaData = await workingDirectory.GetData<MetaData>(albumId, stoppingToken);
-                var globals = new ScriptGlobals(
-                    metaData?.Caption.Where(c => c is not null).Cast<string>().ToList() ?? [],
-                    DateTime.Now);
-
-                script = await scriptLoader.LoadAsync(settings.ScriptFilePath!, globals);
-            }
-            catch (InvalidPipelineScriptException ex)
-            {
-                logger.AlbumProcessingError(ex, albumId);
-                await telegram.ReplyError(albumId, ex.Message);
-                await telegram.UpdateDashboard(albumId, $"❌ Failed: {ex.Message}", queue.PendingCount);
-                return false;
-            }
-
             if (isRetry)
             {
                 var retryMetaData = await workingDirectory.GetData<MetaData>(albumId, stoppingToken);
@@ -116,10 +97,9 @@ internal sealed class AlbumProcessor(
 
             logger.AiSummaryStarting();
             await telegram.UpdateDashboard(albumId, "🤖 AI is reading ..", queue.PendingCount);
-            var result = await pipeline.RunAsync(script, albumId, (_, desc) =>
-            {
-                telegram.UpdateDashboard(albumId, desc, queue.PendingCount).ConfigureAwait(false);
-            }, stoppingToken);
+            var result = await pipeline.RunAsync(albumId,
+                (_, desc) => { telegram.UpdateDashboard(albumId, desc, queue.PendingCount).ConfigureAwait(false); },
+                stoppingToken);
             logger.AiSummaryDone();
 
             logger.PdfCreationStarting();
@@ -145,7 +125,7 @@ internal sealed class AlbumProcessor(
                 $"""
                  ✅ Done in {duration:F1}s — Paperoni v{VersionInfo.Version}{(testMode ? " 🧪" : "")}
                  Filename ({albumId}):  {result.Filename}
-                 """ );
+                 """);
             logger.AlbumComplete();
             return true;
         }

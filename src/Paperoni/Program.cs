@@ -75,6 +75,6 @@ builder.Services.AddOpenTelemetry()
 
 var host = builder.Build();
 
-await host.Services.ValidateAlbumProcessingSetup();
+await host.Services.ValidatePipelineScript();
 
 host.Run();

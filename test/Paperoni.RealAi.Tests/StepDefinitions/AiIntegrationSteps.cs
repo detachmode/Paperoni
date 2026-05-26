@@ -12,7 +12,6 @@ namespace Paperoni.RealAi.Tests.StepDefinitions;
 public class AiIntegrationSteps
 {
     private readonly IPipelineService _pipelineService;
-    private readonly IScriptLoader _scriptLoader;
     private readonly string _tempDir;
     private readonly string _scriptPath;
     private readonly int _albumId = 1;
@@ -28,33 +27,34 @@ public class AiIntegrationSteps
         Directory.CreateDirectory(Path.Combine(_tempDir, _albumId.ToString()));
 
         _scriptPath = Path.Combine(_tempDir, "pipeline.csx");
+        File.WriteAllText(_scriptPath, @"will be filled via steps later");
 
         var config = new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?>
             {
-                ["Ai:Endpoint"] = Environment.GetEnvironmentVariable("AI_ENDPOINT") ?? "http://localhost:2276",
-                ["Ai:Model"] = Environment.GetEnvironmentVariable("AI_MODEL") ?? "qwen-3.6-35b-a3b-q4",
+                ["Ai:ScriptFilePath"] = _scriptPath,
+                ["Ai:Endpoint"] = "http://localhost:2276",
+                ["Ai:Model"] = "qwen-3.6-35b-a3b-q4",
             })
             .Build();
 
         IServiceCollection serviceCollection = new ServiceCollection();
-        serviceCollection.AddLogging();
+        serviceCollection
+            .AddSingleton<IConfiguration>(config)
+            .AddLogging();
         serviceCollection.AddSingleton(new WorkingDirectory { PaperoniWorkingDirectory = _tempDir });
         serviceCollection.AddSingleton<ITelegramReplier>(new StubTelegramReplier());
-        serviceCollection.AddSingleton<IConfiguration>(config);
         serviceCollection.AddAiService(config);
         serviceCollection.AddSingleton<IScriptLoader, ScriptLoader>();
         var sp = serviceCollection.BuildServiceProvider();
         _pipelineService = sp.GetRequiredService<IPipelineService>();
-        _scriptLoader = sp.GetRequiredService<IScriptLoader>();
     }
 
     [When("I ask {string}")]
     public async Task WhenIAsk(string question)
     {
         await WriteScript(question);
-        var script = await _scriptLoader.LoadAsync(_scriptPath, new ScriptGlobals([], DateTime.Now));
-        var result = await _pipelineService.RunAsync(script, _albumId, (type, msg) => _output.WriteLine($"[{type}]{msg}"));
+        var result = await _pipelineService.RunAsync(_albumId, (type, msg) => _output.WriteLine($"[{type}]{msg}"));
         _answer = result.FormattedContent;
     }
 
@@ -62,8 +62,7 @@ public class AiIntegrationSteps
     public async Task WhenIAskAboutTheWeatherForAHike()
     {
         await WriteScript("What is the current weather for a moderate hike in Montreal?");
-        var script = await _scriptLoader.LoadAsync(_scriptPath, new ScriptGlobals([], DateTime.Now));
-        var result = await _pipelineService.RunAsync(script, _albumId, (type, msg) => _output.WriteLine($"[{type}]{msg}"));
+        var result = await _pipelineService.RunAsync(_albumId, (type, msg) => _output.WriteLine($"[{type}]{msg}"));
         _functionCallingAnswer = result.FormattedContent;
         _output.WriteLine($"Function calling response: {_functionCallingAnswer}");
     }
@@ -92,8 +91,7 @@ public class AiIntegrationSteps
     public async Task WhenIAskWithImages(string question)
     {
         await WriteScript(question);
-        var script = await _scriptLoader.LoadAsync(_scriptPath, new ScriptGlobals([], DateTime.Now));
-        var result = await _pipelineService.RunAsync(script, _albumId, (type, msg) => _output.WriteLine($"[{type}]{msg}"));
+        var result = await _pipelineService.RunAsync(_albumId, (type, msg) => _output.WriteLine($"[{type}]{msg}"));
         _answer = result.FormattedContent;
     }
 
@@ -108,6 +106,7 @@ public class AiIntegrationSteps
     private sealed class StubTelegramReplier : ITelegramReplier
     {
         public Task EditReply(int msgId, string text) => Task.CompletedTask;
+
         public Task ReplyError(int albumId, string errorMessage)
         {
             return Task.CompletedTask;
@@ -124,12 +123,16 @@ public class AiIntegrationSteps
         var escapedQuestion = question.Replace("\"", "\\\"");
         await File.WriteAllTextAsync(_scriptPath,
             $$"""
-            using System.ComponentModel;
-            public record AiAnswer([property: Description("Final answer text")] string Answer);
-            var Schema = typeof(AiAnswer);
-            var Prompt = "{{escapedQuestion}}";
-            Func<AiAnswer, string> GetFilename = _ => "real-ai-test";
-            Func<AiAnswer, string> Format = a => a.Answer;
-            """);
+              using System.ComponentModel;
+              public record AiAnswer(
+                [property: Description("Final answer text")] string Answer
+              );
+              var Schema = typeof(AiAnswer);
+
+              var Prompt = "{{escapedQuestion}}";
+
+              Func<AiAnswer, string> GetFilename = _ => "real-ai-test";
+              Func<AiAnswer, string> Format = a => a.Answer;
+              """);
     }
 }

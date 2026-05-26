@@ -2,6 +2,7 @@ using System.ClientModel;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using OpenAI;
 
@@ -13,7 +14,11 @@ public static class DependencyInjection
     {
         var processingSettings = services.GetRequiredService<AiSettings>();
         await services.GetRequiredService<IScriptLoader>()
-            .LoadAsync(processingSettings.ScriptFilePath, new ScriptGlobals([], DateTime.Now));
+            .LoadAsync(processingSettings.ScriptFilePath, new ScriptGlobals([], DateTime.Now)
+            {
+                Logger = NullLogger.Instance,
+                Log = Console.WriteLine
+            });
     }
 
     public static IServiceCollection AddAiService(this IServiceCollection collection, IConfiguration configuration)

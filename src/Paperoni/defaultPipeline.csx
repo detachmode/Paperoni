@@ -86,6 +86,8 @@ dann die einzelnen Artikel als Tabelle
 
 string GetFilename(AlbumNote note)
 {
+	Log("The AI returned following response:");
+	Log(note);
     if (string.IsNullOrWhiteSpace(note.Title))
     {
         throw new InvalidOperationException("Title is empty — the LLM must provide a title.");

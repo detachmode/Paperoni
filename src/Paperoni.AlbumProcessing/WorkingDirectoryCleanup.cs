@@ -1,8 +1,6 @@
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Paperoni.Contract;
-using Paperoni.Diagnostics;
-using static Paperoni.Diagnostics.Diagnostics;
 
 namespace Paperoni.AlbumProcessing;
 

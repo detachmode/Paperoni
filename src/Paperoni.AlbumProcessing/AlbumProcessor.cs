@@ -4,11 +4,8 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Paperoni.Ai;
 using Paperoni.Contract;
-using Paperoni.Diagnostics;
 using Paperoni.ImageProcessing;
 using Paperoni.Telegram;
-using Paperoni.Telegram.Album;
-using static Paperoni.Diagnostics.Diagnostics;
 
 namespace Paperoni.AlbumProcessing;
 
@@ -39,7 +36,7 @@ internal class AlbumProcessor(
 
                 albumIdAccessor.Id = item.MessageId;
 
-                await Tracer.TraceAsync<AlbumProcessor>(async scope =>
+                await ActivityExtensions.Tracer.TraceAsync<AlbumProcessor>(async scope =>
                 {
                     scope.SetTag("isRetry", item.IsRetry);
 

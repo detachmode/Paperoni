@@ -8,8 +8,8 @@ using Paperoni.Contract;
 using Paperoni.Diagnostics;
 using Paperoni.ImageProcessing;
 using Paperoni.Telegram;
-using Paperoni.Telegram.Album;
 using Serilog;
+using ActivityExtensions = Paperoni.Contract.ActivityExtensions;
 
 Console.WriteLine($"Paperoni starting...");
 
@@ -68,7 +68,7 @@ builder.Services.AddSerilog(config =>
 builder.Services.AddOpenTelemetry()
     .ConfigureResource(r => r.AddService("Paperoni", serviceVersion: VersionInfo.Version))
     .WithTracing(tracing => tracing
-        .AddSource(Diagnostics.Tracer.Name)
+        .AddSource(ActivityExtensions.Tracer.Name)
         .AddProcessor(new BatchActivityExportProcessor(
             new TraceLogExporter(workingDir, workingDir.BasePath),
             maxQueueSize: 2048,

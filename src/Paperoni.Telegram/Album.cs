@@ -1,6 +1,4 @@
-using Paperoni.Contract;
-
-namespace Paperoni.Telegram.Album;
+namespace Paperoni.Telegram;
 
 internal sealed class Album
 {

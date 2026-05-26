@@ -2,13 +2,12 @@ using System.Collections.Concurrent;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Paperoni.Contract;
-using Paperoni.Diagnostics;
 using Telegram.Bot;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
 using Telegram.Bot.Types.ReplyMarkups;
 
-namespace Paperoni.Telegram.Album;
+namespace Paperoni.Telegram;
 
 internal sealed class TelegramPhotoAlbumCollector(
     ITelegramBotClient botClient,

@@ -1,8 +1,7 @@
 using System.Threading.Channels;
 using Microsoft.Extensions.Logging;
-using static Paperoni.Diagnostics.Diagnostics;
 
-namespace Paperoni.Telegram.Album;
+namespace Paperoni.Contract;
 
 public sealed record WorkItem(int MessageId, bool IsRetry);
 

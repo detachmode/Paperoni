@@ -1,7 +1,6 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
-using Paperoni.Telegram.Album;
 using Telegram.Bot;
 
 namespace Paperoni.Telegram;
@@ -31,7 +30,6 @@ public static class DependencyInjection
             return settings;
         });
 
-        collection.AddSingleton<AlbumQueue>();
         collection.AddSingleton<ITelegramReplier, TelegramReplier>();
 
         collection.AddSingleton<TelegramBotClient>(sp =>

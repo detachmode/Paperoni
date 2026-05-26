@@ -2,8 +2,6 @@ using System.Text.Json;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Logging;
 using Paperoni.Contract;
-using Paperoni.Diagnostics;
-using static Paperoni.Diagnostics.Diagnostics;
 
 namespace Paperoni.Ai;
 
@@ -34,7 +32,7 @@ internal sealed class PipelineService : IPipelineService
         Action<DebugOutputType, string>? statusCallback = null,
         CancellationToken stoppingToken = default)
     {
-        return await Tracer.TraceAsync<PipelineService, PipelineRunResult>(async scope =>
+        return await ActivityExtensions.Tracer.TraceAsync<PipelineService, PipelineRunResult>(async scope =>
         {
             var workingDir = _workingDirectory.RequireWorkingDirectory(albumId);
             var files = Directory.GetFiles(workingDir)
@@ -242,5 +240,3 @@ internal sealed class PipelineService : IPipelineService
         };
     }
 }
-
-public record PipelineRunResult(string Filename, string FormattedContent);

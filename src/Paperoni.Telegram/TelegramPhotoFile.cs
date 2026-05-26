@@ -1,4 +1,4 @@
-namespace Paperoni.Contract;
+namespace Paperoni.Telegram;
 
 public sealed record TelegramPhotoFile(
     long ChatId,

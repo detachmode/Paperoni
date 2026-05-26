@@ -11,7 +11,6 @@ using Paperoni.Contract;
 using Paperoni.Diagnostics;
 using Paperoni.ImageProcessing;
 using Paperoni.Telegram;
-using Paperoni.Telegram.Album;
 using Reqnroll;
 using Xunit.Abstractions;
 

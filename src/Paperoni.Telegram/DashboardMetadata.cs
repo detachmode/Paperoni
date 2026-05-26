@@ -1,4 +1,4 @@
-namespace Paperoni.Contract;
+namespace Paperoni.Telegram;
 
 public class DashboardMetadata
 {

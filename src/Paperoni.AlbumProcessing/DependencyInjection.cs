@@ -14,6 +14,7 @@ public static class DependencyInjection
     }
     public static IServiceCollection AddAlbumProcessor(this IServiceCollection collection, IConfiguration configuration)
     {
+
         collection.AddOptions<AlbumProcessingSettings>()
             .Bind(configuration.GetSection("AlbumProcessing"))
             .Validate(settings => !settings.TestMode || !string.IsNullOrWhiteSpace(settings.TestModeOutputPath),

@@ -8,6 +8,8 @@ public static class DependencyInjection
     public static WorkingDirectory AddPaperoniWorkingDirectory(this IServiceCollection collection,
         IConfiguration configuration)
     {
+        collection.AddSingleton<AlbumQueue>();
+
         var paperoniWorkingDirectory = configuration["PaperoniWorkingDirectory"];
         var workingDir = new WorkingDirectory { PaperoniWorkingDirectory = paperoniWorkingDirectory };
         Console.WriteLine($" > Working Directory: {workingDir.BasePath}");

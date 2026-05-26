@@ -1,11 +1,9 @@
-using System.Diagnostics;
 using Microsoft.Extensions.Logging;
 
-namespace Paperoni.Diagnostics;
+namespace Paperoni.Contract;
 
-public static partial class Diagnostics
+public static partial class Logs
 {
-    public static readonly ActivitySource Tracer = new("Paperoni");
 
     [LoggerMessage(Level = LogLevel.Information, Message = "📥 Processing started (retry: {IsRetry})")]
     public static partial void ProcessingAlbum(this ILogger logger, bool isRetry);

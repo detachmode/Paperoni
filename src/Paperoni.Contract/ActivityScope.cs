@@ -1,6 +1,6 @@
 using System.Diagnostics;
 
-namespace Paperoni.Diagnostics;
+namespace Paperoni.Contract;
 
 public sealed class ActivityScope
 {

@@ -22,7 +22,6 @@
   <ItemGroup>
     <ProjectReference Include="..\Paperoni.Contract\Paperoni.Contract.csproj" />
     <ProjectReference Include="..\Paperoni.Diagnostics\Paperoni.Diagnostics.csproj" />
-    <ProjectReference Include="..\Paperoni.Telegram\Paperoni.Telegram.csproj" />
   </ItemGroup>
 
 </Project>

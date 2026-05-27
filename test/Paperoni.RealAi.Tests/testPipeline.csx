@@ -9,78 +9,78 @@ public record AlbumNote(
     [property: Description("Lowercase tags, 3-6 items")]
     string[] Tags,
 
-    [property: Description("Document type: Rechnung, Quittung, Vertrag, Brief, Garantie, Mahnung")]
+    [property: Description("Document type: Invoice, Receipt, Contract, Letter, Warranty, Reminder")]
     string DocumentType,
 
     [property: Description("Counterparty - company or person")]
     string Counterparty,
 
-    [property: Description("Das auf dem Dokument stehende Datum, wenn vorhanden")]
+    [property: Description("Date as shown on the document, if present")]
     string? DocumentDate,
 
     [property: Description("Importance: high, medium, or low")]
     string Importance,
 
-    [property: Description("Die 'Area' (größere Kategory / Lebensbereich) die dem Dokument zuzuordnen ist")]
+    [property: Description("Area - the broader category or life area this document belongs to")]
     string Area,
 
-    [property: Description("Falls ein Geldbetrag genannt wird (der **Endbetrag (Brutto)**), wenn nicht leer lassen)")]
+    [property: Description("Total amount (gross/final) if mentioned, otherwise leave empty")]
     decimal? Amount,
 
-    [property: Description("Markdown Body mit der Struktur wie angegeben in den Regeln")]
+    [property: Description("Markdown body following the structure specified in the rules")]
     string MarkdownBody
 );
 
 var Schema = typeof(AlbumNote);
 
 var Prompt = $"""
-Analysiere das folgende Dokument (Rechnung, Quittung, Vertrag, Brief, etc.) und extrahiere die wichtigsten Daten
-für die private Verwaltung.
+Analyse the following document (invoice, receipt, contract, letter, etc.) and extract the key data
+for personal record-keeping.
 
-## Anforderungen an die Extraktion
+## Extraction requirements
 
-###  Rules
-- `title`: Erstelle einen Titel nach folgendem Muster:
-  **Format:** `YYYY-MM-DD Kategorie Gegenpart Tag1 Tag2`
-  **Beispiel:** `2025-06-05 Auto Serer GmbH Werkstatt Rechnung`
-  **Bestandteile:**
-    - Dokumentdatum im Format YYYY-MM-DD
-    - Die gewählte Kategorie (aus der Liste unten)
-    - Name des Gegenparts (Firma oder Person)
-    - 2-4 relevante Tags (ohne Bindestriche, Leerzeichen getrennt)
-      → Maximal 8-10 Wörter insgesamt
+### Rules
+- `title`: Create a title following this pattern:
+  **Format:** `YYYY-MM-DD Category Counterparty Tag1 Tag2`
+  **Example:** `2025-06-05 Auto Smith Auto Repair Invoice`
+  **Components:**
+    - Document date in YYYY-MM-DD format
+    - Chosen category (from the list below)
+    - Name of counterparty (company or person)
+    - 2-4 relevant tags (no hyphens, space-separated)
+      → Maximum 8-10 words total
 
-- `DocumentDate`: Das auf dem Dokument stehende Datum
-   Wichtig! NUR HINZUFÜGEN, WENN IM DOKUMENT EIN DATUM ZU SEHEN IST, SONST BITTE LEER LASSEN !
-- `Counterparty`: Vertragspartner / Aussteller / andere Partei (Firma oder Person)
-- `Area`: Eine der folgenden Areas: Auto, Motorrad, 🌱 Gesundheit, 🧑‍🍳 Kochen, 🏠 Wohnung, Bosch (meine Arbeitgeber), Software development (Hobby Projekte), 💶 Finanzen, 🧐 Other
-- `Tags`: Liste von relevanten Tags (3-6 Stück, z.B. rechnung, werkstatt, bezahlt, feder)
+- `DocumentDate`: The date as shown on the document
+   IMPORTANT! ONLY ADD IF A DATE IS VISIBLE ON THE DOCUMENT, OTHERWISE LEAVE EMPTY!
+- `Counterparty`: Contracting party / issuer / other party (company or person)
+- `Area`: One of the following: Car, Motorcycle, Health, Cooking, Housing, Work, Finance, Other
+- `Tags`: List of relevant tags (3-6 items, e.g. invoice, repair, paid, warranty)
 
-### Regeln für die Wichtigkeitsbewertung (importance)
-- **high**: Betrag > 400 €, oder wichtige Verträge (Mietvertrag, Arbeitsvertrag), oder Garantie-/Gewährleistungsdokumente, oder Kündigungen/Mahnungen
-- **medium**: Betrag 100 - 300 €, oder wiederkehrende Dokumente (Nebenkostenabrechnung), oder allgemeine Briefe mit Relevanz
-- **low**: Kleinstbeträge, oder Werbung, oder rein informative Dokumente ohne finanzielle/vertragliche Relevanz
+### Importance rules
+- **high**: Amount > 400, or important contracts (lease, employment), or warranty/guarantee documents, or terminations/reminders
+- **medium**: Amount 100-300, or recurring documents (utility bills), or general letters with relevance
+- **low**: Small amounts, or advertising, or purely informational documents without financial/contractual relevance
 
-### Sonstige Regeln
-- Bei Beträgen nur den **Brutto-Endbetrag** erfassen (keine Netto/MwSt.-Aufteilung)
-- Nur Daten verwenden, die tatsächlich im Dokument stehen
-- Fehlende Felder einfach leer lassen (z.B. `amount: `)
-- Vor jeder Markdowntabellen IMMER eine leere Zeile einfügen!
+### Other rules
+- Only capture the **gross/final amount** (no net/VAT breakdown)
+- Only use data that is actually present in the document
+- Leave missing fields empty (e.g. `amount: `)
+- Always add an empty line before Markdown tables!
 
-### Andere Fakten
-Aktuelles Datum: {CurrentDate:yyyy-MM-dd HH:mm:ss}
-{(Captions.Count > 0 ? $"Zusätzliche Anweisungen vom Benutzer: {string.Join(" | ", Captions)}" : "")}
+### Context
+Current date: {CurrentDate:yyyy-MM-dd HH:mm:ss}
+{(Captions.Count > 0 ? $"Additional instructions from user: {string.Join(" | ", Captions)}" : "")}
 
 ### MarkdownBody
-Der MarkdownBody soll folgendes Layout haben:
+The MarkdownBody should have this layout:
 
-# Zusammenfassung
-Kurz und prägnante zusammenfassung des dokuments. Ca. 50 Wörter
+# Summary
+Short and concise summary of the document. Approx. 50 words
 
-# Wichtige Fakten
-Extrahiere wichtige Fakten aus dem Dokumente.
-Benutze Markdown Tabellen, wenn im Dokument Daten in Tabellen vorliegen, oder im Fall einer Rechnung,
-dann die einzelnen Artikel als Tabelle
+# Key Facts
+Extract key facts from the document.
+Use Markdown tables when the document contains tabular data, or in the case of an invoice,
+list the individual items as a table
 
 """;
 

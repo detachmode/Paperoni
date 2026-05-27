@@ -1,77 +1,161 @@
 # Paperoni
 
-Paperoni is a background service that ingests photo albums from Telegram, produces AI-written Markdown summaries and document-corrected PDFs, and publishes them to a configurable output directory.
+Send photos of documents to a Telegram bot — Paperoni generates structured Markdown notes and A4 PDFs, ready for your vault or archive.
 
-## Pipeline
+<!-- TODO: add screenshot showing Telegram app with sent photos, and the generated Markdown + PDF output side by side -->
 
-```mermaid
-flowchart LR
-    Telegram -->|photos| AlbumCollector["Album Collector
-    2s debounce"]
+## What it does
 
-    AlbumCollector --> |album
-    + prompt
-    + captions| AI["LLM Provider"]
+1. You send photos of documents (receipts, invoices, contracts, etc.) to a Telegram bot — individually or as an album
+2. Paperoni processes the images (auto-levels, perspective correction, grayscale)
+3. An LLM extracts structured data: title, date, counterparty, tags, category, importance, and a Markdown summary
+4. A formatted Markdown file and an A4 PDF are saved to your output directory
 
-    AlbumCollector --> |album| OpenCV["OpenCV Pipeline
-    warp + grayscale + auto-levels"]
+The output format is fully customizable via a C# script — see [Pipeline Script](#pipeline-script).
 
+## Quick start (Docker Compose)
 
-    OpenCV --> |images|PDF["PDF QuestPDF"]
-    AI --> |title| PDF["PDF QuestPDF"]
+Copy the Docker Compose file below into a `docker-compose.yml` and configure your LLM provider and Telegram bot token.
 
-    PDF --> FilePublisher["File Publisher"]
-    AI --> |markdown| Markdown["Markdown"]
+### Local LLM (e.g. llama.cpp, Ollama)
+
+```yaml
+services:
+  paperoni:
+    image: ghcr.io/detachmode/paperoni:latest
+    restart: on-failure:3
+    environment:
+      Telegram__BotToken: "${Telegram__BotToken:?Telegram__BotToken is required}"
+      Ai__Endpoint: "http://host.docker.internal:2276"
+      Ai__Model: "qwen-3.6-35b-a3b-q4"
+      AlbumProcessing__MarkdownOutputPath: /output/markdown
+      AlbumProcessing__PdfOutputPath: /output/pdf
+      PaperoniWorkingDirectory: /data
+    extra_hosts:
+      - host.docker.internal:host-gateway
+    volumes:
+      - ./workingDir:/data
+      - ./output/markdown:/output/markdown
+      - ./output/pdf:/output/pdf
 ```
 
-1. **Telegram Album Collector** — Listens for incoming photo messages. Singles are dispatched immediately; media groups are debounced 2 seconds to form complete **Albums**.
-2. **Working Directory** — Each **Album** gets a folder on disk (`{PaperoniWorkingDirectory}/{messageId}/`) for raw
-   photos, metadata, AI response, and the PDF.
-3. **OpenCV Pipeline** — Each **Photo** passes through optional document-detection + perspective warp, grayscale conversion, and histogram-based auto-levels.
-4. **AI Summary** — An LLM (OpenAI-compatible, local endpoint) produces a Markdown document with YAML frontmatter (title, date, counterparty, amount, category, tags, etc.).
-5. **PDF** — QuestPDF generates an A4 document with processed images, one per page at 1cm margins.
-6. **File Publisher (Markdown)** — The Markdown file is copied to a configured output directory.
-7. **File Publisher (PDF)** — The PDF is copied to a configured output directory.
+```bash
+export Telegram__BotToken="your-bot-token"  # get one from @BotFather
+docker compose up -d
+```
+
+### Cloud LLM (example here with: OpenCode Go)
+
+```yaml
+services:
+  paperoni:
+    image: ghcr.io/detachmode/paperoni:latest
+    restart: on-failure:3
+    environment:
+      Telegram__BotToken: "${Telegram__BotToken:?Telegram__BotToken is required}"
+      Ai__Endpoint: "https://opencode.ai/zen/go/v1"
+      Ai__Model: "qwen3.6-plus"
+      Ai__ApiKey: "${Ai__ApiKey:?Ai__ApiKey is required}"
+      AlbumProcessing__MarkdownOutputPath: /output/markdown
+      AlbumProcessing__PdfOutputPath: /output/pdf
+      PaperoniWorkingDirectory: /data
+    volumes:
+      - ./workingDir:/data
+      - ./output/markdown:/output/markdown
+      - ./output/pdf:/output/pdf
+```
+
+```bash
+export Telegram__BotToken="your-bot-token"  # get one from @BotFather
+export Ai__ApiKey="sk-..."
+docker compose up -d
+```
+
+Send photos to the bot and check your `output/` folder.
+
+## QuickStart (without docker)
+
+Download binaries at [GitHub Releases](https://github.com/detachmode/paperoni/releases) for Windows, Linux (x64/arm64), and macOS (arm64).
+
+Modify the appsettings.json:
+- set Telegram BotToken
+- set AI model and endpoint
 
 ## Configuration
 
-Configuration is loaded from `appsettings.json`, user secrets, and environment variables:
+All settings are configured via environment variables or `appsettings.json`. Use double underscores (`__`) for env vars (e.g., `Ai__Endpoint`).
 
-| Key                                  | Source                                                | Description                                                            |
-|--------------------------------------|-------------------------------------------------------|------------------------------------------------------------------------|
-| `Telegram:BotToken`                  | User secret / env                                     | Telegram bot token                                                     |
-| `Ai:Endpoint`                        | `appsettings.json` (default: `http://localhost:2276`) | OpenAI-compatible endpoint                                             |
-| `Ai:Model`                           | `appsettings.json` (default: `qwen-3.6-35b-a3b-q4`)   | Model name                                                             |
-| `Ai:PromptFilePath`                  | `appsettings.json` (default: `Prompt.md`)             | Base prompt file path                                                  |
-| `Ai:TimeoutSeconds`                  | `appsettings.json` (default: `600`)                   | AI summary timeout in seconds                                          |
-| `AlbumProcessing:TestMode`           | `appsettings.json` / `appsettings.Development.json`   | When `true`, all output routes to `AlbumProcessing:TestModeOutputPath` |
-| `AlbumProcessing:TestModeOutputPath` | User secret / env                                     | Test output directory when `AlbumProcessing:TestMode` is `true`        |
-| `AlbumProcessing:MarkdownOutputPath` | User secret / env                                     | Output directory for Markdown summaries                                |
-| `AlbumProcessing:PdfOutputPath`      | User secret / env                                     | Output directory for published PDFs                                    |
-| `Diagnostics:LogPath`                | `appsettings.json` (default: `""`)                    | Log directory (empty = working directory base path)                    |
-| `PaperoniWorkingDirectory`           | (optional)                                            | Custom download root directory                                         |
+### Required
 
-### Quick start
+| Setting | Description |
+|---|---|
+| `Telegram__BotToken` | Telegram bot token |
+| `Ai__Endpoint` | OpenAI-compatible endpoint URL (local or cloud) |
+| `Ai__Model` | Model name for your LLM |
+| `AlbumProcessing__MarkdownOutputPath` | Where to save generated Markdown files |
+| `AlbumProcessing__PdfOutputPath` | Where to save generated PDFs |
+
+### Optional
+
+| Setting | Default | Description |
+|---|---|---|
+| `Ai__ApiKey` | — | API key (required for remote/cloud endpoints) |
+| `Ai__TimeoutSeconds` | `600` | Request timeout |
+| `Ai__MaxRetries` | `2` | Retries on failure |
+| `Ai__ScriptFilePath` | `defaultPipeline.csx` | Path to the [pipeline script](#pipeline-script) |
+| `AlbumProcessing__TestMode` | `false` | Route all output to `TestModeOutputPath` |
+| `AlbumProcessing__TestModeOutputPath` | — | Output directory in test mode |
+| `AlbumProcessing__WorkingDirectoryRetentionDays` | `7` | Days to keep per-album working directories (≤0 = never clean) |
+| `PaperoniWorkingDirectory` | system temp | Root for per-album working directories |
+| `Diagnostics__LogPath` | working directory | Log file directory |
+
+## Pipeline Script
+
+Processing behaviour is defined by a C# script (`.csx`). The script controls:
+
+- **Schema** — the JSON structure the LLM need to respond with (define your own fields)
+- **Prompt** — the system prompt and extraction rules
+- **Filename** — how the LLM result maps to a safe filename
+- **Format** — the Markdown output (including YAML frontmatter)
+
+The default script is [`src/Paperoni/defaultPipeline.csx`](./src/Paperoni/defaultPipeline.csx). To customize, copy it and point `Ai:ScriptFilePath` to your copy.
+The script is reloaded on every album, so changes take effect immediately. Also check the logs on startup to see if the script has compilation errors.
+
+Example of the default Markdown output:
+
+```markdown
+---
+pdf: "[[2025-06-05 Auto Smith Auto Repair Invoice.pdf]]"
+counterparty: Smith Auto Repair
+document_type: Invoice
+importance: medium
+amount: 234.50
+parent:
+  - "[[Car]]"
+tags:
+  - "invoice"
+  - "repair"
+  - "paid"
+---
+
+# Summary
+Vehicle repair invoice for oil change and filter replacement...
+
+# Key Facts
+| Item | Amount |
+|------|--------|
+| Oil change | 89.00 |
+| Filter | 25.50 |
+```
+
+## Building from source
 
 ```bash
-# Set required secrets
-dotnet user-secrets set "Ai:ApiKey" "your-api-key" (only needed in case you use a cloud LLM)
-dotnet user-secrets set "Telegram:BotToken" "your-bot-token"
-dotnet user-secrets set "AlbumProcessing:MarkdownOutputPath" "/path/to/markdown-output"
-dotnet user-secrets set "AlbumProcessing:PdfOutputPath" "/path/to/output"
-dotnet user-secrets set "AlbumProcessing:TestModeOutputPath" "~/Downloads/paperoni-test" # optional
-
-# Backward-compatible env var aliases (old flat keys still work):
-#   AI_API_KEY        → Ai:ApiKey
-#   TELEGRAM_BOT_TOKEN → Telegram:BotToken
-
-# Run (use DOTNET_ENVIRONMENT=Development for test mode)
+dotnet test test/Paperoni.Tests/Paperoni.Tests.csproj
 dotnet run --project src/Paperoni
 ```
 
-## Language
-
-See [CONTEXT.md](./CONTEXT.md) for the project glossary and terminology conventions.
+Requires .NET 10 SDK.
 
 ## Tech
 

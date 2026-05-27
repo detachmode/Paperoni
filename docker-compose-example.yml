@@ -1,15 +1,15 @@
 services:
   paperoni:
-    image: ghcr.io/detachmode/paperoni:0.1.0-pre.e363c7c
+    image: ghcr.io/detachmode/paperoni:latest
     restart: on-failure:3
     environment:
       Telegram__BotToken: "${Telegram__BotToken:?Telegram__BotToken is required}"
 
-      # For Local LLM - example cpp server
+      # Local LLM endpoint (example: llama.cpp server)
       Ai__Endpoint: "http://host.docker.internal:2276"
       Ai__Model: "qwen-3.6-35b-a3b-q4"
 
-      # For Cloud LLM - example OpenCode Go
+      # Cloud LLM (uncomment and configure):
       #      Ai__ApiKey: "<your api key>"
       #      Ai__Endpoint: "https://opencode.ai/zen/go/v1"
       #      Ai__Model: "qwen3.6-plus"
@@ -22,10 +22,10 @@ services:
     extra_hosts:
       - host.docker.internal:host-gateway
     volumes:
-      - paperoni_data:/data
+      - ./workingDir:/data
       - ./output/markdown:/output/markdown
       - ./output/pdf:/output/pdf
-      - ./src/Paperoni/pipeline.csx:/app/pipeline.csx:ro
 
-volumes:
-  paperoni_data:
+# Mount your own custom pipeline.csx file in case you want to modify the pipeline (Prompt, final Markdown structure, etc)
+#      - ./pipeline.csx:/app/defaultPipeline.csx:ro
+

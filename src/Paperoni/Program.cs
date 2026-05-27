@@ -29,7 +29,7 @@ SplashScreen.Render();
 using var _ = lockFile;
 
 var builder = Host.CreateApplicationBuilder(args);
-var smokeTestInPipeline = builder.Configuration.GetValue<bool>("SmokeTestInPipeline");
+var smokeTestInPipeline = builder.Configuration.GetValue("SmokeTestInPipeline", false);
 
 builder.Services.AddDiagnostics(builder.Configuration);
 builder.Services.AddAiService(builder.Configuration);

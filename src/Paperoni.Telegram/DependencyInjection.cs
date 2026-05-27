@@ -15,13 +15,6 @@ public static class DependencyInjection
             .Validate(settings => !string.IsNullOrWhiteSpace(settings.BotToken),
                 "Telegram:BotToken is required")
             .ValidateOnStart();
-        collection.PostConfigure<TelegramSettings>(settings =>
-        {
-            if (string.IsNullOrEmpty(settings.BotToken))
-            {
-                settings.BotToken = configuration["TELEGRAM_BOT_TOKEN"] ?? "";
-            }
-        });
         collection.AddSingleton<TelegramSettings>(sp =>
         {
             var settings = sp.GetRequiredService<IOptions<TelegramSettings>>().Value;

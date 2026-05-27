@@ -32,7 +32,7 @@ internal sealed class PipelineService(
                     metaData?.Caption.Where(c => c is not null).Cast<string>().ToList() ?? [],
                     DateTime.Now);
 
-                script = await scriptLoader.LoadAsync(aiSettings.ScriptFilePath!, globals);
+                script = await scriptLoader.LoadAsync(aiSettings.ScriptFilePath, globals);
             }
             catch (InvalidPipelineScriptException ex)
             {
@@ -62,7 +62,6 @@ internal sealed class PipelineService(
             var conversation = BuildInitialConversation(script.Prompt, fileContents);
             var sw = System.Diagnostics.Stopwatch.StartNew();
             Exception? lastError = null;
-            string? aiResponse = null;
 
             for (var attempt = 0; attempt <= _maxRetries; attempt++)
             {
@@ -72,10 +71,11 @@ internal sealed class PipelineService(
                 DebugOutputType? lastDebugType = null;
                 var isRetry = attempt > 0;
 
+                string? aiResponse;
                 try
                 {
                     aiResponse = await AskWithFilesAsync(conversation, chatOptions,
-                        (t, s) =>
+                        (t, _) =>
                         {
                             if (lastDebugType == t)
                             {
@@ -108,6 +108,7 @@ internal sealed class PipelineService(
                 try
                 {
                     var record = DeserializeToType(aiResponse, script.Schema);
+                    script.InvokeValidate(record);
                     var filename = script.InvokeGetFilename(record);
                     var formatted = script.InvokeFormat(record);
 
@@ -133,7 +134,7 @@ internal sealed class PipelineService(
                     return new PipelineRunResult(filename, formatted);
                 }
                 catch (Exception ex) when (
-                    ex is JsonException or InvalidPipelineScriptException or InvalidOperationException)
+                    ex is JsonException or InvalidPipelineScriptException or InvalidOperationException or ValidationException)
                 {
                     lastError = ex;
                     logger.AiRetryDeserialization(attempt + 1, _maxRetries + 1, ex.Message);
@@ -145,8 +146,12 @@ internal sealed class PipelineService(
                             $"🤖 AI retry {attempt + 1}/{_maxRetries} — fixing response ..");
 
                         conversation.Add(new ChatMessage(ChatRole.Assistant, aiResponse));
-                        conversation.Add(new ChatMessage(ChatRole.User,
-                            BuildRetryPrompt(ex.Message, aiResponse)));
+
+                        var retryPrompt = ex is ValidationException validationEx
+                            ? BuildValidationRetryPrompt(validationEx.Failures, aiResponse)
+                            : BuildRetryPrompt(ex.Message, aiResponse);
+
+                        conversation.Add(new ChatMessage(ChatRole.User, retryPrompt));
                     }
                 }
             }
@@ -172,6 +177,21 @@ internal sealed class PipelineService(
             Your previous response could not be deserialized. Fix the JSON to match the schema.
 
             Error: {error}
+
+            Your previous response:
+            {badResponse}
+
+            Respond with corrected JSON only. Do not include any explanation.
+            """;
+    }
+
+    private static string BuildValidationRetryPrompt(IReadOnlyList<string> failures, string badResponse)
+    {
+        var failureList = string.Join(Environment.NewLine, failures.Select(f => $"- {f}"));
+        return $"""
+            Your previous response was parsed but failed validation. Fix these issues:
+
+            {failureList}
 
             Your previous response:
             {badResponse}

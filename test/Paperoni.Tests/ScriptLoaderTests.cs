@@ -476,4 +476,184 @@ public class ScriptLoaderTests(ITestOutputHelper testOutputHelper)
         var json = System.Text.Json.JsonSerializer.Serialize(data);
         return System.Text.Json.JsonSerializer.Deserialize(json, type)!;
     }
+
+    [Fact]
+    public async Task LoadAsync_WithValidate_SetsValidateDelegate()
+    {
+        var script = """
+            using Paperoni.Ai;
+
+            public record TestNote(string Title);
+
+            var Schema = typeof(TestNote);
+
+            var Prompt = "Analyse.";
+
+            void Validate(TestNote note, ValidationContext assert)
+            {
+                assert.Assert(!string.IsNullOrWhiteSpace(note.Title), "Title must not be empty");
+            }
+
+            string GetFilename(TestNote note) => note.Title;
+
+            string Format(TestNote note) => note.Title;
+
+            """;
+        var path = CreateScriptFile(script);
+
+        try
+        {
+            var result = await _loader.LoadAsync(path);
+            Assert.NotNull(result.ValidateDelegate);
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public async Task LoadAsync_WithoutValidate_SetsValidateDelegateToNull()
+    {
+        var script = """
+            public record TestNote(string Title);
+
+            var Schema = typeof(TestNote);
+
+            var Prompt = "Analyse.";
+
+            string GetFilename(TestNote note) => note.Title;
+
+            string Format(TestNote note) => note.Title;
+
+            """;
+        var path = CreateScriptFile(script);
+
+        try
+        {
+            var result = await _loader.LoadAsync(path);
+            Assert.Null(result.ValidateDelegate);
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public async Task InvokeValidate_AllAssertionsPass_DoesNotThrow()
+    {
+        var script = """
+            using Paperoni.Ai;
+
+            public record TestNote(string Title, string Importance);
+
+            var Schema = typeof(TestNote);
+
+            var Prompt = "Analyse.";
+
+            void Validate(TestNote note, ValidationContext assert)
+            {
+                assert.Assert(!string.IsNullOrWhiteSpace(note.Title), "Title must not be empty");
+                assert.Assert(note.Importance is "high" or "medium" or "low", "Importance must be high, medium, or low");
+            }
+
+            string GetFilename(TestNote note) => note.Title;
+
+            string Format(TestNote note) => note.Title;
+
+            """;
+        var path = CreateScriptFile(script);
+
+        try
+        {
+            var result = await _loader.LoadAsync(path);
+            var record = new Dictionary<string, object> { ["Title"] = "Test", ["Importance"] = "high" };
+            var instance = DeserializeToType(record, result.Schema);
+            result.InvokeValidate(instance);
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public async Task InvokeValidate_AssertionsFail_ThrowsValidationExceptionWithAllFailures()
+    {
+        var script = """
+            using Paperoni.Ai;
+
+            public record TestNote(string Title, string Importance, string[] Tags);
+
+            var Schema = typeof(TestNote);
+
+            var Prompt = "Analyse.";
+
+            void Validate(TestNote note, ValidationContext assert)
+            {
+                assert.Assert(!string.IsNullOrWhiteSpace(note.Title), "Title must not be empty");
+                assert.Assert(note.Importance is "high" or "medium" or "low", "Importance must be high, medium, or low");
+                assert.Assert(note.Tags is { Length: >= 3 }, "Tags must have at least 3 items");
+            }
+
+            string GetFilename(TestNote note) => note.Title;
+
+            string Format(TestNote note) => note.Title;
+
+            """;
+        var path = CreateScriptFile(script);
+
+        try
+        {
+            var result = await _loader.LoadAsync(path);
+            var record = new Dictionary<string, object>
+            {
+                ["Title"] = "",
+                ["Importance"] = "invalid",
+                ["Tags"] = new[] { "only-one" }
+            };
+            var instance = DeserializeToType(record, result.Schema);
+
+            var ex = Assert.Throws<ValidationException>(() => result.InvokeValidate(instance));
+            Assert.Equal(3, ex.Failures.Count);
+            Assert.Contains(ex.Failures, f => f.Contains("Title must not be empty"));
+            Assert.Contains(ex.Failures, f => f.Contains("Importance must be high, medium, or low"));
+            Assert.Contains(ex.Failures, f => f.Contains("Tags must have at least 3 items"));
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public async Task InvokeValidate_NullValidateDelegate_DoesNotThrow()
+    {
+        var script = """
+            public record TestNote(string Title);
+
+            var Schema = typeof(TestNote);
+
+            var Prompt = "Analyse.";
+
+            string GetFilename(TestNote note) => note.Title;
+
+            string Format(TestNote note) => note.Title;
+
+            """;
+        var path = CreateScriptFile(script);
+
+        try
+        {
+            var result = await _loader.LoadAsync(path);
+            var record = new Dictionary<string, object> { ["Title"] = "Test" };
+            var instance = DeserializeToType(record, result.Schema);
+            result.InvokeValidate(instance);
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
 }

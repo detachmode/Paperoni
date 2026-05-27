@@ -68,7 +68,15 @@ public class ScriptLoader(ILoggerFactory loggerFactory) : IScriptLoader
                 ex);
         }
 
-        var validateFunc = GetScriptVariable(scriptState, "Validate") as Delegate;
+        Delegate? validateFunc = null;
+        try
+        {
+            validateFunc = (await scriptState.ContinueWithAsync<Delegate>("Validate")).ReturnValue;
+        }
+        catch (CompilationErrorException)
+        {
+            // Validate is optional — ignore if not defined
+        }
 
         return new PipelineScript
         {
@@ -77,7 +85,7 @@ public class ScriptLoader(ILoggerFactory loggerFactory) : IScriptLoader
             GetFilenameDelegate = getFileNameFunc,
             FormatDelegate = formatFunc,
             ValidateDelegate = validateFunc,
-            ScriptGlobals = globals ?? new ScriptGlobals([], DateTime.Now),
+            ScriptGlobals = globals,
             ScriptPath = scriptPath,
             SourceLines = originalLines,
             MapLineNumber = line => MapLineNumber(line, scriptLineToSourceLine)

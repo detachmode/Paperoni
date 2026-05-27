@@ -9,7 +9,7 @@ Send photos of documents to a Telegram bot — Paperoni generates structured Mar
 1. You send photos of documents (receipts, invoices, contracts, etc.) to a Telegram bot — individually or as an album
 2. Paperoni processes the images (auto-levels, perspective correction, grayscale)
 3. An LLM extracts structured data: title, date, counterparty, tags, category, importance, and a Markdown summary
-4. A formatted Markdown file and an A4 PDF are saved to your output directory
+4. A formatted Markdown file and an A4 PDF are saved to your output directory (like an Obsidian a vault)
 
 The output format is fully customizable via a C# script — see [Pipeline Script](#pipeline-script).
 

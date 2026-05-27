@@ -656,4 +656,40 @@ public class ScriptLoaderTests(ITestOutputHelper testOutputHelper)
             File.Delete(path);
         }
     }
+
+    [Fact]
+    public async Task LoadAsync_MalformedValidate_ThrowsInvalidPipelineScriptException()
+    {
+        var script = """
+            using Paperoni.Ai;
+
+            public record TestNote(string Title);
+
+            var Schema = typeof(TestNote);
+
+            var Prompt = "Analyse.";
+
+            void Validate(TestNote note, ValidationContext assert)
+            {
+                assert.Assert(note.Title != "", "Title required"  // missing closing paren
+            }
+
+            string GetFilename(TestNote note) => note.Title;
+
+            string Format(TestNote note) => note.Title;
+
+            """;
+        var path = CreateScriptFile(script);
+
+        try
+        {
+            var ex = await Assert.ThrowsAsync<InvalidPipelineScriptException>(
+                () => _loader.LoadAsync(path));
+            Assert.Contains("compile error", ex.Message, StringComparison.OrdinalIgnoreCase);
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
 }

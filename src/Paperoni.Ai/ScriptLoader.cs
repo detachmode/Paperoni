@@ -73,9 +73,9 @@ public class ScriptLoader(ILoggerFactory loggerFactory) : IScriptLoader
         {
             validateFunc = (await scriptState.ContinueWithAsync<Delegate>("Validate")).ReturnValue;
         }
-        catch (CompilationErrorException)
+        catch (CompilationErrorException ex) when (ex.Diagnostics.Any(d => d.Id == "CS0103"))
         {
-            // Validate is optional — ignore if not defined
+            // Validate is optional — only ignore when the symbol is not defined
         }
 
         return new PipelineScript

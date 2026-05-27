@@ -129,7 +129,7 @@ pdf: "[[2025-06-05 Auto Smith Auto Repair Invoice.pdf]]"
 counterparty: Smith Auto Repair
 document_type: Invoice
 importance: medium
-amount: 234.50
+amount: 114.0
 parent:
   - "[[Car]]"
 tags:
@@ -145,7 +145,7 @@ Vehicle repair invoice for oil change and filter replacement...
 | Item | Amount |
 |------|--------|
 | Oil change | 89.00 |
-| Filter | 25.50 |
+| Filter | 25.00 |
 ```
 
 ## Building from source

@@ -69,7 +69,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        rid: [ win-x64, linux-x64, linux-arm64, osx-arm64 ]
+        rid: [ win-x64, linux-x64, linux-arm64, osx-x64, osx-arm64 ]
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-dotnet@v5
@@ -189,4 +189,5 @@ jobs:
             Paperoni-win-x64/Paperoni-${{ needs.version.outputs.version }}-win-x64.zip
             Paperoni-linux-x64/Paperoni-${{ needs.version.outputs.version }}-linux-x64.zip
             Paperoni-linux-arm64/Paperoni-${{ needs.version.outputs.version }}-linux-arm64.zip
+            Paperoni-osx-x64/Paperoni-${{ needs.version.outputs.version }}-osx-x64.zip
             Paperoni-osx-arm64/Paperoni-${{ needs.version.outputs.version }}-osx-arm64.zip

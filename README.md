@@ -75,7 +75,7 @@ Send photos to the bot and check your `output/` folder.
 
 ## QuickStart (without docker)
 
-Download binaries at [GitHub Releases](https://github.com/detachmode/paperoni/releases) for Windows, Linux (x64/arm64), and macOS (arm64).
+Download binaries at [GitHub Releases](https://github.com/detachmode/paperoni/releases) for Windows (x64), Linux (x64, arm64), and macOS (x64, arm64).
 
 Modify the appsettings.json:
 - set Telegram BotToken

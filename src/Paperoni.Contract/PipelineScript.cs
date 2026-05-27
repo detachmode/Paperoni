@@ -14,6 +14,7 @@ public sealed class PipelineScript
     public string Prompt { get; init; } = null!;
     public Delegate GetFilenameDelegate { get; init; } = null!;
     public Delegate FormatDelegate { get; init; } = null!;
+    public Delegate? ValidateDelegate { get; init; }
     public ScriptGlobals ScriptGlobals { get; init; } = null!;
     public string ScriptPath { get; init; } = "";
     public IReadOnlyList<string> SourceLines { get; init; } = [];
@@ -27,6 +28,30 @@ public sealed class PipelineScript
     public string InvokeFormat(object record)
     {
         return InvokeStringFunction(FormatDelegate, record, "Format");
+    }
+
+    public void InvokeValidate(object record)
+    {
+        if (ValidateDelegate is null)
+        {
+            return;
+        }
+
+        var context = new ValidationContext();
+        try
+        {
+            ValidateDelegate.DynamicInvoke(record, context);
+        }
+        catch (Exception ex)
+        {
+            var inner = ex is TargetInvocationException tie && tie.InnerException is not null ? tie.InnerException : ex;
+            throw new InvalidPipelineScriptException(BuildExecutionErrorMessage("Validate", inner), inner);
+        }
+
+        if (context.HasFailures)
+        {
+            throw new ValidationException(context.Failures);
+        }
     }
 
     private string InvokeStringFunction(Delegate function, object record, string functionName)

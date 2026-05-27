@@ -68,12 +68,15 @@ public class ScriptLoader(ILoggerFactory loggerFactory) : IScriptLoader
                 ex);
         }
 
+        var validateFunc = GetScriptVariable(scriptState, "Validate") as Delegate;
+
         return new PipelineScript
         {
             Schema = schema,
             Prompt = prompt,
             GetFilenameDelegate = getFileNameFunc,
             FormatDelegate = formatFunc,
+            ValidateDelegate = validateFunc,
             ScriptGlobals = globals ?? new ScriptGlobals([], DateTime.Now),
             ScriptPath = scriptPath,
             SourceLines = originalLines,

@@ -31,13 +31,17 @@ internal sealed class LlmCropDetector(IChatClient chatClient, ILogger<LlmCropDet
 
         try
         {
-            var response = await chatClient.GetResponseAsync([message], cancellationToken: cancellationToken);
-            var raw = response.Text ?? string.Empty;
+            var raw = string.Empty;
+            await foreach (var update in chatClient.GetStreamingResponseAsync([message], cancellationToken: cancellationToken))
+            {
+                raw += update.Text;
+            }
+
             return Parse(raw);
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
-            logger.LogWarning(ex, "LLM crop detection failed");
+            logger.LogWarning("LLM crop detection failed: {Error}", ex.Message);
             return new LlmCropResult { Succeeded = false, RawResponse = string.Empty, Error = ex.Message };
         }
     }

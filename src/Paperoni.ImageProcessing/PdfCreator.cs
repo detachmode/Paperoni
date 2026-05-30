@@ -93,6 +93,7 @@ internal sealed class PdfCreator(
             }
 
             logger.ImageProcessed(fileName, processed.DocumentDetected, processed.ProcessingTime.TotalMilliseconds);
+            logger.CropProcessed(fileName, processed.CropStatus);
 
             return new AutoCorrectImageResult(processed.ProcessedImage, imageFile);
         })).ToArray();
@@ -199,7 +200,8 @@ internal sealed class PdfCreator(
             LlmCropResult result;
             try
             {
-                result = await llmCropDetector.DetectAsync(imageData, timeoutCts.Token);
+                var llmImageData = ResizeForLlmCrop(imageData, croppingOptions.LlmMaxDimension);
+                result = await llmCropDetector.DetectAsync(llmImageData, timeoutCts.Token);
             }
             catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
             {
@@ -583,6 +585,28 @@ internal sealed class PdfCreator(
         var fileName = Path.GetFileNameWithoutExtension(imageFile) + ".cropResponse.json";
         await File.WriteAllTextAsync(Path.Combine(workingDirectoryPath, fileName), rawResponse, cancellationToken);
         return fileName;
+    }
+
+    private static byte[] ResizeForLlmCrop(byte[] imageData, int maxDimension)
+    {
+        if (maxDimension <= 0)
+        {
+            return imageData;
+        }
+
+        using var src = Cv2.ImDecode(imageData, ImreadModes.Color);
+        var maxSide = Math.Max(src.Width, src.Height);
+        if (maxSide <= maxDimension)
+        {
+            return imageData;
+        }
+
+        var scale = (double)maxDimension / maxSide;
+        using var resized = new Mat();
+        Cv2.Resize(src, resized, new Size((int)(src.Width * scale), (int)(src.Height * scale)));
+        Cv2.ImEncode(".jpg", resized, out var encoded,
+            new ImageEncodingParam(ImwriteFlags.JpegQuality, 85));
+        return encoded;
     }
 
     private static string FormatCropStatus(OpenCvDetectionResult openCv, CropStrategy strategy, string reason,

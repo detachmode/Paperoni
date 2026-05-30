@@ -81,7 +81,11 @@ public static class DependencyInjection
                 }
 
                 var openAiClient = new OpenAIClient(new ApiKeyCredential(aiSettings.ApiKey!),
-                    new OpenAIClientOptions { Endpoint = new Uri(aiSettings.Endpoint) });
+                    new OpenAIClientOptions
+                    {
+                        Endpoint = new Uri(aiSettings.Endpoint),
+                        NetworkTimeout = TimeSpan.FromSeconds(aiSettings.TimeoutSeconds)
+                    });
                 return openAiClient.GetChatClient(aiSettings.Model).AsIChatClient();
             })
             .UseFunctionInvocation();

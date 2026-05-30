@@ -28,8 +28,9 @@ public static class DependencyInjection
             Mode = Enum.TryParse<CroppingMode>(section["Mode"], ignoreCase: true, out var mode) ? mode : CroppingMode.Auto,
             HighConfidenceThreshold = double.TryParse(section["HighConfidenceThreshold"], CultureInfo.InvariantCulture, out var high) ? high : 0.75,
             MediumConfidenceThreshold = double.TryParse(section["MediumConfidenceThreshold"], CultureInfo.InvariantCulture, out var medium) ? medium : 0.45,
-            LlmTimeoutSeconds = int.TryParse(section["LlmTimeoutSeconds"], out var timeout) ? timeout : 30,
-            LlmMaxConcurrency = int.TryParse(section["LlmMaxConcurrency"], out var concurrency) ? concurrency : 2
+            LlmTimeoutSeconds = int.TryParse(section["LlmTimeoutSeconds"], out var timeout) ? timeout : 120,
+            LlmMaxConcurrency = int.TryParse(section["LlmMaxConcurrency"], out var concurrency) ? concurrency : 1,
+            LlmMaxDimension = int.TryParse(section["LlmMaxDimension"], out var maxDimension) ? maxDimension : 1600
         };
     }
 }

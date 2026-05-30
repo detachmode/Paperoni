@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Globalization;
 using OpenTelemetry;
 using Paperoni.Contract;
 
@@ -71,7 +72,41 @@ public sealed class TraceLogExporter(
 
         var dur = activity.Duration.TotalMilliseconds;
 
-        return $"{ts}  {statusEmoji} {activity.DisplayName} {dur:F0}ms";
+        var detail = FormatDetails(activity);
+        return $"{ts}  {statusEmoji} {activity.DisplayName} {dur:F0}ms{detail}";
+    }
+
+    private static string FormatDetails(Activity activity)
+    {
+        var details = new List<string>();
+        AddTag(details, activity, "file");
+        AddTag(details, activity, "croppingMode");
+        AddTag(details, activity, "cropStrategy");
+        AddTag(details, activity, "cropConfidence");
+        AddTag(details, activity, "cropScore", value => value switch
+        {
+            double d => d.ToString("F2", CultureInfo.InvariantCulture),
+            float f => f.ToString("F2", CultureInfo.InvariantCulture),
+            _ => value.ToString()
+        });
+
+        return details.Count == 0 ? string.Empty : " — " + string.Join(", ", details);
+    }
+
+    private static void AddTag(List<string> details, Activity activity, string tag,
+        Func<object, string?>? format = null)
+    {
+        var value = activity.GetTagItem(tag);
+        if (value is null)
+        {
+            return;
+        }
+
+        var formatted = format?.Invoke(value) ?? value.ToString();
+        if (!string.IsNullOrWhiteSpace(formatted))
+        {
+            details.Add($"{tag}={formatted}");
+        }
     }
 
     private static int? ResolveAlbumId(Activity activity)

@@ -106,8 +106,9 @@ All settings are configured via environment variables or `appsettings.json`. Use
 | `Cropping__Mode` | `Auto` | Cropping mode: `Off`, `OpenCvOnly`, `Auto`, or `ForceLlm` |
 | `Cropping__HighConfidenceThreshold` | `0.75` | OpenCV score cutoff for high-confidence crops |
 | `Cropping__MediumConfidenceThreshold` | `0.45` | OpenCV score cutoff for medium-confidence crops |
-| `Cropping__LlmTimeoutSeconds` | `30` | LLM crop timeout per Photo |
-| `Cropping__LlmMaxConcurrency` | `2` | Maximum concurrent LLM crop calls |
+| `Cropping__LlmTimeoutSeconds` | `120` | LLM crop timeout per Photo |
+| `Cropping__LlmMaxConcurrency` | `1` | Maximum concurrent LLM crop calls |
+| `Cropping__LlmMaxDimension` | `1600` | Maximum long side sent to the LLM crop detector |
 | `AlbumProcessing__TestMode` | `false` | Route all output to `TestModeOutputPath` |
 | `AlbumProcessing__TestModeOutputPath` | — | Output directory in test mode |
 | `AlbumProcessing__WorkingDirectoryRetentionDays` | `7` | Days to keep per-album working directories (≤0 = never clean) |

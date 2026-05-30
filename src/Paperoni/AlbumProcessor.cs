@@ -1,5 +1,4 @@
 using System.Diagnostics;
-using System.Text.Json;
 using Paperoni.Ai;
 using Paperoni.Contract;
 using Paperoni.Diagnostics;
@@ -126,7 +125,14 @@ internal sealed class AlbumProcessor(
             sw.Stop();
             var duration = sw.Elapsed.TotalSeconds;
             var testMode = settings.TestMode;
-            await telegram.EditReply(albumId, BuildFinalStatus(albumId, result.Filename, duration, testMode));
+            await telegram.EditReply(albumId,
+                $"""
+                 ✅ Done in {FormatDuration(TimeSpan.FromSeconds(duration))} — Paperoni v{VersionInfo.Version}{(testMode ? " 🧪" : "")}
+
+                 {result.Filename}
+
+                 Files: Markdown ✅  PDF ✅
+                 """);
             logger.AlbumComplete();
             return true;
         }
@@ -143,69 +149,6 @@ internal sealed class AlbumProcessor(
         }
     }
 
-    private string BuildFinalStatus(int albumId, string filename, double duration, bool testMode)
-    {
-        var lines = new List<string>
-        {
-            $"✅ Done in {FormatDuration(TimeSpan.FromSeconds(duration))} — Paperoni v{VersionInfo.Version}{(testMode ? " 🧪" : "")}",
-            "",
-            filename
-        };
-
-        var cropLines = GetCropSummary(albumId);
-        if (cropLines.Count > 0)
-        {
-            lines.Add("");
-            lines.Add("Crop:");
-            lines.AddRange(cropLines);
-        }
-
-        lines.Add("");
-        lines.Add("Files: Markdown ✅  PDF ✅");
-
-        return string.Join("\n", lines);
-    }
-
-    private List<string> GetCropSummary(int albumId)
-    {
-        var workingDir = workingDirectory.RequireWorkingDirectory(albumId);
-        var files = Directory.GetFiles(workingDir, "*.cropDecision.json")
-            .OrderBy(Path.GetFileName)
-            .ToList();
-
-        var lines = new List<string>();
-        var index = 1;
-        foreach (var file in files)
-        {
-            try
-            {
-                using var doc = JsonDocument.Parse(File.ReadAllText(file));
-                var root = doc.RootElement;
-                var strategy = root.GetProperty("finalStrategy").GetString() ?? "Unknown";
-                var reason = root.GetProperty("reason").GetString() ?? "";
-                var openCv = root.GetProperty("openCv");
-                var confidence = openCv.GetProperty("confidence").GetString() ?? "Unknown";
-                var score = openCv.GetProperty("score").GetDouble();
-
-                var status = strategy switch
-                {
-                    "OpenCv" => $"🟢 {index} OpenCV {confidence.ToLowerInvariant()} {score:F2} kept",
-                    "Llm" => $"🟢 {index} LLM crop used",
-                    _ => $"⚠️ {index} NoCrop ({Shorten(reason, 60)})"
-                };
-                lines.Add(status);
-            }
-            catch
-            {
-                lines.Add($"⚠️ {index} crop details unavailable");
-            }
-
-            index++;
-        }
-
-        return lines;
-    }
-
     private static string FormatDuration(TimeSpan duration)
     {
         if (duration.TotalMinutes >= 1)
@@ -214,15 +157,5 @@ internal sealed class AlbumProcessor(
         }
 
         return $"{duration.TotalSeconds:F1}s";
-    }
-
-    private static string Shorten(string value, int maxLength)
-    {
-        if (value.Length <= maxLength)
-        {
-            return value;
-        }
-
-        return value[..maxLength] + "...";
     }
 }

@@ -18,7 +18,6 @@ public interface ITelegramReplier
     Task UpdateDashboard(int albumId, string stage, int queueDepth);
     Task DeleteDashboard();
     Task ShowDiagnostic(int albumId);
-    Task ShowCropDetails(int albumId);
 }
 
 public class TelegramReplier(
@@ -28,10 +27,6 @@ public class TelegramReplier(
 {
     private static readonly Regex s_timestampRegex = new(
         @"(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3})",
-        RegexOptions.Compiled);
-
-    private static readonly Regex s_cropStatusRegex = new(
-        @"^✂️ Photo (?<photo>\d+): (?<status>.+)$",
         RegexOptions.Compiled);
 
     private static readonly JsonSerializerOptions s_jsonOptions = new() { WriteIndented = true };
@@ -146,45 +141,6 @@ public class TelegramReplier(
         {
             _lock.Release();
         }
-    }
-
-    public async Task ShowCropDetails(int albumId)
-    {
-        var metadata = await workingDirectory.RequireData<MetaData>(albumId);
-        var lines = new List<string> { $"🧾 Album {albumId} — Crop details" };
-
-        var workingDir = workingDirectory.RequireWorkingDirectory(albumId);
-        var files = Directory.GetFiles(workingDir, "*.cropDecision.json")
-            .OrderBy(Path.GetFileName)
-            .ToList();
-
-        if (files.Count == 0)
-        {
-            lines.Add("No crop decisions found yet.");
-        }
-        else
-        {
-            foreach (var file in files)
-            {
-                var summary = await FormatCropDecision(file);
-                lines.Add(summary);
-            }
-        }
-
-        var text = string.Join("\n", lines);
-        const int textLimit = 3900;
-        if (text.Length > textLimit)
-        {
-            text = text[..textLimit] + "\n...(truncated)";
-        }
-
-        var encoded = WebUtility.HtmlEncode(text);
-        var markup = new InlineKeyboardMarkup([
-            [InlineKeyboardButton.WithCallbackData("✖️ Close", "close_diag")]
-        ]);
-
-        await bot.SendMessage(metadata.ChatId, $"<pre>{encoded}</pre>", parseMode: ParseMode.Html,
-            replyMarkup: markup);
     }
 
     public async Task ShowDiagnostic(int albumId)
@@ -308,47 +264,13 @@ public class TelegramReplier(
     private static InlineKeyboardMarkup BuildAlbumMarkup(int albumId) => new([
         [
             InlineKeyboardButton.WithCallbackData("🔄 Retry", $"retry:{albumId}"),
-            InlineKeyboardButton.WithCallbackData("✂️ LLM recrop", $"recrop:{albumId}")
-        ],
-        [
-            InlineKeyboardButton.WithCallbackData("📋 Logs", $"logs:{albumId}"),
-            InlineKeyboardButton.WithCallbackData("🧾 Crop details", $"crop:{albumId}")
+            InlineKeyboardButton.WithCallbackData("📋 Logs", $"logs:{albumId}")
         ]
     ]);
-
-    private static async Task<string> FormatCropDecision(string path)
-    {
-        try
-        {
-            using var doc = JsonDocument.Parse(await File.ReadAllTextAsync(path));
-            var root = doc.RootElement;
-            var sourceFile = root.GetProperty("sourceFile").GetString() ?? Path.GetFileName(path);
-            var strategy = root.GetProperty("finalStrategy").GetString() ?? "Unknown";
-            var reason = root.GetProperty("reason").GetString() ?? "";
-            var openCv = root.GetProperty("openCv");
-            var confidence = openCv.GetProperty("confidence").GetString() ?? "Unknown";
-            var score = openCv.GetProperty("score").GetDouble();
-
-            var icon = strategy switch
-            {
-                "OpenCv" => "🟢",
-                "Llm" => "🟢",
-                _ => "⚠️"
-            };
-
-            return $"{icon} {sourceFile}: {strategy} — OpenCV {confidence} {score:F2} — {reason}";
-        }
-        catch (Exception ex)
-        {
-            return $"⚠️ {Path.GetFileName(path)}: could not read crop decision ({ex.Message})";
-        }
-    }
 
     private sealed class AlbumStatusCard(int albumId)
     {
         private readonly DateTime _startedAt = DateTime.Now;
-        private readonly SortedDictionary<int, string> _photos = new();
-
         private string _current = "Queued";
         private string _summary = "⏳ pending";
         private string _pdf = "⏳ pending";
@@ -372,13 +294,7 @@ public class TelegramReplier(
             else if (stage.StartsWith("✂️", StringComparison.Ordinal))
             {
                 _summary = "✅ done";
-                _pdf = "✂️ cropping";
-
-                var match = s_cropStatusRegex.Match(stage);
-                if (match.Success && int.TryParse(match.Groups["photo"].Value, out var photo))
-                {
-                    _photos[photo] = FormatPhotoStatus(match.Groups["status"].Value);
-                }
+                _pdf = "⏳ creating";
             }
             else if (stage.StartsWith("📤", StringComparison.Ordinal))
             {
@@ -411,13 +327,6 @@ public class TelegramReplier(
                 lines.Add($"Queue: {_queueDepth} pending");
             }
 
-            if (_photos.Count > 0)
-            {
-                lines.Add("");
-                lines.Add("Photos:");
-                lines.AddRange(_photos.Select(p => $"{p.Key}. {p.Value}"));
-            }
-
             return string.Join("\n", lines);
         }
 
@@ -428,24 +337,9 @@ public class TelegramReplier(
             var s when s.StartsWith("🤖 AI is formulating", StringComparison.Ordinal) => "🤖 Writing summary",
             var s when s.StartsWith("📄", StringComparison.Ordinal) => "📄 Creating PDF",
             var s when s.StartsWith("📤", StringComparison.Ordinal) => "📤 Publishing files",
-            var s when s.StartsWith("✂️", StringComparison.Ordinal) => "✂️ Cropping Photos",
+            var s when s.StartsWith("✂️", StringComparison.Ordinal) => "📄 Creating PDF",
             _ => stage
         };
-
-        private static string FormatPhotoStatus(string status)
-        {
-            var icon = status.Contains("High", StringComparison.OrdinalIgnoreCase) && status.Contains("kept", StringComparison.OrdinalIgnoreCase)
-                ? "🟢"
-                : status.Contains("LLM crop", StringComparison.OrdinalIgnoreCase)
-                    ? "🟢"
-                    : status.Contains("NoCrop", StringComparison.OrdinalIgnoreCase)
-                        ? "⚠️"
-                        : "🟡";
-
-            return icon + " " + status
-                .Replace("OpenCV ", "OpenCV ", StringComparison.Ordinal)
-                .Replace("->", "→", StringComparison.Ordinal);
-        }
 
         private static string FormatDuration(TimeSpan duration)
         {

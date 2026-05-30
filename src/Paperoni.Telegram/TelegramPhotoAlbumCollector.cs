@@ -72,18 +72,6 @@ internal sealed class TelegramPhotoAlbumCollector(
             queue.Enqueue(new WorkItem(retryId, true));
             logger.LogInformation("Retry requested for album {AlbumId}", retryId);
         }
-        else if (data.StartsWith("recrop:") && int.TryParse(data.AsSpan(7), out var recropId))
-        {
-            if (query.Message is { } message)
-            {
-                await botClient.EditMessageText(message.Chat.Id, message.MessageId,
-                    $"✂️ Retrying album {recropId} with LLM crop ..");
-                await EnsureRetryMetadata(recropId, message);
-            }
-
-            queue.Enqueue(new WorkItem(recropId, true, ForceLlmCrop: true));
-            logger.LogInformation("LLM recrop requested for album {AlbumId}", recropId);
-        }
         else if (data == "close_diag")
         {
             if (query.Message is { } diagMsg)
@@ -102,19 +90,6 @@ internal sealed class TelegramPhotoAlbumCollector(
             catch (Exception ex)
             {
                 logger.LogError(ex, "Failed to show diagnostic for album {AlbumId}", logId);
-            }
-        }
-        else if (data.StartsWith("crop:") && int.TryParse(data.AsSpan(5), out var cropId))
-        {
-            logger.LogInformation("Crop details requested for album {AlbumId}", cropId);
-            try
-            {
-                await telegram.ShowCropDetails(cropId);
-                logger.LogInformation("Crop details shown for album {AlbumId}", cropId);
-            }
-            catch (Exception ex)
-            {
-                logger.LogError(ex, "Failed to show crop details for album {AlbumId}", cropId);
             }
         }
         else
@@ -298,10 +273,6 @@ internal sealed class TelegramPhotoAlbumCollector(
         var markup = new InlineKeyboardMarkup([
             [
                 InlineKeyboardButton.WithCallbackData("🔄 Retry", $"retry:{msgId}"),
-                InlineKeyboardButton.WithCallbackData("✂️ LLM recrop", $"recrop:{msgId}")
-            ],
-            [
-                InlineKeyboardButton.WithCallbackData("🧾 Crop details", $"crop:{msgId}"),
                 InlineKeyboardButton.WithCallbackData("📋 Logs", $"logs:{msgId}")
             ]
         ]);

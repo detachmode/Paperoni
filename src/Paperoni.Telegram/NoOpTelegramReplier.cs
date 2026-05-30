@@ -13,6 +13,4 @@ public sealed class NoOpTelegramReplier : ITelegramReplier
     public Task DeleteDashboard() => Task.CompletedTask;
 
     public Task ShowDiagnostic(int albumId) => Task.CompletedTask;
-
-    public Task ShowCropDetails(int albumId) => Task.CompletedTask;
 }

@@ -9,6 +9,7 @@ public class FakeTelegramReplier : ITelegramReplier
     private readonly List<(int MsgId, string Emoji)> _reactions = [];
     private readonly List<(int AlbumId, string Stage)> _dashboardCalls = [];
     private readonly List<int> _diagnosticAlbumIds = [];
+    private readonly List<int> _cropDetailsAlbumIds = [];
     private int _deleteDashboardCount;
     private readonly object _lock = new();
 
@@ -60,6 +61,15 @@ public class FakeTelegramReplier : ITelegramReplier
         return Task.CompletedTask;
     }
 
+    public Task ShowCropDetails(int albumId)
+    {
+        lock (_lock)
+        {
+            _cropDetailsAlbumIds.Add(albumId);
+        }
+        return Task.CompletedTask;
+    }
+
     public void Reset()
     {
         _done = new TaskCompletionSource();
@@ -67,6 +77,7 @@ public class FakeTelegramReplier : ITelegramReplier
         _reactions.Clear();
         _dashboardCalls.Clear();
         _diagnosticAlbumIds.Clear();
+        _cropDetailsAlbumIds.Clear();
         _deleteDashboardCount = 0;
     }
 
@@ -91,6 +102,11 @@ public class FakeTelegramReplier : ITelegramReplier
     public IReadOnlyList<int> DiagnosticAlbumIds
     {
         get { lock (_lock) { return _diagnosticAlbumIds.ToList(); } }
+    }
+
+    public IReadOnlyList<int> CropDetailsAlbumIds
+    {
+        get { lock (_lock) { return _cropDetailsAlbumIds.ToList(); } }
     }
 
     public int DeleteDashboardCount => _deleteDashboardCount;

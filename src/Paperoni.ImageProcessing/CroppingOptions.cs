@@ -29,5 +29,5 @@ public sealed record CroppingOptions
     public double MediumConfidenceThreshold { get; init; } = 0.45;
     public int LlmTimeoutSeconds { get; init; } = 120;
     public int LlmMaxConcurrency { get; init; } = 1;
-    public int LlmMaxDimension { get; init; } = 1600;
+    public int LlmMaxDimension { get; init; } = 1024;
 }

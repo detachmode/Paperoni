@@ -116,6 +116,7 @@ public class AiIntegrationSteps
         public Task UpdateDashboard(int albumId, string stage, int queueDepth) => Task.CompletedTask;
         public Task DeleteDashboard() => Task.CompletedTask;
         public Task ShowDiagnostic(int albumId) => Task.CompletedTask;
+        public Task ShowCropDetails(int albumId) => Task.CompletedTask;
     }
 
     private async Task WriteScript(string question)

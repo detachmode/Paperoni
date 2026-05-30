@@ -104,6 +104,19 @@ internal sealed class TelegramPhotoAlbumCollector(
                 logger.LogError(ex, "Failed to show diagnostic for album {AlbumId}", logId);
             }
         }
+        else if (data.StartsWith("crop:") && int.TryParse(data.AsSpan(5), out var cropId))
+        {
+            logger.LogInformation("Crop details requested for album {AlbumId}", cropId);
+            try
+            {
+                await telegram.ShowCropDetails(cropId);
+                logger.LogInformation("Crop details shown for album {AlbumId}", cropId);
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Failed to show crop details for album {AlbumId}", cropId);
+            }
+        }
         else
         {
             logger.LogWarning("Unknown callback data: {Data}", data);
@@ -285,6 +298,10 @@ internal sealed class TelegramPhotoAlbumCollector(
         var markup = new InlineKeyboardMarkup([
             [
                 InlineKeyboardButton.WithCallbackData("🔄 Retry", $"retry:{msgId}"),
+                InlineKeyboardButton.WithCallbackData("✂️ LLM recrop", $"recrop:{msgId}")
+            ],
+            [
+                InlineKeyboardButton.WithCallbackData("🧾 Crop details", $"crop:{msgId}"),
                 InlineKeyboardButton.WithCallbackData("📋 Logs", $"logs:{msgId}")
             ]
         ]);

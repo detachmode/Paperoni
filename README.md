@@ -103,6 +103,11 @@ All settings are configured via environment variables or `appsettings.json`. Use
 | `Ai__TimeoutSeconds` | `600` | Request timeout |
 | `Ai__MaxRetries` | `2` | Retries on failure |
 | `Ai__ScriptFilePath` | `defaultPipeline.csx` | Path to the [pipeline script](#pipeline-script) |
+| `Cropping__Mode` | `Auto` | Cropping mode: `Off`, `OpenCvOnly`, `Auto`, or `ForceLlm` |
+| `Cropping__HighConfidenceThreshold` | `0.75` | OpenCV score cutoff for high-confidence crops |
+| `Cropping__MediumConfidenceThreshold` | `0.45` | OpenCV score cutoff for medium-confidence crops |
+| `Cropping__LlmTimeoutSeconds` | `30` | LLM crop timeout per Photo |
+| `Cropping__LlmMaxConcurrency` | `2` | Maximum concurrent LLM crop calls |
 | `AlbumProcessing__TestMode` | `false` | Route all output to `TestModeOutputPath` |
 | `AlbumProcessing__TestModeOutputPath` | — | Output directory in test mode |
 | `AlbumProcessing__WorkingDirectoryRetentionDays` | `7` | Days to keep per-album working directories (≤0 = never clean) |

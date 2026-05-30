@@ -72,6 +72,18 @@ internal sealed class TelegramPhotoAlbumCollector(
             queue.Enqueue(new WorkItem(retryId, true));
             logger.LogInformation("Retry requested for album {AlbumId}", retryId);
         }
+        else if (data.StartsWith("recrop:") && int.TryParse(data.AsSpan(7), out var recropId))
+        {
+            if (query.Message is { } message)
+            {
+                await botClient.EditMessageText(message.Chat.Id, message.MessageId,
+                    $"✂️ Retrying album {recropId} with LLM crop ..");
+                await EnsureRetryMetadata(recropId, message);
+            }
+
+            queue.Enqueue(new WorkItem(recropId, true, ForceLlmCrop: true));
+            logger.LogInformation("LLM recrop requested for album {AlbumId}", recropId);
+        }
         else if (data == "close_diag")
         {
             if (query.Message is { } diagMsg)

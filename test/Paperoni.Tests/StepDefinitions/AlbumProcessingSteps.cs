@@ -154,6 +154,7 @@ public class AlbumProcessingSteps
                 ["AlbumProcessing:PdfOutputPath"] = _outputDir,
                 ["Ai:Endpoint"] = "http://localhost:2276",
                 ["Ai:Model"] = "fake-model",
+                ["Cropping:Mode"] = "OpenCvOnly"
             })
             .Build();
 
@@ -179,7 +180,7 @@ public class AlbumProcessingSteps
         services.AddSingleton<ITelegramReplier>(_telegram);
         services.AddAiService(config);
         services.AddSingleton<IChatClient>(_fakeChatClient);
-        services.AddImageProcessing();
+        services.AddImageProcessing(config);
         services.AddAlbumProcessor(config);
         services.AddDiagnostics(config);
 

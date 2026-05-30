@@ -47,6 +47,7 @@ public class TelegramReplier(
         var markup = new InlineKeyboardMarkup([
             [
                 InlineKeyboardButton.WithCallbackData("🔄 Retry", $"retry:{msgId}"),
+                InlineKeyboardButton.WithCallbackData("✂️ LLM recrop", $"recrop:{msgId}"),
                 InlineKeyboardButton.WithCallbackData("📋 Logs", $"logs:{msgId}")
             ]
         ]);

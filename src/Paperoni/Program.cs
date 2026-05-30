@@ -34,7 +34,7 @@ var smokeTestInPipeline = builder.Configuration.GetValue("SmokeTestInPipeline", 
 builder.Services.AddDiagnostics(builder.Configuration);
 builder.Services.AddAiService(builder.Configuration);
 builder.Services.AddAlbumProcessor(builder.Configuration);
-builder.Services.AddImageProcessing();
+builder.Services.AddImageProcessing(builder.Configuration);
 
 if (!smokeTestInPipeline)
 {

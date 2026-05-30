@@ -32,6 +32,22 @@ The final A4 document combining all processed photos, one per page with 1cm marg
 **Processed Image**:
 A photo that has passed through the OpenCV pipeline: optional document-detection + perspective warp, grayscale conversion, and histogram-based auto-levels, encoded as JPEG.
 
+**Crop Detection Confidence**:
+A classification of how trustworthy an automatically detected document crop is for a **Photo**. Used to decide whether to accept the OpenCV crop or request an LLM crop.
+_Avoid_: Maybe-crop, fuzzy quality score
+
+**NoCrop Outcome**:
+A processing outcome where a **Photo** is not perspective-cropped and continues through grayscale + auto-level processing only.
+_Avoid_: Failure (when processing still continues)
+
+**Cropping Mode**:
+A setting that controls whether perspective cropping is disabled, limited to OpenCV, automatically routed between OpenCV and LLM crop detection, or forced through LLM crop detection for a retry run.
+_Avoid_: Crop toggle, AI crop switch
+
+**Crop Decision Artifact**:
+A per-photo JSON record persisted in the **Working Directory** that captures crop routing evidence (OpenCV confidence metrics, LLM crop response, and final crop strategy).
+_Avoid_: Temp debug dump
+
 **Telegram Replier**:
 A component that edits the bot's reply message with emoji-prefixed progress status.
 _Avoid_: Notifier, status updater
@@ -56,6 +72,9 @@ _Avoid_: Passing `msgId` as a parameter to every trace call.
 - An **Album** has exactly one **Working Directory**
 - A **Working Directory** contains the raw **Photos**, the LLM raw response, the **Pipeline Result**, and the **PDF**
 - Processing an **Album** produces one formatted output (Markdown) and one **PDF**
+- Each **Photo** has a **Crop Detection Confidence** classification before final crop selection
+- Each **Photo** may produce a **Crop Decision Artifact** in the **Working Directory**
+- The **Cropping Mode** determines how crop detection is routed before a **Processed Image** is produced
 - The **Pipeline Script** defines the LLM schema, prompt, filename, and output format
 - The **Pipeline Result** stores the LLM record and computed filename for retry/delete without re-running the script
 - The Markdown output is published via the **File Publisher** (Markdown target)

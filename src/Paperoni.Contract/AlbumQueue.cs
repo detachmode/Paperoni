@@ -3,7 +3,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Paperoni.Contract;
 
-public sealed record WorkItem(int MessageId, bool IsRetry);
+public sealed record WorkItem(int MessageId, bool IsRetry, bool ForceLlmCrop = false);
 
 public class AlbumQueue
 {

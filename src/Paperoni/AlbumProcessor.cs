@@ -36,10 +36,11 @@ internal sealed class AlbumProcessor(
                 await ActivityExtensions.Tracer.TraceAsync<AlbumProcessor>(async scope =>
                 {
                     scope.SetTag("isRetry", item.IsRetry);
+                    scope.SetTag("forceLlmCrop", item.ForceLlmCrop);
 
                     using var _ = logger.BeginScope(new Dictionary<string, object> { ["AlbumId"] = item.MessageId });
                     logger.ProcessingAlbum(item.IsRetry);
-                    success = await ProcessAlbum(item.MessageId, item.IsRetry, stoppingToken);
+                    success = await ProcessAlbum(item.MessageId, item.IsRetry, item.ForceLlmCrop, stoppingToken);
                 });
 
                 albumIdAccessor.Id = null;
@@ -62,7 +63,7 @@ internal sealed class AlbumProcessor(
         }
     }
 
-    private async Task<bool> ProcessAlbum(int albumId, bool isRetry, CancellationToken stoppingToken)
+    private async Task<bool> ProcessAlbum(int albumId, bool isRetry, bool forceLlmCrop, CancellationToken stoppingToken)
     {
         var sw = Stopwatch.StartNew();
 
@@ -104,7 +105,10 @@ internal sealed class AlbumProcessor(
 
             logger.PdfCreationStarting();
             await telegram.UpdateDashboard(albumId, "📄 Creating PDF ..", queue.PendingCount);
-            await pdfCreator.CreatePdf(albumId, stoppingToken);
+            await pdfCreator.CreatePdf(albumId,
+                status => telegram.UpdateDashboard(albumId, status, queue.PendingCount),
+                forceLlmCrop,
+                stoppingToken);
             logger.PdfCreationDone();
 
             logger.PublishingMarkdown();

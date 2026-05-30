@@ -105,7 +105,7 @@ public class AlbumProcessingSmokeSteps(ITestOutputHelper output, IReqnrollOutput
         services.AddSingleton<AlbumIdAccessor>();
         services.AddSingleton<ITelegramReplier>(_telegram);
         services.AddAiService(config);
-        services.AddImageProcessing();
+        services.AddImageProcessing(config);
         services.AddAlbumProcessor(config);
         services.AddSingleton<IConfiguration>(config);
         services.AddLogging();

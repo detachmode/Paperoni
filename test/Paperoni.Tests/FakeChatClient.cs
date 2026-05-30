@@ -28,7 +28,9 @@ internal sealed class FakeChatClient : IChatClient
             throw new TimeoutException("AI summary timed out.");
         }
 
-        return Task.FromResult(new ChatResponse(new ChatMessage(ChatRole.Assistant, GetResponseJson())));
+        var responseJson = GetResponseJson();
+        InvocationCount++;
+        return Task.FromResult(new ChatResponse(new ChatMessage(ChatRole.Assistant, responseJson)));
     }
 
     public async IAsyncEnumerable<ChatResponseUpdate> GetStreamingResponseAsync(

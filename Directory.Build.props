@@ -1,6 +1,6 @@
 <Project>
   <PropertyGroup>
-    <Version>0.4.4</Version>
+    <Version>0.4.7</Version>
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
     <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>

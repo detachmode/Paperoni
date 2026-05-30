@@ -105,7 +105,7 @@ public class TelegramReplier(
                 return;
             }
 
-            var card = GetStatusCard(albumId);
+            var card = GetStatusCard(albumId, reset: IsStartStage(stage));
             card.Apply(stage, queueDepth);
             try
             {
@@ -250,9 +250,9 @@ public class TelegramReplier(
         return _cached!;
     }
 
-    private AlbumStatusCard GetStatusCard(int albumId)
+    private AlbumStatusCard GetStatusCard(int albumId, bool reset = false)
     {
-        if (!_albumStatuses.TryGetValue(albumId, out var card))
+        if (reset || !_albumStatuses.TryGetValue(albumId, out var card))
         {
             card = new AlbumStatusCard(albumId);
             _albumStatuses[albumId] = card;
@@ -260,6 +260,9 @@ public class TelegramReplier(
 
         return card;
     }
+
+    private static bool IsStartStage(string stage) =>
+        stage.StartsWith("🤖 AI is reading", StringComparison.Ordinal);
 
     private static InlineKeyboardMarkup BuildAlbumMarkup(int albumId) => new([
         [
@@ -272,35 +275,40 @@ public class TelegramReplier(
     {
         private readonly DateTime _startedAt = DateTime.Now;
         private string _current = "Queued";
-        private string _summary = "⏳ pending";
-        private string _pdf = "⏳ pending";
-        private string _publish = "⏳ pending";
+        private string _summary = "⬜";
+        private string _pdf = "⬜";
+        private string _publish = "⬜";
         private int _queueDepth;
 
         public void Apply(string stage, int queueDepth)
         {
             _queueDepth = queueDepth;
-            _current = SimplifyStage(stage);
+            _current = FormatStage(stage);
 
             if (stage.StartsWith("🤖", StringComparison.Ordinal))
             {
-                _summary = stage.Contains("done", StringComparison.OrdinalIgnoreCase) ? "✅ done" : "⏳ running";
+                _summary = stage.Contains("done", StringComparison.OrdinalIgnoreCase) ? "✅" : "⏳";
+                if (stage.StartsWith("🤖 AI is reading", StringComparison.Ordinal))
+                {
+                    _pdf = "⬜";
+                    _publish = "⬜";
+                }
             }
             else if (stage.StartsWith("📄", StringComparison.Ordinal))
             {
-                _summary = "✅ done";
-                _pdf = "⏳ creating";
+                _summary = "✅";
+                _pdf = "⏳";
             }
             else if (stage.StartsWith("✂️", StringComparison.Ordinal))
             {
-                _summary = "✅ done";
-                _pdf = "⏳ creating";
+                _summary = "✅";
+                _pdf = "⏳";
             }
             else if (stage.StartsWith("📤", StringComparison.Ordinal))
             {
-                _summary = "✅ done";
-                _pdf = "✅ done";
-                _publish = "⏳ publishing";
+                _summary = "✅";
+                _pdf = "✅";
+                _publish = "⏳";
             }
             else if (stage.StartsWith("❌", StringComparison.Ordinal))
             {
@@ -313,13 +321,13 @@ public class TelegramReplier(
             var elapsed = DateTime.Now - _startedAt;
             var lines = new List<string>
             {
-                $"🤖 Paperoni Album {albumId}",
-                $"Status: {_current}",
-                $"Elapsed: {FormatDuration(elapsed)}",
+                _current,
+                $"Album {albumId} • {FormatDuration(elapsed)}",
                 "",
-                $"AI summary: {_summary}",
-                $"PDF: {_pdf}",
-                $"Publish: {_publish}"
+                "✅ Downloaded",
+                $"{_summary} AI summary",
+                $"{_pdf} PDF",
+                $"{_publish} Publish"
             };
 
             if (_queueDepth > 0)
@@ -330,15 +338,12 @@ public class TelegramReplier(
             return string.Join("\n", lines);
         }
 
-        private static string SimplifyStage(string stage) => stage switch
+        private static string FormatStage(string stage) => stage switch
         {
-            var s when s.StartsWith("🤖 AI is reading", StringComparison.Ordinal) => "🤖 Reading Photos",
-            var s when s.StartsWith("🤖 AI is thinking", StringComparison.Ordinal) => "🤖 AI thinking",
-            var s when s.StartsWith("🤖 AI is formulating", StringComparison.Ordinal) => "🤖 Writing summary",
-            var s when s.StartsWith("📄", StringComparison.Ordinal) => "📄 Creating PDF",
-            var s when s.StartsWith("📤", StringComparison.Ordinal) => "📤 Publishing files",
-            var s when s.StartsWith("✂️", StringComparison.Ordinal) => "📄 Creating PDF",
-            _ => stage
+            var s when s.StartsWith("📄", StringComparison.Ordinal) => "📄 Creating PDF..",
+            var s when s.StartsWith("📤", StringComparison.Ordinal) => "📤 Publishing files..",
+            var s when s.StartsWith("✂️", StringComparison.Ordinal) => "📄 Creating PDF..",
+            _ => stage.Replace(" ..", "..", StringComparison.Ordinal)
         };
 
         private static string FormatDuration(TimeSpan duration)

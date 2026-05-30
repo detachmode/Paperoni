@@ -16,6 +16,7 @@ public record AutoCorrectImageResult(
 internal sealed class PdfCreator(
     ILogger<PdfCreator> logger,
     WorkingDirectory workingDirectory,
+    ImageProcessingOptions imageProcessingOptions,
     CroppingOptions croppingOptions,
     ICropLlmDetector llmCropDetector) : IPdfCreator
 {
@@ -38,8 +39,8 @@ internal sealed class PdfCreator(
             var aiResult = await workingDirectory.GetData<PipelineResult>(messageId, cancellationToken);
             ArgumentNullException.ThrowIfNull(aiResult);
 
-            var files = Directory.GetFiles(downloadPath);
-            var originalImages = files.Where(FileHelpers.IsImageFile).OrderBy(Path.GetFileName).ToList();
+            var metadata = await workingDirectory.GetData<MetaData>(messageId, cancellationToken);
+            var originalImages = GetOriginalPhotoFiles(downloadPath, metadata);
             scope.SetTag("imageCount", originalImages.Count);
             scope.SetTag("title", aiResult.Filename);
 
@@ -59,6 +60,23 @@ internal sealed class PdfCreator(
             logger.PdfCreated(Path.GetFileName(pdfPath), pdfBytes.Length / 1024,
                 originalImages.Count, sw.Elapsed.TotalSeconds);
         });
+    }
+
+    private static List<string> GetOriginalPhotoFiles(string downloadPath, MetaData? metadata)
+    {
+        if (metadata?.AlbumMessageIds.Count > 0)
+        {
+            var albumFiles = metadata.AlbumMessageIds
+                .SelectMany(id => Directory.GetFiles(downloadPath, $"{id}.*").Where(FileHelpers.IsImageFile))
+                .ToList();
+
+            if (albumFiles.Count > 0)
+            {
+                return albumFiles;
+            }
+        }
+
+        return Directory.GetFiles(downloadPath).Where(FileHelpers.IsImageFile).OrderBy(Path.GetFileName).ToList();
     }
 
     public static Task<ProcessedImageResult> AutoCorrect(byte[] imageData, CancellationToken ct = default)
@@ -117,19 +135,20 @@ internal sealed class PdfCreator(
 
         if (mode == CroppingMode.Off)
         {
-            processed = ApplyNoCrop(imageData, s_defaultOptions.JpegQuality);
+            processed = ApplyNoCrop(imageData, imageProcessingOptions.JpegQuality, imageProcessingOptions.CorrectionMode);
         }
         else if (mode == CroppingMode.OpenCvOnly)
         {
             if (openCv.Corners is not null)
             {
-                processed = ApplyCrop(imageData, openCv.Corners, s_defaultOptions.JpegQuality, histogramLevels: true);
+                processed = ApplyCrop(imageData, openCv.Corners, imageProcessingOptions.JpegQuality,
+                    histogramLevels: true, correctionMode: imageProcessingOptions.CorrectionMode);
                 finalStrategy = CropStrategy.OpenCv;
                 reason = "OpenCV-only mode";
             }
             else
             {
-                processed = ApplyNoCrop(imageData, s_defaultOptions.JpegQuality);
+                processed = ApplyNoCrop(imageData, imageProcessingOptions.JpegQuality, imageProcessingOptions.CorrectionMode);
                 reason = openCv.Reason;
             }
         }
@@ -142,7 +161,9 @@ internal sealed class PdfCreator(
                 var pixelCorners = ToPixelCorners(llm.Result.NormalizedCorners, openCv.OriginalWidth, openCv.OriginalHeight);
                 try
                 {
-                    processed = ApplyCrop(imageData, pixelCorners, s_defaultOptions.JpegQuality, histogramLevels: true,
+                    processed = ApplyCrop(imageData, pixelCorners, imageProcessingOptions.JpegQuality,
+                        histogramLevels: true,
+                        correctionMode: imageProcessingOptions.CorrectionMode,
                         brightness: llm.Result.Adjustments?.Brightness ?? 0,
                         contrast: llm.Result.Adjustments?.Contrast ?? 1.0,
                         gamma: llm.Result.Adjustments?.Gamma ?? 1.0);
@@ -151,7 +172,7 @@ internal sealed class PdfCreator(
                 }
                 catch (Exception ex) when (ex is InvalidOperationException or ArgumentException)
                 {
-                    processed = ApplyNoCrop(imageData, s_defaultOptions.JpegQuality);
+                    processed = ApplyNoCrop(imageData, imageProcessingOptions.JpegQuality, imageProcessingOptions.CorrectionMode);
                     finalStrategy = CropStrategy.NoCrop;
                     reason = $"LLM crop invalid: {ex.Message}";
                     llmEvidence = llm.Evidence with { Succeeded = false, Reason = reason };
@@ -159,13 +180,14 @@ internal sealed class PdfCreator(
             }
             else
             {
-                processed = ApplyNoCrop(imageData, s_defaultOptions.JpegQuality);
+                processed = ApplyNoCrop(imageData, imageProcessingOptions.JpegQuality, imageProcessingOptions.CorrectionMode);
                 reason = llm.Result.Error ?? "LLM crop failed";
             }
         }
         else
         {
-            processed = ApplyCrop(imageData, openCv.Corners!, s_defaultOptions.JpegQuality, histogramLevels: true);
+            processed = ApplyCrop(imageData, openCv.Corners!, imageProcessingOptions.JpegQuality,
+                histogramLevels: true, correctionMode: imageProcessingOptions.CorrectionMode);
             finalStrategy = CropStrategy.OpenCv;
             reason = "OpenCV high confidence";
         }
@@ -235,6 +257,7 @@ internal sealed class PdfCreator(
 
     public static byte[] ApplyCrop(byte[] imageData, Point2f[] corners, int jpegQuality = 85,
         bool histogramLevels = false,
+        ImageCorrectionMode correctionMode = ImageCorrectionMode.AutoLevels,
         int? denoiseD = null, double denoiseSigmaColor = 75, double denoiseSigmaSpace = 75,
         double brightness = 0, double contrast = 1.0, double gamma = 1.0)
     {
@@ -283,7 +306,7 @@ internal sealed class PdfCreator(
 
         if (histogramLevels)
         {
-            AutoLevels(gray);
+            ApplyCorrection(gray, correctionMode);
         }
 
         Cv2.ImEncode(".jpg", gray, out var encoded,
@@ -368,7 +391,7 @@ internal sealed class PdfCreator(
             toProcess.CopyTo(output);
         }
 
-        AutoLevels(output);
+        ApplyCorrection(output, options.CorrectionMode);
 
         Cv2.ImEncode(".jpg", output, out var encoded,
             new ImageEncodingParam(ImwriteFlags.JpegQuality, options.JpegQuality));
@@ -522,7 +545,7 @@ internal sealed class PdfCreator(
         return Math.Acos(Math.Clamp(dot / (mag1 * mag2), -1, 1)) * 180 / Math.PI;
     }
 
-    private static byte[] ApplyNoCrop(byte[] imageData, int jpegQuality)
+    private static byte[] ApplyNoCrop(byte[] imageData, int jpegQuality, ImageCorrectionMode correctionMode)
     {
         using var src = Cv2.ImDecode(imageData, ImreadModes.Color);
         using var gray = new Mat();
@@ -535,10 +558,41 @@ internal sealed class PdfCreator(
             src.CopyTo(gray);
         }
 
-        AutoLevels(gray);
+        ApplyCorrection(gray, correctionMode);
         Cv2.ImEncode(".jpg", gray, out var encoded,
             new ImageEncodingParam(ImwriteFlags.JpegQuality, jpegQuality));
         return encoded;
+    }
+
+    private static void ApplyCorrection(Mat gray, ImageCorrectionMode correctionMode)
+    {
+        if (correctionMode == ImageCorrectionMode.ShadowNormalized)
+        {
+            ShadowNormalize(gray);
+            return;
+        }
+
+        AutoLevels(gray);
+    }
+
+    public static void ShadowNormalize(Mat gray)
+    {
+        using var background = new Mat();
+        var kernel = MakeOdd(Math.Max(gray.Width, gray.Height) / 18);
+        Cv2.GaussianBlur(gray, background, new Size(kernel, kernel), 0);
+
+        using var gray32 = new Mat();
+        using var background32 = new Mat();
+        gray.ConvertTo(gray32, MatType.CV_32F);
+        background.ConvertTo(background32, MatType.CV_32F);
+
+        using var backgroundPlus = new Mat();
+        Cv2.Add(background32, Scalar.All(1), backgroundPlus);
+
+        using var normalized = new Mat();
+        Cv2.Divide(gray32, backgroundPlus, normalized, scale: 245);
+        normalized.ConvertTo(gray, MatType.CV_8U);
+        AutoLevels(gray, skipFraction: 0.003);
     }
 
     private static Point2f[] ToPixelCorners(CropPoint[] normalizedCorners, int width, int height)
@@ -657,13 +711,13 @@ internal sealed class PdfCreator(
         return Math.Sqrt(dx * dx + dy * dy);
     }
 
-    public static void AutoLevels(Mat gray)
+    public static void AutoLevels(Mat gray, double skipFraction = 0.005)
     {
         using var hist = new Mat();
         Cv2.CalcHist(new[] { gray }, [0], null, hist, 1, [256], [new[] { 0f, 256f }]);
 
         var total = gray.Width * gray.Height;
-        var skip = (int)(total * 0.005);
+        var skip = (int)(total * skipFraction);
 
         var minVal = 0;
         var maxVal = 255;
@@ -714,6 +768,12 @@ internal sealed class PdfCreator(
         using var temp = new Mat();
         Cv2.BilateralFilter(src, temp, d, sigmaColor, sigmaSpace);
         temp.CopyTo(src);
+    }
+
+    private static int MakeOdd(int value)
+    {
+        value = Math.Clamp(value, 51, 301);
+        return value % 2 == 1 ? value : value + 1;
     }
 
     public static void ApplyAdjustments(Mat gray, double brightness = 0, double contrast = 1.0, double gamma = 1.0)

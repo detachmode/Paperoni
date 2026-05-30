@@ -7,7 +7,7 @@ Send photos of documents to a Telegram bot — Paperoni generates structured Mar
 ## What it does
 
 1. You send photos of documents (receipts, invoices, contracts, etc.) to a Telegram bot — individually or as an album
-2. Paperoni processes the images (auto-levels, perspective correction, grayscale)
+2. Paperoni processes the images (perspective correction, grayscale, configurable contrast/shadow correction)
 3. An LLM extracts structured data: title, date, counterparty, tags, category, importance, and a Markdown summary
 4. A formatted Markdown file and an A4 PDF are saved to your output directory (like an Obsidian a vault)
 
@@ -28,6 +28,7 @@ services:
       Telegram__BotToken: "${Telegram__BotToken:?Telegram__BotToken is required}"
       Ai__Endpoint: "http://host.docker.internal:2276"
       Ai__Model: "qwen-3.6-35b-a3b-q4"
+      ImageProcessing__CorrectionMode: "AutoLevels"
       AlbumProcessing__MarkdownOutputPath: /output/markdown
       AlbumProcessing__PdfOutputPath: /output/pdf
       PaperoniWorkingDirectory: /data
@@ -56,6 +57,7 @@ services:
       Ai__Endpoint: "https://opencode.ai/zen/go/v1"
       Ai__Model: "qwen3.6-plus"
       Ai__ApiKey: "${Ai__ApiKey:?Ai__ApiKey is required}"
+      ImageProcessing__CorrectionMode: "AutoLevels"
       AlbumProcessing__MarkdownOutputPath: /output/markdown
       AlbumProcessing__PdfOutputPath: /output/pdf
       PaperoniWorkingDirectory: /data
@@ -108,7 +110,8 @@ All settings are configured via environment variables or `appsettings.json`. Use
 | `Cropping__MediumConfidenceThreshold` | `0.45` | OpenCV score cutoff for medium-confidence crops |
 | `Cropping__LlmTimeoutSeconds` | `120` | LLM crop timeout per Photo |
 | `Cropping__LlmMaxConcurrency` | `1` | Maximum concurrent LLM crop calls |
-| `Cropping__LlmMaxDimension` | `1600` | Maximum long side sent to the LLM crop detector |
+| `Cropping__LlmMaxDimension` | `1024` | Maximum long side sent to the LLM crop detector |
+| `ImageProcessing__CorrectionMode` | `AutoLevels` | PDF image correction mode: `AutoLevels` or `ShadowNormalized` |
 | `AlbumProcessing__TestMode` | `false` | Route all output to `TestModeOutputPath` |
 | `AlbumProcessing__TestModeOutputPath` | — | Output directory in test mode |
 | `AlbumProcessing__WorkingDirectoryRetentionDays` | `7` | Days to keep per-album working directories (≤0 = never clean) |
@@ -167,6 +170,6 @@ Requires .NET 10 SDK.
 
 - **.NET 10** (Worker Service)
 - **Telegram.Bot** — Telegram Bot API
-- **OpenCvSharp** — Image processing (document detection, warp, auto-levels)
+- **OpenCvSharp** — Image processing (document detection, warp, auto-levels, shadow normalization)
 - **Microsoft.Extensions.AI** + **OpenAI client** — LLM integration
 - **QuestPDF** — PDF generation

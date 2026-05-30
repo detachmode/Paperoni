@@ -18,6 +18,7 @@ services:
       AlbumProcessing__PdfOutputPath: /output/pdf
       AlbumProcessing__TestModeOutputPath: /data/test-output
       AlbumProcessing__WorkingDirectoryRetentionDays: "7"
+      ImageProcessing__CorrectionMode: "AutoLevels"
       PaperoniWorkingDirectory: /data
     extra_hosts:
       - host.docker.internal:host-gateway
@@ -28,4 +29,3 @@ services:
 
 # Mount your own custom pipeline.csx file in case you want to modify the pipeline (Prompt, final Markdown structure, etc)
 #      - ./pipeline.csx:/app/defaultPipeline.csx:ro
-

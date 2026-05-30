@@ -130,8 +130,6 @@ internal sealed class AlbumProcessor(
                  ✅ Done in {FormatDuration(TimeSpan.FromSeconds(duration))} — Paperoni v{VersionInfo.Version}{(testMode ? " 🧪" : "")}
 
                  {result.Filename}
-
-                 Files: Markdown ✅  PDF ✅
                  """);
             logger.AlbumComplete();
             return true;

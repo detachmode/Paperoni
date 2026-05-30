@@ -5,11 +5,73 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Paperoni.Contract;
 using Paperoni.ImageProcessing;
+using UglyToad.PdfPig;
 
 namespace Paperoni.Tests;
 
 public class LlmCroppingTests
 {
+    [Fact]
+    public void AddImageProcessing_BindsCorrectionModeFromConfiguration()
+    {
+        var config = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["ImageProcessing:CorrectionMode"] = "ShadowNormalized"
+            })
+            .Build();
+
+        var services = new ServiceCollection();
+        services.AddSingleton(new WorkingDirectory { PaperoniWorkingDirectory = Path.GetTempPath() });
+        services.AddSingleton<IChatClient>(new FakeChatClient());
+        services.AddImageProcessing(config);
+
+        using var sp = services.BuildServiceProvider();
+        var options = sp.GetRequiredService<ImageProcessingOptions>();
+
+        Assert.Equal(ImageCorrectionMode.ShadowNormalized, options.CorrectionMode);
+    }
+
+    [Fact]
+    public async Task CreatePdf_UsesAlbumMetadataAndIgnoresGeneratedImages()
+    {
+        var tempBase = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+        var albumId = 42;
+        var workDir = Path.Combine(tempBase, albumId.ToString());
+        Directory.CreateDirectory(workDir);
+
+        var assemblyDir = Path.GetDirectoryName(typeof(LlmCroppingTests).Assembly.Location)!;
+        var sourceImage = Path.Combine(assemblyDir, "Images", "example-doc.png");
+        File.Copy(sourceImage, Path.Combine(workDir, "1.png"));
+        File.Copy(sourceImage, Path.Combine(workDir, "1_ai_qwen3.6-plus.jpg"));
+
+        var workingDirectory = new WorkingDirectory { PaperoniWorkingDirectory = tempBase };
+        await workingDirectory.WriteData(albumId, new PipelineResult("Metadata Photo Filter", new Dictionary<string, object>()));
+        await workingDirectory.WriteData(albumId, new MetaData
+        {
+            MessageId = albumId,
+            AlbumMessageIds = [1]
+        });
+
+        var config = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?> { ["Cropping:Mode"] = "Off" })
+            .Build();
+
+        var services = new ServiceCollection();
+        services.AddSingleton(workingDirectory);
+        services.AddSingleton<IChatClient>(new FakeChatClient());
+        services.AddImageProcessing(config);
+        services.AddLogging();
+
+        await using var sp = services.BuildServiceProvider();
+        var pdfCreator = sp.GetRequiredService<IPdfCreator>();
+
+        await pdfCreator.CreatePdf(albumId);
+
+        using var pdf = PdfDocument.Open(Path.Combine(workDir, "Metadata Photo Filter.pdf"));
+        Assert.Equal(1, pdf.NumberOfPages);
+    }
+
     [Fact]
     public async Task ForceLlmCrop_UsesMockedAiAndWritesCropDecisionArtifact()
     {
